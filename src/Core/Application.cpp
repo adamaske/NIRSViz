@@ -2,6 +2,7 @@
 #include "Core/Application.h"
 #include "Renderer/Renderer.h"
 
+#include "ProbeLayer.h"
 
 Application* Application::s_Instance = nullptr;
 Application::Application(const ApplicationSpecification& spec)
@@ -26,7 +27,7 @@ Application::Application(const ApplicationSpecification& spec)
 
 	m_ImGuiLayer = new ImGuiLayer();
 	PushOverlay(m_ImGuiLayer);
-
+	PushLayer(new ProbeLayer());
 }
 
 Application::~Application()

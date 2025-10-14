@@ -16,6 +16,19 @@ void Renderer::Init()
 void Renderer::Shutdown()
 {
 }
+ 
+void Renderer::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)
+{
+	vertexArray->Bind();
+	uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
+	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+}
+
+void Renderer::DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount)
+{
+	vertexArray->Bind();
+	glDrawArrays(GL_LINES, 0, vertexCount);
+}
 
 void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 {
@@ -35,22 +48,9 @@ void Renderer::SetClearColor(const glm::vec4& color)
 void Renderer::Clear()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-//void Renderer::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)
-//{
-//	vertexArray->Bind();
-//	uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
-//	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
-//}
-//
-//void Renderer::DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount)
-//{
-//	vertexArray->Bind();
-//	glDrawArrays(GL_LINES, 0, vertexCount);
-//}
-
-void Renderer::SetLineWidth(float width)
-{
+}							   
+										   
+void Renderer::SetLineWidth(float width)   
+{										   
 	glLineWidth(width);
 }
