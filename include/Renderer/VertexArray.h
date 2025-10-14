@@ -9,14 +9,18 @@ public:
 	VertexArray();
 	~VertexArray();
 
-	void Bind();
-	void Unbind();
+	void Bind() const;
+	void Unbind() const;
 
 	void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer);
 	void SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer);
 
 	const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const { return m_VertexBuffers; }
 	const Ref<IndexBuffer>& GetIndexBuffer() const { return m_IndexBuffer; }
+
+	uint32_t GetVertexBufferCount() const { return m_VertexBuffers.size(); };
+	uint32_t GetVertexCount() const;
+
 private:
 	uint32_t m_RendererID;
 	uint32_t m_VertexBufferIndex = 0;

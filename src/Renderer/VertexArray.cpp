@@ -26,8 +26,6 @@ static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
 
 VertexArray::VertexArray()
 {
-	
-
 	glCreateVertexArrays(1, &m_RendererID);
 }
 
@@ -36,12 +34,12 @@ VertexArray::~VertexArray()
 	glDeleteVertexArrays(1, &m_RendererID);
 }
 
-void VertexArray::Bind()
+void VertexArray::Bind() const
 {
 	glBindVertexArray(m_RendererID);
 }
 
-void VertexArray::Unbind()
+void VertexArray::Unbind() const
 {
 	glBindVertexArray(0);
 }
@@ -120,4 +118,15 @@ void VertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
 	indexBuffer->Bind();
 
 	m_IndexBuffer = indexBuffer;
+}
+
+uint32_t VertexArray::GetVertexCount() const
+{
+	if (m_VertexBuffers.size() == 0)
+		return 0;
+
+	uint32_t sum = 0;
+	for(auto& vb : m_VertexBuffers)
+		sum += vb->GetLayout().GetStride();
+	return sum;
 }

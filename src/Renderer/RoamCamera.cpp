@@ -9,13 +9,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <algorithm> // For std::min/max/clamp
 
-RoamCamera::RoamCamera(float fov, float aspectRatio, float nearClip, float farClip)
-{
-    UpdateCameraVectors();
-    UpdateViewMatrix();
-    UpdateProjectionMatrix();
-}
-
 void RoamCamera::OnUpdate(float dt)
 {
     if (Input::IsMouseButtonPressed(Mouse::ButtonRight)) {
@@ -91,18 +84,13 @@ void RoamCamera::OnEvent(Event& e)
 
 void RoamCamera::UpdateCameraVectors() {
     glm::vec3 front_temp;
-    // Angles must be converted to radians for cos/sin functions
+
     front_temp.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
     front_temp.y = sin(glm::radians(m_Pitch));
     front_temp.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
 
     front = glm::normalize(front_temp);
-
-    // Also recalculate the Right and Up vectors
-    // Right = normalize(cross(Front, WorldUp))
     right = glm::normalize(glm::cross(front, WORLD_UP));
-
-    // Up = normalize(cross(Right, Front))
     up = glm::normalize(glm::cross(right, front));
 }
 

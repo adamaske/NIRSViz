@@ -6,7 +6,7 @@ class VertexBuffer
 {
 public:
 	VertexBuffer(uint32_t size);
-	VertexBuffer(float* vertices, uint32_t size);
+	VertexBuffer(void* vertices, uint32_t size);
 	virtual ~VertexBuffer();
 
 	void Bind();

@@ -74,7 +74,7 @@ namespace Utils {
 		return false;
 	}
 
-	static GLenum HazelFBTextureFormatToGL(FramebufferTextureFormat format)
+	static GLenum FBTextureFormatToGL(FramebufferTextureFormat format)
 	{
 		switch (format)
 		{
@@ -172,7 +172,6 @@ void Framebuffer::Invalidate()
 	}
 
 	NVIZ_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete!");
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -217,5 +216,44 @@ void Framebuffer::ClearAttachment(uint32_t attachmentIndex, int value)
 
 	auto& spec = m_ColorAttachmentSpecifications[attachmentIndex];
 	glClearTexImage(m_ColorAttachments[attachmentIndex], 0,
-		Utils::HazelFBTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
+		Utils::FBTextureFormatToGL(spec.TextureFormat), GL_INT, &value);
+}
+
+void Framebuffer::DebugCheckColor(uint32_t expectedR, uint32_t expectedG, uint32_t expectedB)
+{
+	// Check points: center, four corners (using 10-pixel padding)
+	uint32_t W = m_Specification.Width;
+	uint32_t H = m_Specification.Height;
+
+	std::vector<glm::ivec2> samplePoints = {
+		{W / 2, H / 2}, // Center
+		{10, 10},       // Bottom-Left
+		{W - 10, 10},   // Bottom-Right
+		{10, H - 10},   // Top-Left
+		{W - 10, H - 10} // Top-Right
+	};
+
+	bool allMatch = true;
+	for (const auto& p : samplePoints)
+	{
+		// Assuming ReadPixel returns a combined 32-bit integer (R, G, B, A)
+		int color = ReadPixel(0, p.x, p.y);
+
+		// Convert the integer back to components (if your ReadPixel returns a packed int)
+		uint8_t R = (color >> 0) & 0xFF;
+		uint8_t G = (color >> 8) & 0xFF;
+		uint8_t B = (color >> 16) & 0xFF;
+
+		if (R != expectedR || G != expectedG || B != expectedB)
+		{
+			NVIZ_WARN("FBO Mismatch at ({0}, {1}): Expected ({2},{3},{4}), Got ({5},{6},{7})",
+				p.x, p.y, expectedR, expectedG, expectedB, R, G, B);
+			allMatch = false;
+		}
+	}
+
+	if (allMatch)
+	{
+		NVIZ_INFO("FBO Color Confirmed: All sample points match the clear color.");
+	}
 }

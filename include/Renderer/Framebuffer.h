@@ -42,7 +42,7 @@ struct FramebufferSpecification
 	uint32_t Width = 0, Height = 0;
 	FramebufferAttachmentSpecification Attachments;
 	uint32_t Samples = 1;
-
+	uint32_t ID = 0;// Unique identifier for the framebuffer
 	bool SwapChainTarget = false;
 };
 
@@ -62,10 +62,13 @@ public:
 	int ReadPixel(uint32_t attachmentIndex, int x, int y);
 	
 	void ClearAttachment(uint32_t attachmentIndex, int value);
+
+	void DebugCheckColor(uint32_t expectedR, uint32_t expectedG, uint32_t expectedB);
 	
 	uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const { NVIZ_ASSERT(index < m_ColorAttachments.size()); return m_ColorAttachments[index]; }
 	
 	const FramebufferSpecification& GetSpecification() const { return m_Specification; }
+	uint32_t GetID() const { return m_Specification.ID; }
 private:
 
 	uint32_t m_RendererID = 0;

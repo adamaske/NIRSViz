@@ -4,8 +4,12 @@
 
 class RoamCamera : public Camera
 {
-	RoamCamera() = default;
-	RoamCamera(float fov, float aspectRatio, float nearClip, float farClip);
+public:
+	RoamCamera() {
+		UpdateCameraVectors();
+		UpdateViewMatrix();
+		UpdateProjectionMatrix();
+	};
 
 	void OnUpdate(float dt) override;
 	void OnEvent(Event& e) override;
@@ -16,6 +20,7 @@ class RoamCamera : public Camera
 	void UpdateViewMatrix() override;
 	void UpdateProjectionMatrix() override;
 
+	void SetPosition(glm::vec3 pos) { m_Position = pos; UpdateViewMatrix(); }
 private:
 
 	glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
@@ -24,7 +29,7 @@ private:
 	float m_RotationSpeed = 20.0f;   // Radians per pixel
 	glm::vec2 m_InitalMousePosition = { 0.0f, 0.0f };
 	float m_Distance = 10.0f;
-	float m_Pitch = 0.0f, m_Yaw = 0.0f;
+	float m_Pitch = 0.0f, m_Yaw = -90.0f;
 
 	bool m_IsRMBDown = false;
 

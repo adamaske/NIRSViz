@@ -2,7 +2,8 @@
 #include "Renderer/Renderer.h"
 
 #include "glad/glad.h"
-//Scope<Renderer::SceneData> Renderer::s_SceneData = CreateScope<Renderer::SceneData>();
+
+Scope<RendererData> Renderer::s_Data = CreateScope<RendererData>();
 
 void Renderer::Init()
 {
@@ -16,18 +17,101 @@ void Renderer::Init()
 void Renderer::Shutdown()
 {
 }
- 
-void Renderer::DrawIndexed(const Ref<VertexArray>& vertexArray, uint32_t indexCount)
+
+
+void Renderer::BeginScene()
 {
-	vertexArray->Bind();
-	uint32_t count = indexCount ? indexCount : vertexArray->GetIndexBuffer()->GetCount();
-	glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+	s_Data->CommandQueue.clear();
+	//s_Data->ActiveViews.clear();
 }
 
-void Renderer::DrawLines(const Ref<VertexArray>& vertexArray, uint32_t vertexCount)
+void Renderer::EndScene()
+{
+}
+ 
+void Renderer::ExecuteQueue()
+{
+	if (s_Data->CommandQueue.empty())
+		return;
+
+	std::sort(s_Data->CommandQueue.begin(), s_Data->CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
+		return a.ViewTargetID < b.ViewTargetID;
+		});
+
+
+	Ref<Framebuffer> currentBoundFBO = nullptr;
+	Ref<Camera> currentBoundCamera = nullptr;
+	ViewID currentViewID = (ViewID)-1; // An invalid ID to force the first bind
+
+	for (const auto& command : s_Data->CommandQueue) {
+		if (command.ViewTargetID != currentViewID)
+		{
+			auto it = s_Data->ActiveViews.find(command.ViewTargetID);
+			if (it == s_Data->ActiveViews.end())
+			{
+				NVIZ_ERROR("Render command requested non-existent ViewTargetID: {0}", command.ViewTargetID);
+				continue;
+			}
+
+			currentViewID = command.ViewTargetID;
+
+			const RenderView& currentView = it->second;
+			
+			currentBoundCamera = currentView.Camera;
+
+			currentBoundFBO = currentView.TargetFBO;
+			currentBoundFBO->Bind();
+
+			Renderer::SetClearColor({ 0.4f, 0.4f, 0.7f, 1.0f });
+			Renderer::Clear();
+
+		}
+
+		auto shader = command.ShaderPtr;
+		shader->Bind();
+		shader->SetUniformMat4f("u_ViewMatrix", currentBoundCamera->GetViewMatrix());
+		shader->SetUniformMat4f("u_ProjectionMatrix", currentBoundCamera->GetProjectionMatrix());
+		shader->SetUniformMat4f("u_Transform", command.Transform);
+		shader->SetUniform4f("u_Color", 1, 1, 1, 1.0);
+			
+		switch (command.Mode) {
+		case DrawMode::DRAW_ELEMENTS:
+			DrawIndexed(command.VAOPtr, 0);
+			break;
+		case DrawMode::DRAW_LINES:
+			DrawLines(command.VAOPtr, 0);
+			break;
+		}
+		
+		shader->Unbind();
+
+		currentBoundFBO->Unbind();
+
+	}
+
+
+}
+
+void Renderer::Submit(const RenderCommand& command)
+{
+	s_Data->CommandQueue.push_back(command);
+}
+
+void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewID viewId, DrawMode mode)
+{
+	s_Data->CommandQueue.push_back(RenderCommand{ &shader, &va, transform, viewId,  mode});
+}
+
+void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)
 {
 	vertexArray->Bind();
-	glDrawArrays(GL_LINES, 0, vertexCount);
+	glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+}
+
+void Renderer::DrawLines(const VertexArray* vertexArray, uint32_t vertexCount)
+{
+	vertexArray->Bind();
+	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
 }
 
 void Renderer::OnWindowResize(uint32_t width, uint32_t height)

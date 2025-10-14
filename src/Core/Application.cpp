@@ -3,6 +3,7 @@
 #include "Renderer/Renderer.h"
 
 #include "ProbeLayer.h"
+#include "Core/AssetManager.h"
 
 Application* Application::s_Instance = nullptr;
 Application::Application(const ApplicationSpecification& spec)
@@ -45,9 +46,12 @@ void Application::Run()
 
 		if (!m_Minimized)
 		{
+			Renderer::BeginScene();
+
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(delta_time);
 
+			//Renderer::ExecuteQueue();
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
