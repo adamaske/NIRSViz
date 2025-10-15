@@ -51,7 +51,7 @@ void Application::Run()
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(delta_time);
 
-			//Renderer::ExecuteQueue();
+			Renderer::ExecuteQueue();
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
@@ -90,6 +90,14 @@ void Application::PushLayer(Layer* layer)
 void Application::PushOverlay(Layer* layer)
 {
 	m_LayerStack.PushOverlay(layer);
+}
+
+Layer* Application::GetLayer(const std::string& name)
+{
+	// The layerstack 
+
+
+	return nullptr;
 }
 
 bool Application::OnWindowClose(WindowCloseEvent& e)

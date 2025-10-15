@@ -59,10 +59,14 @@ void Renderer::ExecuteQueue()
 			
 			currentBoundCamera = currentView.Camera;
 
+			if (currentBoundFBO) {
+				currentBoundFBO->Unbind();
+			}
+
 			currentBoundFBO = currentView.TargetFBO;
 			currentBoundFBO->Bind();
 
-			Renderer::SetClearColor({ 0.4f, 0.4f, 0.7f, 1.0f });
+			Renderer::SetClearColor({ 0.45f, 0.55f, 0.60f, 1.00f });
 			Renderer::Clear();
 
 		}
@@ -72,8 +76,8 @@ void Renderer::ExecuteQueue()
 		shader->SetUniformMat4f("u_ViewMatrix", currentBoundCamera->GetViewMatrix());
 		shader->SetUniformMat4f("u_ProjectionMatrix", currentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
-		shader->SetUniform4f("u_Color", 1, 1, 1, 1.0);
-			
+
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		switch (command.Mode) {
 		case DrawMode::DRAW_ELEMENTS:
 			DrawIndexed(command.VAOPtr, 0);
@@ -83,13 +87,11 @@ void Renderer::ExecuteQueue()
 			break;
 		}
 		
-		shader->Unbind();
-
-		currentBoundFBO->Unbind();
 
 	}
 
 
+	currentBoundFBO->Unbind();
 }
 
 void Renderer::Submit(const RenderCommand& command)
@@ -105,7 +107,8 @@ void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transfor
 void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)
 {
 	vertexArray->Bind();
-	glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vertexArray->GetIndexBuffer()->GetCount()), GL_UNSIGNED_INT, 0);
+	vertexArray->Unbind();
 }
 
 void Renderer::DrawLines(const VertexArray* vertexArray, uint32_t vertexCount)

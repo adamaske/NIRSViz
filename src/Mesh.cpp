@@ -8,13 +8,20 @@
 #include <tuple>
 #include <spdlog/spdlog.h>
 #include <glm/glm.hpp>
+#define TINYOBJLOADER_IMPLEMENTATION 
+#include "tinyobjloader.h"
+
 Mesh::Mesh()
 {
 }
 Mesh::Mesh(const fs::path& obj_filepath)
 {
+
+    // Test
+    LoadModel(obj_filepath.string(), m_Vertices, m_Indices);
+
     // Read OBJ file directly, 
-    LoadObj(obj_filepath.string(), m_Vertices, m_Indices);
+    //LoadObj(obj_filepath.string(), m_Vertices, m_Indices);
     SetupBuffers();
 }
 
@@ -26,25 +33,105 @@ void Mesh::SetupBuffers()
 {
     m_VBO = CreateRef<VertexBuffer>(&m_Vertices[0], m_Vertices.size() * sizeof(Vertex));
     m_IBO = CreateRef<IndexBuffer>(&m_Indices[0], (unsigned int)m_Indices.size());
-    m_VAO = CreateRef<VertexArray>();
 
-    BufferElement pos = { ShaderDataType::Float3, "positions", false };
-    BufferElement norms = { ShaderDataType::Float3, "normals", false };
-    BufferElement cords = { ShaderDataType::Float2, "texcoords", false };
-    BufferLayout layout = { pos, norms, cords };
+    BufferElement pos   =   { ShaderDataType::Float3, "aPos", false };
+    BufferElement norms =   { ShaderDataType::Float3, "aNormal", false };
+    BufferElement cords =   { ShaderDataType::Float2, "aTexCoord", false };
+    BufferLayout layout = BufferLayout{ pos, norms, cords };
     m_VBO->SetLayout(layout);
 
+    m_VAO = CreateRef<VertexArray>();
 	m_VAO->AddVertexBuffer(m_VBO);
     m_VAO->SetIndexBuffer(m_IBO);
 }
 
+bool Mesh::LoadModel(const std::string& inputFile,
+    std::vector<Vertex>& vertices,
+    std::vector<unsigned int>& indices) {
+
+    vertices.clear();
+    indices.clear();
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn;
+    std::string err;
+
+    // Load the model
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, inputFile.c_str());
+
+    if (!warn.empty()) {
+        NVIZ_WARN("tinyobjloader WARNING : {0}",  warn);
+    }
+    if (!err.empty()) {
+        NVIZ_ERROR("tinyobjloader ERROR : {0}", err);
+    }
+    if (!ret) {
+        return false;
+    }
+
+
+    // --- Processing Data for Indexed Rendering ---
+    std::unordered_map<Vertex, unsigned int> uniqueVertices{};
+    for (const auto& shape : shapes) {
+        // Iterate over all faces (indices)
+        for (const auto& index : shape.mesh.indices) {
+
+            Vertex vertex{};
+
+            // 1. Get Position (v)
+            if (index.vertex_index >= 0) {
+                vertex.position = {
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
+                };
+            }
+
+            // 2. Get Texture Coordinates (vt)
+            if (index.texcoord_index >= 0) {
+                vertex.tex_coords = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    // tinyobjloader assumes (u, v), OpenGL/Vulkan typically uses (u, 1.0 - v)
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+            }
+
+            // 3. Get Normal (vn)
+            if (index.normal_index >= 0) {
+                vertex.normal = {
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
+                };
+            }
+
+            // Check if the vertex already exists
+            if (uniqueVertices.count(vertex) == 0) {
+                // New unique vertex:
+                // 1. Store the index for this new vertex
+                uniqueVertices[vertex] = static_cast<unsigned int>(vertices.size());
+                // 2. Add the vertex data to the main vertex buffer
+                vertices.push_back(vertex);
+            }
+
+            // Add the index of the (either new or existing) vertex to the index buffer
+            indices.push_back(uniqueVertices.at(vertex));
+        }
+        
+    }
+    NVIZ_INFO("Loaded OBJ : {0}", inputFile);
+	NVIZ_INFO("Vertices: {0}, Indices: {1}", vertices.size(), indices.size());
+    return true;
+}
+
 bool Mesh::LoadObj(const std::string& filename,
-    std::vector<Vertex>& m_Vertices,
-    std::vector<unsigned int>& m_Indices)
+    std::vector<Vertex>& vertices,
+    std::vector<unsigned int>& indices)
 {
-    // Clear existing data (good practice)
-    m_Vertices.clear();
-    m_Indices.clear();
+    vertices.clear();
+    indices.clear();
 
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -56,14 +143,14 @@ bool Mesh::LoadObj(const std::string& filename,
     std::vector<glm::vec2> texCoords;
     std::vector<glm::vec3> normals;
 
-    // OBJ m_Indices are 1-based, push dummy values at index 0 to align to 1-based indexing easily.
+    // OBJ indices are 1-based, push dummy values at index 0 to align to 1-based indexing easily.
     positions.emplace_back(0.0f);
     texCoords.emplace_back(0.0f);
     normals.emplace_back(0.0f);
 
     // This map ensures vertex reuse (DEDUPLICATION)
-    std::unordered_map<Vertex, unsigned int> uniquem_Vertices;
-    uniquem_Vertices.reserve(10000); // Reserve memory for typical mesh size
+    std::unordered_map<Vertex, unsigned int> uniqueVertices;
+    uniqueVertices.reserve(10000); // Reserve memory for typical mesh size
 
     std::string line;
     while (std::getline(file, line)) {
@@ -98,10 +185,10 @@ bool Mesh::LoadObj(const std::string& filename,
                 std::replace(vertex_data.begin(), vertex_data.end(), '/', ' ');
                 std::stringstream vs(vertex_data);
 
-                // OBJ m_Indices
+                // OBJ indices
                 unsigned int vi, ti = 0, ni = 0;
 
-                // Read up to 3 m_Indices. The ti and ni are optional.
+                // Read up to 3 indices. The ti and ni are optional.
                 vs >> vi;
                 if (!(vs >> ti)) ti = 0;
                 if (!(vs >> ni)) ni = 0;
@@ -117,18 +204,19 @@ bool Mesh::LoadObj(const std::string& filename,
                 if (ni > 0 && ni < normals.size()) v.normal = normals[ni];
 
                 // --- 2. Deduplicate/Index ---
-                if (uniquem_Vertices.count(v) == 0) {
+                if (uniqueVertices.count(v) == 0) {
                     // New unique vertex found: add it and store its index
-                    unsigned int new_index = static_cast<unsigned int>(m_Vertices.size());
-                    uniquem_Vertices[v] = new_index;
-                    m_Vertices.push_back(v);
+                    unsigned int new_index = static_cast<unsigned int>(vertices.size());
+                    uniqueVertices[v] = new_index;
+                    vertices.push_back(v);
                 }
 
-                // Add the index to the m_Indices list
-                m_Indices.push_back(uniquem_Vertices[v]);
+                // Add the index to the indices list
+                indices.push_back(uniqueVertices[v]);
             }
         }
     }
+
 
     NVIZ_INFO("OBJ Load successful. m_Vertices: {0}, m_Indices: {1}", m_Vertices.size(), m_Indices.size());
     return true;

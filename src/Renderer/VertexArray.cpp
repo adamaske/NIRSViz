@@ -61,6 +61,8 @@ void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
 		case ShaderDataType::Float3:
 		case ShaderDataType::Float4:
 		{
+			NVIZ_INFO("Adding VBO Element: Name = {0}, Type = {1}, Size = {2}, Offset = {3}, Normalized = {4} at index {5}",
+				element.Name, (int)element.Type, element.Size, element.Offset, element.Normalized, m_VertexBufferIndex);
 			glEnableVertexAttribArray(m_VertexBufferIndex);
 			glVertexAttribPointer(m_VertexBufferIndex,
 				element.GetComponentCount(),
@@ -118,6 +120,7 @@ void VertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
 	indexBuffer->Bind();
 
 	m_IndexBuffer = indexBuffer;
+
 }
 
 uint32_t VertexArray::GetVertexCount() const

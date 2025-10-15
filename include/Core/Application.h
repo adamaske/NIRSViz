@@ -43,6 +43,8 @@ public:
 	void PushLayer(Layer* layer);
 	void PushOverlay(Layer* layer);
 
+	Layer* GetLayer(const std::string& name);
+
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
 
@@ -53,12 +55,11 @@ private:
 	ApplicationSpecification m_Specification;
 	Scope<Window> m_Window;
 	ImGuiLayer* m_ImGuiLayer;
+	LayerStack m_LayerStack;
 
 	bool m_Running = true;
 	bool m_Minimized = false;
 	float m_LastTime = 0.0f;
 
-	LayerStack m_LayerStack;
-	//ImGuiLayer* m_ImGuiLayer;
 
 };

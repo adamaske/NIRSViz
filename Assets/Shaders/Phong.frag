@@ -1,32 +1,30 @@
-#version 440 core
+#version 330 core
 
-in vec3 FragPos;     // from vertex shader
-in vec3 Normal;      // from vertex shader
-uniform vec3 viewPos;
-uniform vec3 lightPos;
-uniform vec3 lightColor;
-uniform vec3 objectColor;
+// Input from Vertex Shader
+in vec3 v_Normal;
 
+// Output color for the framebuffer
 out vec4 color;
 
-void main() {
-    // Ambient
-    float ambientStrength = 0.2;
-    vec3 ambient = ambientStrength * lightColor;
+// Uniforms for Lighting
+uniform vec3 u_LightDirection; // Direction *to* the light source (normalized)
+uniform vec3 u_LightColor = vec3(1.0, 1.0, 1.0);
+uniform vec3 u_ObjectColor = vec3(0.8, 0.8, 0.8);
 
-    // Diffuse
-    vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = diff * lightColor;
+void main()
+{
+    vec3 N = normalize(v_Normal);
+    vec3 L = normalize(u_LightDirection); // L is now in View Space, matching N
 
-    // Specular
-    float specularStrength = 0.6;
-    vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = specularStrength * spec * lightColor;
+    float diff = max(dot(N, L), 0.0);
+    // 4. Calculate the diffuse color
+    vec3 diffuse = u_LightColor * u_ObjectColor * diff;
 
-    vec3 result = (ambient + diffuse + specular) * objectColor;
-    color = vec4(result, 1.0);
+    // Optional: Add a small ambient term to light up the dark side
+    vec3 ambient = u_ObjectColor * 0.1; // 10% ambient light
+
+    // 5. Final color is Ambient + Diffuse
+    vec3 finalColor = ambient + diffuse;
+
+    color = vec4(finalColor, 1.0);
 }

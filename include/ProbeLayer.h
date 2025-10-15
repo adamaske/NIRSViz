@@ -9,6 +9,16 @@
 #include "Renderer/VertexArray.h"
 #include "Mesh.h"
 
+enum ProbeType {
+	HBO, 
+	HBR,
+	HBT
+};
+
+struct Probe {
+	 
+};
+
 class ProbeLayer : public Layer {
 public:
 	ProbeLayer();
@@ -29,7 +39,6 @@ public:
 	void LoadProbeButton();
 	void LoadProbeFile(const std::string& filepath);
 
-
 private:
 	std::string m_CurrentFilepath = "";
 	bool m_ProbeLoaded = false;
@@ -47,6 +56,9 @@ private:
 	}
 
 	Ref<Shader> m_FlatColorShader = nullptr;
-	Ref<VertexArray> m_ProbeVAO = nullptr;
+	Ref<Shader> m_PhongShader = nullptr;
+
 	Ref<Mesh> m_ProbeMesh = nullptr;
+	Ref<Mesh> m_CortexMesh = nullptr;
+	Ref<Mesh> m_HeadMesh = nullptr;
 };

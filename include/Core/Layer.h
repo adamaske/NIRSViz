@@ -4,8 +4,9 @@
 
 class Layer
 {
-public:
+private:
 	std::string debug_name;
+public:
 
 	Layer(const std::string& name = "Layer") : debug_name(debug_name)
 	{

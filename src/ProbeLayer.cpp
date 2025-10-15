@@ -51,6 +51,9 @@ void ProbeLayer::OnAttach()
 	m_FlatColorShader = CreateRef<Shader>(
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
+	m_PhongShader = CreateRef<Shader>(
+		"C:/dev/NIRSViz/Assets/Shaders/Phong.vert",
+		"C:/dev/NIRSViz/Assets/Shaders/Phong.frag");
 
 	m_RoamCamera = CreateRef<RoamCamera>();
 	m_OrbitCamera = CreateRef<OrbitCamera>();
@@ -62,7 +65,11 @@ void ProbeLayer::OnAttach()
 	fbSpec.Height = app.GetWindow().GetHeight();
 	m_Framebuffer = CreateRef<Framebuffer>(fbSpec);
 
-	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/example_scalp_2.obj");
+	Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
+
+	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
+	//m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
+	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
 }
 
 void ProbeLayer::OnDetach()
@@ -73,44 +80,36 @@ void ProbeLayer::OnUpdate(float dt)
 {
 	auto& camera = m_RoamCamera;// GetActiveCamera();
 	camera->OnUpdate(dt);
+	auto view_pos = camera->GetPosition();
 
-	glDisable(GL_CULL_FACE); 
-	glDisable(GL_DEPTH_TEST);
-	m_Framebuffer->Bind();
-	Renderer::SetClearColor({ 0.6f, 0.3f, 0.3f, 1 });
-	Renderer::Clear();
+	RenderCommand cortex_command;
+	cortex_command.ShaderPtr = m_FlatColorShader.get();
+	cortex_command.VAOPtr = m_CortexMesh->GetVAO().get();
+	cortex_command.ViewTargetID = m_ViewTargetID;
+	cortex_command.Transform = glm::mat4(1.0f);
+	cortex_command.Mode = DRAW_ELEMENTS;
+	Renderer::Submit(cortex_command);
 
-	m_FlatColorShader->Bind();
-	m_FlatColorShader->SetUniformMat4f("u_ViewMatrix", camera->GetViewMatrix());
-	m_FlatColorShader->SetUniformMat4f("u_ProjectionMatrix", camera->GetProjectionMatrix());
-	m_FlatColorShader->SetUniformMat4f("u_ModelMatrix", glm::scale(glm::mat4(1.0f), glm::vec3(1, 1, 1)));
-	m_FlatColorShader->SetUniform4f("u_Color", 0.8f, 0.8f, 0.8f, 1.0f);
-
-	m_ProbeMesh->GetVAO()->Bind();
-	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_ProbeMesh->GetIndices().size()), GL_UNSIGNED_INT, 0);
-
-	m_ProbeMesh->GetVAO()->Unbind();
-	m_Framebuffer->Unbind();
 	return;
+	std::vector<glm::vec3> probe_positions = {
+		{0.0f, 150.0f, 0.0f},
+		{20.0f, 0.0f, 0.0f},
+		{-20.0f, 0.0f, 0.0f},
+		{40.0f, 0.0f, 0.0f},
+		{-40.0f, 0.0f, 0.0f},
+	};
+	m_FlatColorShader->SetUniform4f("u_Color", 0.8f, 0.2f, 0.2f, 1.0f);
+	RenderCommand probe_command;
+	probe_command.ShaderPtr = m_FlatColorShader.get();
+	probe_command.VAOPtr = m_ProbeMesh->GetVAO().get();
+	probe_command.ViewTargetID = m_ViewTargetID;
+	probe_command.Mode = DRAW_ELEMENTS;
 
-	std::vector<glm::vec3> posistions = { {0, 0, 0} };
-
-	for (auto& pos : posistions) {
-
-		// Send example RenderCommand
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_FlatColorShader.get();
-		cmd.VAOPtr = m_ProbeVAO.get();
-		cmd.Transform = glm::translate(glm::mat4(1.0f), pos);
-		cmd.ViewTargetID = m_ViewTargetID;
-		cmd.Mode = DRAW_ELEMENTS;
-
-		Renderer::Submit(cmd);
+	for (auto& pos : probe_positions) {
+		probe_command.Transform = glm::scale(glm::mat4(1.0f), glm::vec3(1.f));
+		probe_command.Transform = glm::translate(probe_command.Transform, pos);
+		Renderer::Submit(probe_command);
 	}
-	if (m_DrawProbe && m_ProbeLoaded) {
-		
-	}
-
 
 }
 
@@ -177,8 +176,6 @@ void ProbeLayer::RenderProbeViewport()
 		}
 	}
 	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
-
-	// Ensure the size passed to Image is the *current* panel size
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 
 	ImGui::End();
@@ -197,7 +194,6 @@ void ProbeLayer::RenderProbeInformation()
 	}
 	ImGui::TextWrapped("%s", m_CurrentFilepath.c_str());
 	ImGui::Checkbox("Draw Probe", &m_DrawProbe);
-	ImGui::Checkbox("Roam Camera", &m_UseRoamCamera);
 }
 
 void ProbeLayer::LoadProbeButton()
@@ -221,3 +217,4 @@ void ProbeLayer::LoadProbeFile(const std::string& filepath)
 
 	m_ProbeLoaded = true;
 }
+

@@ -21,6 +21,9 @@ public:
 	Mesh(const fs::path& obj_filepat);
 	~Mesh();
 
+	bool LoadModel(const std::string& inputFile,
+		std::vector<Vertex>& vertices,
+		std::vector<unsigned int>& indices);
 	bool LoadObj(	const std::string& filename,
 					std::vector<Vertex>& vertices,
 					std::vector<unsigned int>& indices
