@@ -68,7 +68,7 @@ void ProbeLayer::OnAttach()
 	Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
 
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
-	//m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
+	m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
 	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
 }
 
@@ -83,14 +83,21 @@ void ProbeLayer::OnUpdate(float dt)
 	auto view_pos = camera->GetPosition();
 
 	RenderCommand cortex_command;
-	cortex_command.ShaderPtr = m_FlatColorShader.get();
+	cortex_command.ShaderPtr = m_PhongShader.get();
 	cortex_command.VAOPtr = m_CortexMesh->GetVAO().get();
 	cortex_command.ViewTargetID = m_ViewTargetID;
 	cortex_command.Transform = glm::mat4(1.0f);
 	cortex_command.Mode = DRAW_ELEMENTS;
 	Renderer::Submit(cortex_command);
 
-	return;
+	RenderCommand head_command;
+	head_command.ShaderPtr = m_PhongShader.get();
+	head_command.VAOPtr = m_HeadMesh->GetVAO().get();
+	head_command.ViewTargetID = m_ViewTargetID;
+	head_command.Transform = glm::scale(glm::mat4(1.0f), glm::vec3(0.1));
+	head_command.Mode = DRAW_ELEMENTS;
+	Renderer::Submit(head_command);
+
 	std::vector<glm::vec3> probe_positions = {
 		{0.0f, 150.0f, 0.0f},
 		{20.0f, 0.0f, 0.0f},
@@ -98,9 +105,9 @@ void ProbeLayer::OnUpdate(float dt)
 		{40.0f, 0.0f, 0.0f},
 		{-40.0f, 0.0f, 0.0f},
 	};
-	m_FlatColorShader->SetUniform4f("u_Color", 0.8f, 0.2f, 0.2f, 1.0f);
+
 	RenderCommand probe_command;
-	probe_command.ShaderPtr = m_FlatColorShader.get();
+	probe_command.ShaderPtr = m_PhongShader.get();
 	probe_command.VAOPtr = m_ProbeMesh->GetVAO().get();
 	probe_command.ViewTargetID = m_ViewTargetID;
 	probe_command.Mode = DRAW_ELEMENTS;

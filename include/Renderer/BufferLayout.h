@@ -77,6 +77,7 @@ public:
 		CalculateOffsetsAndStride();
 	}
 
+	void SetStride(uint32_t stride) { m_Stride = stride; }
 	uint32_t GetStride() const { return m_Stride; }
 	const std::vector<BufferElement>& GetElements() const { return m_Elements; }
 

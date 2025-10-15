@@ -77,7 +77,6 @@ void Renderer::ExecuteQueue()
 		shader->SetUniformMat4f("u_ProjectionMatrix", currentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
 
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		switch (command.Mode) {
 		case DrawMode::DRAW_ELEMENTS:
 			DrawIndexed(command.VAOPtr, 0);

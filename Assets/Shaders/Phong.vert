@@ -1,27 +1,21 @@
 #version 330 core
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
 
-// Input vertex data from the VAO/VBO
-layout (location = 0) in vec4 a_Position; // Vertex position
-layout (location = 1) in vec3 a_Normal;   // Vertex normal (must be enabled in your VAO)
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 LightPos;
 
-// Uniform matrices
-uniform mat4 u_ProjectionMatrix;
+uniform vec3 lightPos = vec3(0, 100, 0); // we now define the uniform in the vertex shader and pass the 'view space' lightpos to the fragment shader. lightPos is currently in world space.
+
+uniform mat4 u_Transform;
 uniform mat4 u_ViewMatrix;
-uniform mat4 u_Transform;       // Model Matrix
-uniform mat4 u_NormalMatrix;    // Inverse Transpose of ModelView Matrix
-
-// Output to Fragment Shader
-out vec3 v_Normal;
+uniform mat4 u_ProjectionMatrix;
 
 void main()
 {
-    // Transform the vertex position to clip space (standard MVP)
-    gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_Transform * a_Position;
-
-    // Transform the normal vector into View Space (or World Space, but View Space is common)
-    // We use the Normal Matrix for this.
-    // Note: We only care about the direction, so we use vec3(0.0) for the translation part
-    v_Normal = mat3(u_NormalMatrix) * a_Normal;
-
-    // The normal will be automatically interpolated across the face (gouraud shading)
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_Transform * vec4(aPos, 1.0);
+    FragPos = vec3(u_ViewMatrix * u_Transform * vec4(aPos, 1.0));
+    Normal = mat3(transpose(inverse(u_ViewMatrix * u_Transform))) * aNormal;
+    LightPos = vec3(u_ViewMatrix * vec4(lightPos, 1.0)); // Transform world-space light position to view-space light position
 }

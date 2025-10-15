@@ -11,8 +11,8 @@
 // Assuming your Vertex structure looks like this:
 struct Vertex {
     glm::vec3 position;
-    glm::vec2 tex_coords;
     glm::vec3 normal;
+    glm::vec2 tex_coords;
 
     // Fix 1: Define the operator directly inside the struct (or class).
     // Member functions defined inside a class/struct body are implicitly inline.

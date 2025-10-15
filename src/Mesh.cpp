@@ -10,7 +10,7 @@
 #include <glm/glm.hpp>
 #define TINYOBJLOADER_IMPLEMENTATION 
 #include "tinyobjloader.h"
-
+#include <glad/glad.h>
 Mesh::Mesh()
 {
 }
@@ -31,17 +31,25 @@ Mesh::~Mesh()
 
 void Mesh::SetupBuffers()
 {
-    m_VBO = CreateRef<VertexBuffer>(&m_Vertices[0], m_Vertices.size() * sizeof(Vertex));
-    m_IBO = CreateRef<IndexBuffer>(&m_Indices[0], (unsigned int)m_Indices.size());
 
-    BufferElement pos   =   { ShaderDataType::Float3, "aPos", false };
-    BufferElement norms =   { ShaderDataType::Float3, "aNormal", false };
-    BufferElement cords =   { ShaderDataType::Float2, "aTexCoord", false };
+    const size_t pos_offset = offsetof(Vertex, position);
+    const size_t norm_offset = offsetof(Vertex, normal);
+    const size_t coords_offset = offsetof(Vertex, tex_coords);
+    const uint32_t total_stride = (uint32_t)sizeof(Vertex);
+
+    m_VAO = CreateRef<VertexArray>();
+	m_VAO->Bind();
+
+    m_VBO = CreateRef<VertexBuffer>(&m_Vertices[0], m_Vertices.size() * sizeof(Vertex));
+    m_IBO = CreateRef<IndexBuffer>(&m_Indices[0], (unsigned int)(m_Indices.size()));
+
+    BufferElement pos = { ShaderDataType::Float3, "aPos", false };
+    BufferElement norms = { ShaderDataType::Float3, "aNormal", false };
+    BufferElement cords = { ShaderDataType::Float2, "aTexCoord", false };
     BufferLayout layout = BufferLayout{ pos, norms, cords };
     m_VBO->SetLayout(layout);
 
-    m_VAO = CreateRef<VertexArray>();
-	m_VAO->AddVertexBuffer(m_VBO);
+    m_VAO->AddVertexBuffer(m_VBO);
     m_VAO->SetIndexBuffer(m_IBO);
 }
 

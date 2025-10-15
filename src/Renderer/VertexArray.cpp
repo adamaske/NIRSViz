@@ -61,7 +61,7 @@ void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
 		case ShaderDataType::Float3:
 		case ShaderDataType::Float4:
 		{
-			NVIZ_INFO("Adding VBO Element: Name = {0}, Type = {1}, Size = {2}, Offset = {3}, Normalized = {4} at index {5}",
+			NVIZ_INFO("Adding Buffer Element: Name = {0}, Type = {1}, Size = {2}, Offset = {3}, Normalized = {4} at index {5}",
 				element.Name, (int)element.Type, element.Size, element.Offset, element.Normalized, m_VertexBufferIndex);
 			glEnableVertexAttribArray(m_VertexBufferIndex);
 			glVertexAttribPointer(m_VertexBufferIndex,
@@ -110,7 +110,8 @@ void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
 			NVIZ_ASSERT(false, "Unknown ShaderDataType!");
 		}
 	}
-
+	glBindVertexArray(0);
+	//vertexBuffer->Unbind();
 	m_VertexBuffers.push_back(vertexBuffer);
 }
 
@@ -120,7 +121,8 @@ void VertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
 	indexBuffer->Bind();
 
 	m_IndexBuffer = indexBuffer;
-
+	//indexBuffer->Unbind();
+	glBindVertexArray(0);
 }
 
 uint32_t VertexArray::GetVertexCount() const
