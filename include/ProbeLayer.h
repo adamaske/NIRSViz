@@ -39,6 +39,7 @@ public:
 	void LoadProbeButton();
 	void LoadProbeFile(const std::string& filepath);
 
+
 private:
 	std::string m_CurrentFilepath = "";
 	bool m_ProbeLoaded = false;
@@ -50,6 +51,7 @@ private:
 	Ref<Framebuffer> m_Framebuffer = nullptr;
 	Ref<RoamCamera> m_RoamCamera = nullptr;
 	Ref<OrbitCamera> m_OrbitCamera = nullptr;
+	void RenderCameraSettingsControls(bool createPanel);
 
 	Ref<Camera> GetActiveCamera() {
 		return m_UseRoamCamera ? m_RoamCamera : (Ref<Camera>)m_OrbitCamera;

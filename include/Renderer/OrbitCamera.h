@@ -19,7 +19,7 @@ public:
 
 	std::string current_orbit_position = "Default";
 	std::vector<std::tuple<std::string, std::tuple<float, float>>> orbit_positions = {
-		{"Default",			{-100.0f, 22.0f}},
+		{"Default",			{-100.0f, 5.0f}},
 		{"Anterior",        {-90.0f , 0.0f}},
 		{"Posterior",       {90.0f  , 0.0f}},
 		{"Left",            {180.0f , 0.0f}},
@@ -28,7 +28,8 @@ public:
 		{"Inferior",        {90.0f  , -90.0f}}
 	};
 
-	OrbitCamera() = default;
+	OrbitCamera();
+	~OrbitCamera();
 
 	void OnUpdate(float dt) override;
 	void OnEvent(Event& e) override;
@@ -41,4 +42,8 @@ public:
 
 	void SetOrbitPosition(float theta, float phi, float distance);
 	void SetOrbitPosition(const std::string& name);
+
+	void SetTheta(float _theta);
+	void SetPhi(float _phi);
+	void SetRadius(float _radius);
 };

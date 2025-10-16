@@ -141,14 +141,13 @@ void ProbeLayer::OnImGuiRender()
 	}
 	ImGui::TextWrapped("%s", m_CurrentFilepath.c_str());
 	ImGui::Checkbox("Draw Probe", &m_DrawProbe);
-	ImGui::Checkbox("Roam Camera", &m_UseRoamCamera);
+	
+	RenderCameraSettingsControls(false);
+	ImGui::Text("Camera Settings");
+
 
 	auto cam = GetActiveCamera();
 
-	ImGui::DragFloat3("Position", glm::value_ptr(cam->GetPosition()), 0.1f);
-	ImGui::DragFloat3("Front", glm::value_ptr(cam->GetFront()), 0.1f);
-	ImGui::DragFloat3("Right", glm::value_ptr(cam->GetRight()), 0.1f);
-	ImGui::DragFloat3("Up", glm::value_ptr(cam->GetUp()), 0.1f);
 	ImGui::End();
 
 	return;
@@ -223,5 +222,76 @@ void ProbeLayer::LoadProbeFile(const std::string& filepath)
 
 
 	m_ProbeLoaded = true;
+}
+
+void ProbeLayer::RenderCameraSettingsControls(bool createPanel)
+{
+	if (createPanel) ImGui::Begin("Camera Settings");
+	else ImGui::Text("Camera Settings");
+
+
+	const char* combo_preview_value = m_UseRoamCamera ? "Free Roam" : "Orbit Target";
+	if (ImGui::BeginCombo("Camera Mode", combo_preview_value))
+	{
+		if (ImGui::Selectable("Free Roam", m_UseRoamCamera)) {
+			m_UseRoamCamera = true;
+			// we need to reregister the view with the new camera
+			Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
+		}
+
+		if (m_UseRoamCamera)
+			ImGui::SetItemDefaultFocus();
+
+		if (ImGui::Selectable("Orbit Target", !m_UseRoamCamera)) {
+			m_UseRoamCamera = false;
+			// Set the orbit distance equal to the distance from the roam camera to the origin
+			m_OrbitCamera->SetRadius(glm::distance(m_RoamCamera->GetPosition(), glm::vec3(0.0f)));
+			Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
+		}
+
+		ImGui::EndCombo();
+	}
+
+	auto cam = GetActiveCamera();
+	if (m_UseRoamCamera) {
+		const glm::vec3& pos = cam->GetPosition();
+		ImGui::Text("Position: %.2f, %.2f, %.2f", pos.x, pos.y, pos.z);
+		const glm::vec3& front = cam->GetFront();
+		ImGui::Text("Front:    %.2f, %.2f, %.2f", front.x, front.y, front.z);
+		const glm::vec3& right = cam->GetRight();
+		ImGui::Text("Right:    %.2f, %.2f, %.2f", right.x, right.y, right.z);
+		const glm::vec3& up = cam->GetUp();
+		ImGui::Text("Up:       %.2f, %.2f, %.2f", up.x, up.y, up.z);
+		ImGui::Text("Pitch:    %.2f", m_RoamCamera->GetPitch());
+		ImGui::Text("Yaw:      %.2f", m_RoamCamera->GetYaw());
+
+	}
+	else {
+
+		if(ImGui::SliderFloat("Orbit Distance", &m_OrbitCamera->m_Radius, 0.1f, 1000.0f)) {
+			m_OrbitCamera->SetOrbitPosition(m_OrbitCamera->m_Theta, m_OrbitCamera->m_Phi, m_OrbitCamera->m_Radius);
+		}
+		if (ImGui::SliderFloat("Theta", &m_OrbitCamera->m_Theta, -360.0f, 360.0f)) {
+			m_OrbitCamera->SetOrbitPosition(m_OrbitCamera->m_Theta, m_OrbitCamera->m_Phi, m_OrbitCamera->m_Radius);
+		}
+		if (ImGui::SliderFloat("Phi", &m_OrbitCamera->m_Phi, -90.0f, 90.0f)) {
+			m_OrbitCamera->SetOrbitPosition(m_OrbitCamera->m_Theta, m_OrbitCamera->m_Phi, m_OrbitCamera->m_Radius);
+		}
+		for(int i = 0; i < m_OrbitCamera->orbit_positions.size(); i++) {
+			auto& pos = m_OrbitCamera->orbit_positions[i];
+			if (ImGui::Button(std::get<0>(pos).c_str())) {
+				m_OrbitCamera->SetOrbitPosition(std::get<0>(pos));
+			}
+			if (ImGui::IsItemHovered()) {
+				std::tuple<float, float> t_p = std::get<1>(pos);
+				float t = std::get<0>(t_p);
+				auto p = std::get<1>(t_p);
+				ImGui::SetTooltip("Theta: %.1f, Phi: %.1f", t, p);
+			}
+				
+			if(i % 3 != 0) ImGui::SameLine();
+		}
+	}
+
 }
 

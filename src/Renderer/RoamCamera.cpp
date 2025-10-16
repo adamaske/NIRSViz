@@ -30,6 +30,8 @@ void RoamCamera::OnUpdate(float dt)
 
         // Clamp pitch to prevent camera flip (standard 89-degree limit)
         m_Pitch = std::clamp(m_Pitch, -89.9f, 89.9f);
+        if(m_Yaw > 360.0f) m_Yaw -= 360.0f;
+		else if (m_Yaw < 0.0f) m_Yaw += 360.0f;
 
         UpdateCameraVectors();
 

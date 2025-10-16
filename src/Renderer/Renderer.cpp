@@ -76,7 +76,7 @@ void Renderer::ExecuteQueue()
 		shader->SetUniformMat4f("u_ViewMatrix", currentBoundCamera->GetViewMatrix());
 		shader->SetUniformMat4f("u_ProjectionMatrix", currentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
-
+		shader->SetUniform3f("lightPos", currentBoundCamera->GetPosition());
 		switch (command.Mode) {
 		case DrawMode::DRAW_ELEMENTS:
 			DrawIndexed(command.VAOPtr, 0);

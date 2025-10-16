@@ -5,6 +5,13 @@
 #include "Core/Input.h"
 #include "Events/KeyCodes.h"
 #include "Events/MouseCodes.h"
+OrbitCamera::OrbitCamera() : Camera()
+{
+	SetOrbitPosition("Default");
+}
+OrbitCamera::~OrbitCamera()
+{
+}
 void OrbitCamera::OnUpdate(float dt)
 {
 }
@@ -43,28 +50,28 @@ void OrbitCamera::SetCurrentTarget(const std::string& name)
 
 void OrbitCamera::SetOrbitPosition(float _theta, float _phi, float _distance)
 {
-    m_Theta = _theta;
-    m_Phi = _phi;
-	m_Radius = _distance;
-
     glm::vec3 target_pos = glm::vec3(0.0f);
     if (orbit_target) {
         target_pos = orbit_target->GetPosition();
     }
 
-    m_Phi = glm::clamp(m_Phi, -89.99f, 89.99f);
-    float theta = glm::radians(m_Theta);
-    float phi = glm::radians(m_Phi);
+    _phi = glm::clamp(_phi, -89.99f, 89.99f);
+    float theta = glm::radians(_theta);
+    float phi = glm::radians(_phi);
 
-    float x = m_Radius * cos(phi) * cos(theta);
-    float y = m_Radius * sin(phi);
-    float z = m_Radius * cos(phi) * sin(theta);
+    float x = _distance * cos(phi) * cos(theta);
+    float y = _distance * sin(phi);
+    float z = _distance * cos(phi) * sin(theta);
 
     m_Position = target_pos + glm::vec3(x, y, z);
 
     front = glm::normalize(target_pos - m_Position);
     right = glm::normalize(glm::cross(front, WORLD_UP));
     up = glm::normalize(glm::cross(right, front));
+
+    m_Theta = _theta;
+    m_Phi = _phi;
+	m_Radius = _distance;
 
     UpdateViewMatrix();
 	UpdateProjectionMatrix();
@@ -77,4 +84,22 @@ void OrbitCamera::SetOrbitPosition(const std::string& _name)
 			SetOrbitPosition(std::get<0>(pos), std::get<1>(pos), m_Radius);
         }
     }
+}
+
+void OrbitCamera::SetTheta(float _theta)
+{
+	m_Theta = _theta;
+	SetOrbitPosition(m_Theta, m_Phi, m_Radius);
+}
+
+void OrbitCamera::SetPhi(float _phi)
+{
+    m_Phi = _phi;
+	SetOrbitPosition(m_Theta, m_Phi, m_Radius);
+}
+
+void OrbitCamera::SetRadius(float _radius)
+{
+    m_Radius = _radius;
+	SetOrbitPosition(m_Theta, m_Phi, m_Radius);
 }

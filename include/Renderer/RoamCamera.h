@@ -21,6 +21,9 @@ public:
 	void UpdateProjectionMatrix() override;
 
 	void SetPosition(glm::vec3 pos) { m_Position = pos; UpdateViewMatrix(); }
+
+	float& GetPitch() { return m_Pitch; }
+	float& GetYaw() { return m_Yaw; }
 private:
 
 	glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
