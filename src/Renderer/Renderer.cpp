@@ -4,14 +4,16 @@
 #include "glad/glad.h"
 
 Scope<RendererData> Renderer::s_Data = CreateScope<RendererData>();
-
+Ref<Framebuffer> Renderer::m_CurrentBoundFBO = nullptr;
+Ref<Camera> Renderer::m_CurrentBoundCamera = nullptr;
 void Renderer::Init()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_LINE_SMOOTH); 
+	glEnable(GL_CULL_FACE);
 }
 
 void Renderer::Shutdown()
@@ -31,16 +33,17 @@ void Renderer::EndScene()
  
 void Renderer::ExecuteQueue()
 {
-	if (s_Data->CommandQueue.empty())
+	if (s_Data->CommandQueue.empty()) {
 		return;
+	}
 
 	std::sort(s_Data->CommandQueue.begin(), s_Data->CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
 		return a.ViewTargetID < b.ViewTargetID;
 		});
 
 
-	Ref<Framebuffer> currentBoundFBO = nullptr;
-	Ref<Camera> currentBoundCamera = nullptr;
+	
+	
 	ViewID currentViewID = (ViewID)-1; // An invalid ID to force the first bind
 
 	for (const auto& command : s_Data->CommandQueue) {
@@ -57,14 +60,14 @@ void Renderer::ExecuteQueue()
 
 			const RenderView& currentView = it->second;
 			
-			currentBoundCamera = currentView.Camera;
+			m_CurrentBoundCamera = currentView.Camera;
 
-			if (currentBoundFBO) {
-				currentBoundFBO->Unbind();
+			if (m_CurrentBoundFBO) {
+				m_CurrentBoundFBO->Unbind();
 			}
 
-			currentBoundFBO = currentView.TargetFBO;
-			currentBoundFBO->Bind();
+			m_CurrentBoundFBO = currentView.TargetFBO;
+			m_CurrentBoundFBO->Bind();
 
 			Renderer::SetClearColor({ 0.45f, 0.55f, 0.60f, 1.00f });
 			Renderer::Clear();
@@ -73,8 +76,8 @@ void Renderer::ExecuteQueue()
 
 		auto shader = command.ShaderPtr;
 		shader->Bind();
-		shader->SetUniformMat4f("u_ViewMatrix", currentBoundCamera->GetViewMatrix());
-		shader->SetUniformMat4f("u_ProjectionMatrix", currentBoundCamera->GetProjectionMatrix());
+		shader->SetUniformMat4f("u_ViewMatrix", m_CurrentBoundCamera->GetViewMatrix());
+		shader->SetUniformMat4f("u_ProjectionMatrix", m_CurrentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
 
 		for (const auto& uniform : command.UniformCommands) {
@@ -102,7 +105,7 @@ void Renderer::ExecuteQueue()
 				break;
 			}
 		}
-		shader->SetUniform3f("lightPos", currentBoundCamera->GetPosition());
+
 		switch (command.Mode) {
 		case DrawMode::DRAW_ELEMENTS:
 			DrawIndexed(command.VAOPtr, 0);
@@ -110,13 +113,14 @@ void Renderer::ExecuteQueue()
 		case DrawMode::DRAW_LINES:
 			DrawLines(command.VAOPtr, 0);
 			break;
+		case DrawMode::DRAW_ARRAYS:
+			DrawArrays(command.VAOPtr, 0);
+			break;
 		}
 		
 
 	}
-
-
-	currentBoundFBO->Unbind();
+	m_CurrentBoundFBO->Unbind();
 }
 
 void Renderer::Submit(const RenderCommand& command)
@@ -137,6 +141,12 @@ void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)
 }
 
 void Renderer::DrawLines(const VertexArray* vertexArray, uint32_t vertexCount)
+{
+	vertexArray->Bind();
+	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
+}
+
+void Renderer::DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount)
 {
 	vertexArray->Bind();
 	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());

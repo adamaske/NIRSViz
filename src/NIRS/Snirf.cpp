@@ -7,8 +7,11 @@
 #include <highfive/H5Easy.hpp>
 
 using namespace HighFive;
+using namespace NIRS;
+
 namespace Utils {
     using namespace HighFive;
+    using namespace NIRS;
 
     std::string ProbeTypeToString(ProbeType type) {
         switch (type) {
@@ -129,7 +132,7 @@ SNIRF::SNIRF(const std::filesystem::path& filepath)
 void SNIRF::LoadFile(const std::filesystem::path& filepath)
 {
     if(!std::filesystem::exists(filepath)) {
-        NVIZ_ERROR("File does not exist: {0}", filepath.string());
+        NVIZ_ERROR("File does not exist: {0}", filepath.string().c_str());
         return;
 	}
 
@@ -207,7 +210,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double y = row_vector(1);
             double z = row_vector(2);
 
-            m_Probes3D.push_back({ glm::vec3(x, y, z), DETECTOR });
+            m_Probes3D.push_back({ glm::vec3(x, z, y), DETECTOR });
         }
     }
 
@@ -243,7 +246,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double y = row_vector(1);
             double z = row_vector(2);
 
-            m_Probes3D.push_back({ glm::vec3(x, y, z), SOURCE });
+            m_Probes3D.push_back({ glm::vec3(x, z, y), SOURCE });
         }
     }
 

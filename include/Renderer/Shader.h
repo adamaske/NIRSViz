@@ -35,4 +35,6 @@ private:
     unsigned int CreateShader(const std::string& vertex_shader, const std::string& fragment_shader);
     unsigned int CompileShader(unsigned int type, const std::string& source);
 
+    std::string m_VertexFilepath;
+    std::string m_FragmentFilepath;
 };

@@ -16,7 +16,10 @@ public:
 
 	const BufferLayout& GetLayout() { return m_Layout; }
 	void SetLayout(const BufferLayout& layout) { m_Layout = layout; }
+
+	uint32_t GetSize() const { return m_Size; }
 private:
 	uint32_t m_RendererID;
 	BufferLayout m_Layout;
+	uint32_t m_Size;
 };

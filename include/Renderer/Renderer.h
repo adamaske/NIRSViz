@@ -16,6 +16,7 @@ struct RenderView {
 enum DrawMode {
 	DRAW_ELEMENTS = 0,
 	DRAW_LINES = 1,
+	DRAW_ARRAYS = 2
 };
 
 enum class UniformDataType {
@@ -75,6 +76,7 @@ public:
 
 	static void DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount = 0);
 	static void DrawLines(const VertexArray* vertexArray, uint32_t vertexCount);
+	static void DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount);
 
 	static void OnWindowResize(uint32_t width, uint32_t height);
 	static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
@@ -84,4 +86,7 @@ public:
 
 private:
 	static Scope<RendererData> s_Data;
+
+	static Ref<Framebuffer> m_CurrentBoundFBO;
+	static Ref<Camera> m_CurrentBoundCamera;
 };

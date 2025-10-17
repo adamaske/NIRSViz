@@ -24,6 +24,9 @@ public:
 
 	float& GetPitch() { return m_Pitch; }
 	float& GetYaw() { return m_Yaw; }
+
+	float& GetMovementSpeed() { return m_MovementSpeed; };
+	float& GetRotationSpeed() { return m_RotationSpeed; };
 private:
 
 	glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };

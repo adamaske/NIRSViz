@@ -17,5 +17,5 @@ void main()
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_Transform * vec4(aPos, 1.0);
     FragPos = vec3(u_ViewMatrix * u_Transform * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(u_ViewMatrix * u_Transform))) * aNormal;
-    LightPos = vec3(u_ViewMatrix * vec4(lightPos, 1.0)); // Transform world-space light position to view-space light position
+    LightPos = vec3(u_ViewMatrix * vec4(u_LightPos, 1.0)); // Transform world-space light position to view-space light position
 }

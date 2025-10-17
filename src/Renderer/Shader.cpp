@@ -20,7 +20,8 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
         NVIZ_ERROR("Fragment shader file does not exist: {0}", fragment_path.c_str());
         return;
     }
-
+    m_FragmentFilepath = fragment_path;
+    m_VertexFilepath = vertex_path;
     std::ifstream vertex_stream(vertex_path);
     std::stringstream vss;
     vss << vertex_stream.rdbuf();
@@ -53,8 +54,8 @@ unsigned int Shader::CompileShader(unsigned int type, const std::string& source)
         char* message = (char*)_malloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message); 
         std::string stype = GL_VERTEX_SHADER ? "vertex" : "fragment";
-        NVIZ_ERROR("Failed to compile shader  : ", stype.c_str());
-        NVIZ_ERROR("Error message : ", message);
+        NVIZ_ERROR("Failed to compile shader  : {}", stype.c_str());
+        NVIZ_ERROR("Error message : {}", message);
         glDeleteShader(id);
         return 0;
     }
@@ -70,7 +71,8 @@ int Shader::GetUniformLocation(const std::string& name)
     // If not in the cache, retrieve it and store it.
     int location = glGetUniformLocation(m_RendererID, name.c_str());
     if (location == -1) {
-        spdlog::error("Warning: uniform {} doesn't exist!", name);
+        NVIZ_ERROR("{}: uniform {} doesn't exist!", m_FragmentFilepath, name);
+        NVIZ_ERROR("Warning: uniform {} doesn't exist!", name);
     }
 
     m_UniformLocationCache[name] = location;

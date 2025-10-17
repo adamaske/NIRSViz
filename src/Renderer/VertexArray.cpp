@@ -130,8 +130,11 @@ uint32_t VertexArray::GetVertexCount() const
 	if (m_VertexBuffers.size() == 0)
 		return 0;
 
+
+
 	uint32_t sum = 0;
-	for(auto& vb : m_VertexBuffers)
-		sum += vb->GetLayout().GetStride();
+	for (auto& vb : m_VertexBuffers)
+		sum += vb->GetSize();
+
 	return sum;
 }

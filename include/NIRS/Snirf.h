@@ -8,24 +8,7 @@
 
 #include <highfive/H5Group.hpp>
 
-enum ProbeType {
-	SOURCE,
-	DETECTOR
-};
-
-struct Probe2D {
-	glm::vec2 Position;
-	ProbeType Type;
-};
-struct Probe3D {
-	glm::vec3 Position;
-	ProbeType Type;
-};
-
-struct Landmark {
-	std::string Name;
-	glm::vec3 Position;
-};
+#include "NIRS/NIRS.h"
 
 class SNIRF {
 public:
@@ -43,9 +26,9 @@ public:
 	bool IsFileLoaded() { return !m_Filepath.empty(); };
 
 
-	std::vector<Probe2D> GetProbes2D() { return m_Probes2D; };
-	std::vector<Probe3D> GetProbes3D() { return m_Probes3D; };
-	std::vector<Landmark> GetLandmarks() { return m_Landmarks; };
+	std::vector<NIRS::Probe2D> GetProbes2D() { return m_Probes2D; };
+	std::vector<NIRS::Probe3D> GetProbes3D() { return m_Probes3D; };
+	std::vector<NIRS::Landmark> GetLandmarks() { return m_Landmarks; };
 private:
 	std::filesystem::path m_Filepath;
 
@@ -54,7 +37,7 @@ private:
 		Eigen::Dynamic, 
 		Eigen::RowMajor> m_ChannelData;
 
-	std::vector<Probe2D> m_Probes2D;
-	std::vector<Probe3D> m_Probes3D;
-	std::vector<Landmark> m_Landmarks;
+	std::vector<NIRS::Probe2D> m_Probes2D;
+	std::vector<NIRS::Probe3D> m_Probes3D;
+	std::vector<NIRS::Landmark> m_Landmarks;
 };
