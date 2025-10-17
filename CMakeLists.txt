@@ -69,7 +69,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${VENDOR_DIR}/spdlog/include
     ${VENDOR_DIR}/glad/include
     ${VENDOR_DIR}/glm
-    ${VENDOR_DIR}/imgui
+    ${VENDOR_DIR}/imgui 
     ${VENDOR_DIR}/HighFive/include
     ${VENDOR_DIR}/Eigen/include 
 )

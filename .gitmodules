@@ -25,3 +25,6 @@
 [submodule "vendor/nativefiledialog-extended"]
 	path = vendor/nativefiledialog-extended
 	url = https://github.com/btzy/nativefiledialog-extended.git
+[submodule "vendor/HighFive"]
+	path = vendor/HighFive
+	url = https://github.com/BlueBrain/HighFive.git

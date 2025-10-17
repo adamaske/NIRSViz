@@ -6,13 +6,20 @@
 #include "Core/AssetManager.h"
 
 Application* Application::s_Instance = nullptr;
-Application::Application(const ApplicationSpecification& spec)
+Application::Application(const ApplicationSpecification& spec) : m_Specification(spec)
 {
+	std::filesystem::path currentDir = std::filesystem::current_path();
+	std::cout << "Current working directory: " << currentDir << std::endl;
 	s_Instance = this;
-
-	// Set working directory here
+	// Set working directory here// Check if the WorkingDirectory string is NOT empty.
 	if (!m_Specification.WorkingDirectory.empty())
+	{
+		// If it's not empty, set the current path to the specified directory.
+		// Note: You might want to add error handling here in case the path is invalid.
 		std::filesystem::current_path(m_Specification.WorkingDirectory);
+	}
+
+	NVIZ_INFO("WORKING DIRECTORY : {0}", m_Specification.WorkingDirectory.c_str());
 
 	WindowSpecification window_spec;
 	window_spec.title = spec.Name;

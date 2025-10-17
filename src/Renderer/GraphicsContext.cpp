@@ -7,7 +7,7 @@
 GraphicsContext::GraphicsContext(GLFWwindow* windowHandle)
 	: m_WindowHandle(windowHandle)
 {
-	NVIZ_ASSERT(windowHandle, "Window handle is null!")
+	NVIZ_ASSERT(windowHandle, "Window handle is null!");
 }
 
 GraphicsContext::~GraphicsContext()

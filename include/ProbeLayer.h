@@ -2,22 +2,14 @@
 
 #include "Core/Layer.h"
 
+#include "Core/Window.h"
 #include "Renderer/Shader.h"
 #include "Renderer/Framebuffer.h"
 #include "Renderer/RoamCamera.h"
 #include "Renderer/OrbitCamera.h"
 #include "Renderer/VertexArray.h"
-#include "Mesh.h"
-
-enum ProbeType {
-	HBO, 
-	HBR,
-	HBT
-};
-
-struct Probe {
-	 
-};
+#include "Renderer/Mesh.h"
+#include "NIRS/Snirf.h"
 
 class ProbeLayer : public Layer {
 public:
@@ -41,9 +33,11 @@ public:
 
 
 private:
-	std::string m_CurrentFilepath = "";
-	bool m_ProbeLoaded = false;
-	bool m_DrawProbe = true;
+	bool m_DrawCortex = false;
+	bool m_DrawHead = false;
+	bool m_DrawScaleRef = true;
+	bool m_DrawProbes = true;
+
 	bool m_UseRoamCamera = true;
 	
 	uint32_t m_ViewTargetID = 1; // Passed to renderer to specify this viewport
@@ -63,4 +57,7 @@ private:
 	Ref<Mesh> m_ProbeMesh = nullptr;
 	Ref<Mesh> m_CortexMesh = nullptr;
 	Ref<Mesh> m_HeadMesh = nullptr;
+	Ref<Mesh> m_ScaleRefMesh = nullptr;
+
+	Ref<SNIRF> m_SNIRF = nullptr;
 };

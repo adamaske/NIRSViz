@@ -18,6 +18,25 @@ enum DrawMode {
 	DRAW_LINES = 1,
 };
 
+enum class UniformDataType {
+	FLOAT1, FLOAT3, FLOAT2, FLOAT4, MAT4, INT1, BOOL1
+};
+
+struct UniformData {
+	UniformDataType Type;
+	std::string Name; // Name of the uniform in the shader
+
+	union Value {
+		float f1;
+		glm::vec2 f2;
+		glm::vec3 f3;
+		glm::vec4 f4;
+		glm::mat4 m4;
+		int i1;
+		bool b1;
+	} Data;
+};
+
 struct RenderCommand {
 	Shader* ShaderPtr = nullptr;
 	VertexArray* VAOPtr = nullptr;
@@ -26,6 +45,8 @@ struct RenderCommand {
 	// NEW: Which target this command should draw into
 	ViewID ViewTargetID = 0;
 	DrawMode Mode = DRAW_ELEMENTS;
+
+	std::vector<UniformData> UniformCommands = {};
 };
 
 struct RendererData

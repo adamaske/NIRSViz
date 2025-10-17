@@ -11,7 +11,7 @@
 #include "Renderer/Shader.h"
 #include "Renderer/VertexBuffer.h"
 
-#include "Mesh.h"
+#include "NIRS/Snirf.h"
 
 namespace Utils {
 	std::string OpenSNIRFFileDialog() {
@@ -67,9 +67,15 @@ void ProbeLayer::OnAttach()
 
 	Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
 
-	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
+	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/scale_reference_1m.obj");
 	m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
 	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
+	m_ScaleRefMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/scale_reference_1m.obj");
+
+
+	m_SNIRF = CreateRef<SNIRF>();
+
+	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/Post_C3_Trial_1.snirf");
 }
 
 void ProbeLayer::OnDetach()
@@ -78,46 +84,64 @@ void ProbeLayer::OnDetach()
 
 void ProbeLayer::OnUpdate(float dt)
 {
-	auto& camera = m_RoamCamera;// GetActiveCamera();
+	auto camera = GetActiveCamera();
 	camera->OnUpdate(dt);
-	auto view_pos = camera->GetPosition();
 
-	RenderCommand cortex_command;
-	cortex_command.ShaderPtr = m_PhongShader.get();
-	cortex_command.VAOPtr = m_CortexMesh->GetVAO().get();
-	cortex_command.ViewTargetID = m_ViewTargetID;
-	cortex_command.Transform = glm::mat4(1.0f);
-	cortex_command.Mode = DRAW_ELEMENTS;
-	Renderer::Submit(cortex_command);
+	UniformData lightPos;
+	lightPos.Type = UniformDataType::FLOAT3;
+	lightPos.Name = "u_LightPos";
+	lightPos.Data.f3 = camera->GetPosition();
 
-	RenderCommand head_command;
-	head_command.ShaderPtr = m_PhongShader.get();
-	head_command.VAOPtr = m_HeadMesh->GetVAO().get();
-	head_command.ViewTargetID = m_ViewTargetID;
-	head_command.Transform = glm::scale(glm::mat4(1.0f), glm::vec3(0.1));
-	head_command.Mode = DRAW_ELEMENTS;
-	Renderer::Submit(head_command);
+	UniformData objectColor;
+	objectColor.Type = UniformDataType::FLOAT4;
+	objectColor.Name = "u_ObjectColor";
+	objectColor.Data.f4 = { 0.2f, 0.2f, 0.2f, 1.0f };
 
-	std::vector<glm::vec3> probe_positions = {
-		{0.0f, 150.0f, 0.0f},
-		{20.0f, 0.0f, 0.0f},
-		{-20.0f, 0.0f, 0.0f},
-		{40.0f, 0.0f, 0.0f},
-		{-40.0f, 0.0f, 0.0f},
-	};
-
-	RenderCommand probe_command;
-	probe_command.ShaderPtr = m_PhongShader.get();
-	probe_command.VAOPtr = m_ProbeMesh->GetVAO().get();
-	probe_command.ViewTargetID = m_ViewTargetID;
-	probe_command.Mode = DRAW_ELEMENTS;
-
-	for (auto& pos : probe_positions) {
-		probe_command.Transform = glm::scale(glm::mat4(1.0f), glm::vec3(1.f));
-		probe_command.Transform = glm::translate(probe_command.Transform, pos);
-		Renderer::Submit(probe_command);
+	if (m_DrawCortex) {
+		RenderCommand cmd;
+		cmd.ShaderPtr = m_PhongShader.get();
+		cmd.VAOPtr = m_CortexMesh->GetVAO().get();
+		cmd.ViewTargetID = m_ViewTargetID;
+		cmd.Transform = glm::mat4(1.0f);
+		cmd.Mode = DRAW_ELEMENTS;
+		
+		objectColor.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
+		cmd.UniformCommands = { lightPos, objectColor };
+		Renderer::Submit(cmd);
 	}
 
+	if (m_DrawHead) {
+		RenderCommand cmd;
+		cmd.ShaderPtr = m_PhongShader.get();
+		cmd.VAOPtr = m_HeadMesh->GetVAO().get();
+		cmd.ViewTargetID = m_ViewTargetID;
+		cmd.Transform = glm::scale(glm::mat4(1.0f), glm::vec3(0.1));
+		cmd.Mode = DRAW_ELEMENTS;
+		objectColor.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
+		cmd.UniformCommands = { lightPos, objectColor };
+		Renderer::Submit(cmd);
+	}
+
+	if (m_DrawProbes && m_SNIRF->IsFileLoaded()) {
+		auto probes3D = m_SNIRF->GetProbes3D();
+		RenderCommand cmd;
+		cmd.ShaderPtr = m_FlatColorShader.get();
+		cmd.VAOPtr = m_ProbeMesh->GetVAO().get();
+		cmd.ViewTargetID = m_ViewTargetID;
+		cmd.Mode = DRAW_ELEMENTS;
+		for(auto& probe : probes3D) {
+
+			cmd.Transform = glm::translate(glm::mat4(1.0f), probe.Position);
+
+			auto color = probe.Type == SOURCE ? glm::vec4(0.8f, 0.4f, 0.2f, 1.0f) : // Blue for sources
+												glm::vec4(0.2f, 0.4f, 0.8f, 1.0f); // Orange for detectors
+			objectColor.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
+
+			cmd.UniformCommands = { lightPos, objectColor };
+			Renderer::Submit(cmd);
+		}
+
+	}
 }
 
 void ProbeLayer::OnRender()
@@ -129,8 +153,6 @@ void ProbeLayer::OnImGuiRender()
 	RenderProbeViewport();
 
 	ImGui::Begin("Probe Settings");
-
-
 	ImGui::Text("Loaded Probe File:");
 	ImGui::SameLine();
 	if (ImGui::Button("Reload")) {
@@ -139,24 +161,19 @@ void ProbeLayer::OnImGuiRender()
 			LoadProbeFile(newFile);
 		}
 	}
-	ImGui::TextWrapped("%s", m_CurrentFilepath.c_str());
-	ImGui::Checkbox("Draw Probe", &m_DrawProbe);
-	
+	ImGui::TextWrapped("%s", m_SNIRF->IsFileLoaded() ? m_SNIRF->GetFilepath().c_str() : "...");
+
+	ImGui::Checkbox("Draw Probes", &m_DrawProbes);
+	ImGui::Checkbox("Draw Head", &m_DrawHead);
+	ImGui::Checkbox("Draw Cortex", &m_DrawCortex);
+	ImGui::Checkbox("Draw Scale", &m_DrawScaleRef);
+
 	RenderCameraSettingsControls(false);
 	ImGui::Text("Camera Settings");
 
 
 	auto cam = GetActiveCamera();
 
-	ImGui::End();
-
-	return;
-	ImGui::Begin("Probe Settings");
-	if (m_ProbeLoaded) {
-		RenderProbeInformation();
-	}
-	else
-		LoadProbeButton();
 	ImGui::End();
 }
 
@@ -198,8 +215,8 @@ void ProbeLayer::RenderProbeInformation()
 			LoadProbeFile(newFile);
 		}
 	}
-	ImGui::TextWrapped("%s", m_CurrentFilepath.c_str());
-	ImGui::Checkbox("Draw Probe", &m_DrawProbe);
+	ImGui::TextWrapped("%s", m_SNIRF->GetFilepath());
+	ImGui::Checkbox("Draw Probe", &m_DrawProbes);
 }
 
 void ProbeLayer::LoadProbeButton()
@@ -218,10 +235,11 @@ void ProbeLayer::LoadProbeButton()
 void ProbeLayer::LoadProbeFile(const std::string& filepath)
 {
 	NVIZ_ASSERT(std::filesystem::exists(filepath), "File does not exist");
-	m_CurrentFilepath = filepath;
 
+	m_SNIRF->LoadFile(std::filesystem::path(filepath));
 
-	m_ProbeLoaded = true;
+	// For each probe poisition
+	// Im probe positions  
 }
 
 void ProbeLayer::RenderCameraSettingsControls(bool createPanel)

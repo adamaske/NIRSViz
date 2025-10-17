@@ -76,6 +76,32 @@ void Renderer::ExecuteQueue()
 		shader->SetUniformMat4f("u_ViewMatrix", currentBoundCamera->GetViewMatrix());
 		shader->SetUniformMat4f("u_ProjectionMatrix", currentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
+
+		for (const auto& uniform : command.UniformCommands) {
+			switch (uniform.Type) {
+			case UniformDataType::FLOAT1:
+				shader->SetUniform1f(uniform.Name, uniform.Data.f1);
+				break;
+			case UniformDataType::FLOAT2:
+				shader->SetUniform2f(uniform.Name, uniform.Data.f2);
+				break;
+			case UniformDataType::FLOAT3:
+				shader->SetUniform3f(uniform.Name, uniform.Data.f3);
+				break;
+			case UniformDataType::FLOAT4:
+				shader->SetUniform4f(uniform.Name, uniform.Data.f4);
+				break;
+			case UniformDataType::MAT4:
+				shader->SetUniformMat4f(uniform.Name, uniform.Data.m4);
+				break;
+			case UniformDataType::INT1:
+				shader->SetUniform1i(uniform.Name, uniform.Data.i1);
+				break;
+			case UniformDataType::BOOL1:
+				shader->SetUniform1i(uniform.Name, uniform.Data.b1);
+				break;
+			}
+		}
 		shader->SetUniform3f("lightPos", currentBoundCamera->GetPosition());
 		switch (command.Mode) {
 		case DrawMode::DRAW_ELEMENTS:

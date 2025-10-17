@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Mesh.h"
+#include "Renderer/Mesh.h"
 #include <sstream>
 #include <string>
 #include <vector>
@@ -11,6 +11,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION 
 #include "tinyobjloader.h"
 #include <glad/glad.h>
+
 Mesh::Mesh()
 {
 }

@@ -5,8 +5,8 @@ in vec3 FragPos;
 in vec3 Normal;
 in vec3 LightPos;   // extra in variable, since we need the light position in view space we calculate this in the vertex shader
 
-uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
-uniform vec3 objectColor = vec3(0.9, 0.35, 0.25);
+uniform vec3 u_LightColor = vec3(1.0, 1.0, 1.0);
+uniform vec3 u_ObjectColor = vec3(0.9, 0.35, 0.25);
 
 void main()
 {
