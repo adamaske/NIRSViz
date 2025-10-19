@@ -10,7 +10,6 @@ void Renderer::Init()
 {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LINE_SMOOTH); 
 	glEnable(GL_CULL_FACE);
@@ -39,7 +38,7 @@ void Renderer::ExecuteQueue()
 
 	std::sort(s_Data->CommandQueue.begin(), s_Data->CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
 		return a.ViewTargetID < b.ViewTargetID;
-		});
+	});
 
 
 	

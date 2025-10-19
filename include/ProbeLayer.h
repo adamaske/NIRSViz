@@ -20,6 +20,16 @@ struct ProbeVisual {
 	RenderCommand RenderCmd2D;
 };
 
+struct ChannelVisual {
+	NIRS::Channel Channel;
+	NIRS::Line Line3D;
+	NIRS::Line Line2D;
+
+	// Projection towards cortex
+	NIRS::Line ProjectionLine3D;
+	NIRS::Line ProjectionLine2D;
+};
+
 class ProbeLayer : public Layer {
 public:
 	ProbeLayer();
@@ -36,17 +46,23 @@ public:
 	virtual void OnEvent(Event& event) override;
 
 	void RenderProbeViewport();
+	void Render2DProbeTransformControls(bool standalone);
+	void Render3DProbeTransformControls(bool standalone);
+
 	void LoadProbeFile(const std::string& filepath);
 	void UpdateProbeVisuals();
+	void UpdateChannelVisuals();
 
 private:
-	bool m_DrawCortex = false;
-	bool m_DrawHead = false;
-	bool m_DrawScaleRef = true;
-	bool m_DrawProbes2D = true;
-	bool m_DrawChannels2D = true;
+	bool m_DrawCortex = true;
+	bool m_DrawHead = true;
+
+	bool m_DrawProbes2D = false;
+	bool m_DrawChannels2D = false;
+	
 	bool m_DrawProbes3D = true;
 	bool m_DrawChannels3D = true;
+	bool m_DrawChannelProjections3D = true;
 
 	bool m_UseRoamCamera = true;
 	
@@ -69,21 +85,23 @@ private:
 	Ref<Mesh> m_HeadMesh = nullptr;
 	float m_HeadOpacity = 0.5f;
 
-	Ref<Mesh> m_ScaleRefMesh = nullptr;
-
 	Ref<SNIRF> m_SNIRF = nullptr;
 
 	std::vector<ProbeVisual> m_SourceVisuals;
 	std::vector<ProbeVisual> m_DetectorVisuals;
 
 	std::vector<NIRS::Channel> m_Channels;
+	std::vector<ChannelVisual> m_ChannelVisuals;
+	Ref<LineRenderer> m_LineRenderer2D = nullptr;
+	Ref<LineRenderer> m_LineRenderer3D = nullptr;
+	Ref<LineRenderer> m_ProjLineRenderer3D = nullptr;
 
 	// 3D Probe Alignment Parameters
-	glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, -1.45f, -1.5f);
 	glm::vec3	m_Probe3DRotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 	float		m_Probe3DRotationAngle = 180.0f;
-	float		m_Probe3DSpreadFactor = 0.15f;
-	float		m_Probe3DMeshScale = 1.0f;
+	float		m_Probe3DSpreadFactor = 0.11f;
+	float		m_Probe3DMeshScale = 0.8f;
 	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	// 2D Probe Alignment Parameters
@@ -91,6 +109,4 @@ private:
 	glm::vec3 m_Probe2DScale = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-	Ref<LineRenderer> m_LineRenderer2D = nullptr;
-	Ref<LineRenderer> m_LineRenderer3D = nullptr;
 };

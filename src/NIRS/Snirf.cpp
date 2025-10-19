@@ -135,6 +135,14 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
         NVIZ_ERROR("File does not exist: {0}", filepath.string().c_str());
         return;
 	}
+    m_Sources2D.clear();
+    m_Detectors2D.clear();
+    m_Sources3D.clear();
+    m_Detectors3D.clear();
+    m_Landmarks.clear();
+    m_Channels.clear();
+    m_Wavelengths.clear();
+    m_ChannelData.resize(0, 0);
 
     m_Filepath = filepath;
 	auto file = Utils::ParseHDF5(filepath.string());

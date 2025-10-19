@@ -50,21 +50,18 @@ public:
 	int GetSourceAmount()	{ return m_Sources2D.size(); };
 	int GetDetectorAmount()	{ return m_Detectors2D.size(); };
 private:
-	std::filesystem::path m_Filepath;
+	std::filesystem::path m_Filepath = std::filesystem::path("");
 
 	Eigen::Matrix<double,
 		Eigen::Dynamic,
 		Eigen::Dynamic,
 		Eigen::RowMajor> m_ChannelData;
 
-	std::vector<NIRS::Probe2D> m_Sources2D;
-	std::vector<NIRS::Probe2D> m_Detectors2D;
-
-	std::vector<NIRS::Probe3D> m_Sources3D;
-	std::vector<NIRS::Probe3D> m_Detectors3D;
-
-	std::vector<NIRS::Landmark> m_Landmarks;
-	std::vector<NIRS::Channel> m_Channels;
-
-	std::vector<int> m_Wavelengths;
+	std::vector<NIRS::Probe2D> m_Sources2D	 = {};
+	std::vector<NIRS::Probe2D> m_Detectors2D = {};
+	std::vector<NIRS::Probe3D> m_Sources3D	 = {};
+	std::vector<NIRS::Probe3D> m_Detectors3D = {};
+	std::vector<NIRS::Landmark> m_Landmarks	 = {};
+	std::vector<NIRS::Channel> m_Channels	 = {};
+	std::vector<int> m_Wavelengths			 = {};
 };

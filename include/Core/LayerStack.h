@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 
+#include "Core/Base.h"
 #include "Core/Layer.h"
 
 
@@ -20,7 +21,6 @@ public:
             if (layer)
             {
                 layer->OnDetach();
-                delete layer;
             }
         }
         m_Layers.clear();

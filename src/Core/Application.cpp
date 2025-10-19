@@ -34,7 +34,11 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 
 	m_ImGuiLayer = new ImGuiLayer();
 	PushOverlay(m_ImGuiLayer);
-	PushLayer(new ProbeLayer());
+
+	m_ProbeLayer = CreateRef<ProbeLayer>();
+
+	PushLayer(m_ProbeLayer.get());
+
 }
 
 Application::~Application()

@@ -60,7 +60,11 @@ void ProbeLayer::OnAttach()
 
 	m_RoamCamera = CreateRef<RoamCamera>();
 	m_OrbitCamera = CreateRef<OrbitCamera>();
-	m_RoamCamera->SetPosition({ 0.0f, 0.0f, 40.0f });
+	m_RoamCamera->SetPosition({ 0.0f, 6.0f, -16.0f });
+	m_RoamCamera->SetYaw(90.0f);
+	m_RoamCamera->UpdateCameraVectors();
+	m_RoamCamera->UpdateViewMatrix();
+	m_RoamCamera->UpdateProjectionMatrix();
 
 	FramebufferSpecification fbSpec; // Init a framebuffer to show the probe
 	fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::Depth };
@@ -73,14 +77,14 @@ void ProbeLayer::OnAttach()
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
 	m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
 	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
-	m_ScaleRefMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/scale_reference_1m.obj");
 
 	m_LineRenderer2D = CreateRef<LineRenderer>(m_ViewTargetID);
 	m_LineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
-	
+	m_ProjLineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
+
 	m_SNIRF = CreateRef<SNIRF>();
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
-
+	//LoadProbeFile("C:/nirs/hd_fnirs/raw_data/right hemisphere/passive/sub01_run01.snirf");
 }
 
 void ProbeLayer::OnDetach()
@@ -93,6 +97,7 @@ void ProbeLayer::OnUpdate(float dt)
 	camera->OnUpdate(dt);
 
 	UpdateProbeVisuals();
+	UpdateChannelVisuals();
 
 	UniformData lightPos;
 	lightPos.Type = UniformDataType::FLOAT3;
@@ -150,28 +155,6 @@ void ProbeLayer::OnUpdate(float dt)
 		}
 	}
 
-	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) {
-		m_LineRenderer2D->BeginScene();
-		for (const auto& channel : m_SNIRF->GetChannels()) {
-			if (channel.Wavelength != NIRS::WavelengthType::HBO)
-				continue;
-
-			int sourceIndex = channel.SourceID - 1;
-			int detectorIndex = channel.DetectorID - 1;
-
-			auto t1 = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd2D.Transform;
-			auto t2 = m_SourceVisuals[channel.SourceID - 1].RenderCmd2D.Transform;
-
-			m_LineRenderer2D->SubmitLine(NIRS::Line{
-				t1[3],
-				t2[3],
-				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
-				});
-		}
-		m_LineRenderer2D->EndScene();
-	}
-
-
 	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
 		for (auto& pv : m_SourceVisuals) {
 			RenderCommand cmd = pv.RenderCmd3D;
@@ -183,25 +166,28 @@ void ProbeLayer::OnUpdate(float dt)
 		}
 	}
 
+	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) {
+		m_LineRenderer2D->BeginScene();
+		for (auto& cv : m_ChannelVisuals) {
+			m_LineRenderer2D->SubmitLine(cv.Line2D);
+		}
+		m_LineRenderer2D->EndScene();
+	}
+
 	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) {
 		m_LineRenderer3D->BeginScene();
-		for (const auto& channel : m_SNIRF->GetChannels()) {
-			if (channel.Wavelength != NIRS::WavelengthType::HBO)
-				continue;
-
-			int sourceIndex = channel.SourceID - 1;
-			int detectorIndex = channel.DetectorID - 1;
-
-			auto t1 = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd3D.Transform;
-			auto t2 = m_SourceVisuals[channel.SourceID - 1].RenderCmd3D.Transform;
-
-			m_LineRenderer3D->SubmitLine(NIRS::Line{
-				t1[3],
-				t2[3],
-				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
-				});
+		for(auto& cv : m_ChannelVisuals) {
+			m_LineRenderer3D->SubmitLine(cv.Line3D);
 		}
 		m_LineRenderer3D->EndScene();
+	}
+
+	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) {
+		m_ProjLineRenderer3D->BeginScene();
+		for (auto& cv : m_ChannelVisuals) {
+			m_ProjLineRenderer3D->SubmitLine(cv.ProjectionLine3D);
+		}
+		m_ProjLineRenderer3D->EndScene();
 	}
 }
 
@@ -224,123 +210,14 @@ void ProbeLayer::OnImGuiRender()
 	}
 	ImGui::TextWrapped("%s", m_SNIRF->IsFileLoaded() ? m_SNIRF->GetFilepath().c_str() : "...");
 
-	ImGui::SeparatorText("Probe Settings");
+	Render2DProbeTransformControls(true);
+	Render3DProbeTransformControls(true);
 
-	if (ImGui::CollapsingHeader("Probe 2D Global Transform"))
-	{
-		ImGui::Checkbox("Draw 2D Probes", &m_DrawProbes2D);
-		ImGui::Checkbox("Draw 2D Channels", &m_DrawChannels2D);
-		ImGui::DragFloat3(
-			"Translation Offset (X, Y)",
-			&m_Probe2DTranslationOffset.x, // Edit X, Y, Z
-			0.1f,                          // Step size
-			-1000.0f,                      // Min value
-			1000.0f,                       // Max value
-			"%.1f"                         // Display format
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##2DOffset")) {
-			m_Probe2DTranslationOffset = glm::vec3(0.0f);
-		}
-
-		ImGui::DragFloat3(
-			"Scale (X, Y)",
-			&m_Probe2DScale.x,
-			0.01f,
-			0.01f,                         // Prevent division by zero / negative scale
-			10.0f,
-			"%.2f"
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##2DScale")) {
-			m_Probe2DScale = glm::vec3(1.0f);
-		}
-
-		ImGui::DragFloat3(
-			"Rotation (X, Y, Z)",
-			&m_Probe2DRotation.x,
-			1.0f,                          // Step size of 1 degree
-			-360.0f,
-			360.0f,
-			"%.0f deg"
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##2DRot")) {
-			m_Probe2DRotation = glm::vec3(0.0f);
-		}
-	}
-
-	if (ImGui::CollapsingHeader("Probe 3D Global Transform"))
-	{
-		ImGui::Checkbox("Draw 3D Probes", &m_DrawProbes3D);
-		ImGui::Checkbox("Draw 3D Channels", &m_DrawChannels3D);
-		ImGui::DragFloat3(
-			"Translation Offset",
-			&m_Probe3DTranslationOffset.x, // Start address of the vector
-			0.05f,                         // Speed/step size for dragging
-			-100.0f,                       // Minimum value
-			100.0f,                        // Maximum value
-			"%.2f"                         // Display format
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##Offset")) {
-			m_Probe3DTranslationOffset = glm::vec3(0.0f);
-		}
-
-		ImGui::DragFloat3(
-			"Rotation Axis (X, Y, Z)",
-			&m_Probe3DRotationAxis.x,
-			0.01f,
-			-1.0f,
-			1.0f,
-			"%.2f"
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##Axis")) {
-			m_Probe3DRotationAxis = glm::vec3(0.0f);
-		}
-
-		ImGui::DragFloat(
-			"Rotation Angle (deg)",
-			&m_Probe3DRotationAngle,
-			1.0f,                          // Step size of 1 degree
-			-360.0f,
-			360.0f,
-			"%.0f deg"
-		);
-		ImGui::DragFloat(
-			"Spread Factor",
-			&m_Probe3DSpreadFactor,
-			0.01f,
-			0.0f,                          // Cannot be negative
-			5.0f,
-			"%.2f"
-		);
-
-		ImGui::DragFloat(
-			"Mesh Scale",
-			&m_Probe3DMeshScale,
-			0.01f,
-			0.0f,                          // Cannot be negative
-			2.0f,
-			"%.2f"
-		);
-
-		ImGui::DragFloat3(
-			"View Target Position",
-			&m_TargetProbePosition.x,
-			0.05f,                         // Speed/step size for dragging
-			-100.0f,                       // Minimum value
-			100.0f,                        // Maximum value
-			"%.2f"                         // Display format
-		);
-	}
 
 	ImGui::Checkbox("Draw Head", &m_DrawHead);
 	ImGui::SliderFloat("Head Opacity", &m_HeadOpacity, 0.0f, 1.0f);
 
 	ImGui::Checkbox("Draw Cortex", &m_DrawCortex);
-	ImGui::Checkbox("Draw Scale", &m_DrawScaleRef);
 
 	RenderCameraSettingsControls(true);
 
@@ -349,6 +226,9 @@ void ProbeLayer::OnImGuiRender()
 	ImGui::ColorEdit4("Source Color", &NIRS::SourceColor[0], colorFlags);
 	ImGui::ColorEdit4("Detector Color", &NIRS::DetectorColor[0], colorFlags);
 
+	ImGui::ColorEdit4("2D Channel Color", &m_LineRenderer2D->m_LineColor[0], colorFlags);
+	ImGui::ColorEdit4("3D Channel Color", &m_LineRenderer3D->m_LineColor[0], colorFlags);
+	ImGui::ColorEdit4("3D Project Color", &m_ProjLineRenderer3D->m_LineColor[0], colorFlags);
 	ImGui::End();
 }
 
@@ -379,6 +259,99 @@ void ProbeLayer::RenderProbeViewport()
 
 	ImGui::End();
 	ImGui::PopStyleVar();
+}
+
+void ProbeLayer::Render2DProbeTransformControls(bool standalone)
+{
+	if (standalone) ImGui::Begin("2D Probe Transform Controls");
+
+	bool showContent = standalone;
+	if (!standalone)
+	{
+		showContent = ImGui::CollapsingHeader("Probe 2D Global Transform");
+	}
+
+	if (showContent)
+	{
+		ImGui::Checkbox("Draw 2D Probes", &m_DrawProbes2D);
+		ImGui::Checkbox("Draw 2D Channels", &m_DrawChannels2D);
+
+		ImGui::DragFloat3("Translation Offset (X, Y)", &m_Probe2DTranslationOffset.x,
+			0.1f, -1000.0f, 1000.0f, "%.1f"
+		);
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##2DOffset")) {
+			m_Probe2DTranslationOffset = glm::vec3(0.0f);
+		}
+
+		ImGui::DragFloat3("Scale (X, Y)", &m_Probe2DScale.x,
+			0.01f, 0.01f, 10.0f, "%.2f"
+		);
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##2DScale")) {
+			m_Probe2DScale = glm::vec3(1.0f);
+		}
+
+		ImGui::DragFloat3("Rotation (X, Y, Z)", &m_Probe2DRotation.x,
+			1.0f, -360.0f, 360.0f, "%.0f deg"
+		);
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##2DRot")) {
+			m_Probe2DRotation = glm::vec3(0.0f);
+		}
+	}
+	if (standalone) ImGui::End();
+}
+
+void ProbeLayer::Render3DProbeTransformControls(bool standalone)
+{
+	if (standalone) ImGui::Begin("3D Probe Transform Controls");
+
+	bool showContent = standalone;
+	if (!standalone)
+	{
+		showContent = ImGui::CollapsingHeader("Probe 3D Global Transform");
+	}
+	if (showContent)
+	{
+		ImGui::Checkbox("Draw 3D Probes", &m_DrawProbes3D);
+		ImGui::Checkbox("Draw 3D Channels", &m_DrawChannels3D);
+		ImGui::Checkbox("Draw 3D Projection", &m_DrawChannelProjections3D);
+		ImGui::DragFloat3("Translation Offset", &m_Probe3DTranslationOffset.x,
+			0.05f, -100.0f, 100.0f, "%.2f"
+		);
+
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##Offset")) {
+			m_Probe3DTranslationOffset = glm::vec3(0.0f);
+		}
+
+		ImGui::DragFloat3(
+			"Rotation Axis (X, Y, Z)", &m_Probe3DRotationAxis.x,
+			0.01f, -1.0f, 1.0f, "%.2f"
+		);
+		ImGui::SameLine();
+		if (ImGui::Button("Reset##Axis")) {
+			m_Probe3DRotationAxis = glm::vec3(0.0f);
+		}
+
+		ImGui::DragFloat(
+			"Rotation Angle (deg)", &m_Probe3DRotationAngle,
+			1.0f, -360.0f, 360.0f, "%.0f deg"
+		);
+		ImGui::DragFloat("Spread Factor", &m_Probe3DSpreadFactor,
+			0.01f, 0.0f, 5.0f, "%.2f"
+		);
+
+		ImGui::DragFloat("Mesh Scale", &m_Probe3DMeshScale,
+			0.01f, 0.0f, 2.0f, "%.2f"
+		);
+
+		ImGui::DragFloat3("View Target Position", &m_TargetProbePosition.x,
+			0.05f, -100.0f, 100.0f, "%.2f"
+		);
+	}
+	if (standalone) ImGui::End();
 }
 
 void ProbeLayer::LoadProbeFile(const std::string& filepath)
@@ -413,7 +386,6 @@ void ProbeLayer::LoadProbeFile(const std::string& filepath)
 
 	for (size_t i = 0; i < numSources; i++)
 	{
-
 		ProbeVisual sourcePV;
 		sourcePV.Probe2D = sources2D[i];
 		sourcePV.Probe3D = sources3D[i];
@@ -421,6 +393,7 @@ void ProbeLayer::LoadProbeFile(const std::string& filepath)
 	}
 
 	UpdateProbeVisuals();
+	UpdateChannelVisuals();
 }
 void ProbeLayer::UpdateProbeVisuals()
 {
@@ -506,7 +479,48 @@ void ProbeLayer::UpdateProbeVisuals()
 		pv.RenderCmd2D.Transform = glm::translate(glm::mat4(1.0f), glm::vec3(pv.Probe2D.Position.x, pv.Probe2D.Position.y, 0));
 		pv.RenderCmd2D.UniformCommands = { flatColor };
 	}
-	
+
+}
+
+void ProbeLayer::UpdateChannelVisuals()
+{
+	m_ChannelVisuals.clear();
+	for (const auto& channel : m_SNIRF->GetChannels()) {
+
+		int sourceIndex = channel.SourceID - 1;
+		int detectorIndex = channel.DetectorID - 1;
+
+		ChannelVisual cv;
+		cv.Channel = channel;
+
+		auto start2D = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd2D.Transform[3];
+		auto end2D = m_SourceVisuals[channel.SourceID - 1].RenderCmd2D.Transform[3];
+
+		auto start3D = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd3D.Transform[3];
+		auto end3D = m_SourceVisuals[channel.SourceID - 1].RenderCmd3D.Transform[3];
+
+		cv.Line2D = NIRS::Line{
+				start2D,
+				end2D,
+				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
+		};
+
+		cv.Line3D = NIRS::Line{
+				start3D,
+				end3D,
+				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
+		};
+
+		auto projStart3D = (start3D + end3D) / 2.0f; 
+		auto projEnd3D = m_TargetProbePosition;
+		cv.ProjectionLine3D = NIRS::Line{
+			projStart3D,
+			projEnd3D,
+			glm::vec4(0.2f, 0.8f, 0.2f, 1.0f)
+		};
+
+		m_ChannelVisuals.push_back(cv);
+	}
 }
 
 void ProbeLayer::RenderCameraSettingsControls(bool createPanel)

@@ -22,7 +22,7 @@ namespace NIRS {
 	}
 
 	struct Channel {
-		ProbeID SourceID;
+		ProbeID SourceID; // This is 1-indexed index
 		ProbeID DetectorID;
 		WavelengthType Wavelength;
 		std::vector<double> Data; // Time series data for this channel

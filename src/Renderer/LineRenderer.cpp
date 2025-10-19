@@ -20,6 +20,8 @@ LineRenderer::LineRenderer(ViewID viewTargetID) : m_ViewTargetID(viewTargetID)
 LineRenderer::~LineRenderer()
 {
     // RAII handles destruction of m_VAO/m_Shader
+    m_VAO.reset();
+	m_VBO.reset();
 }
 
 void LineRenderer::SetupBuffers()
@@ -86,12 +88,12 @@ void LineRenderer::Flush()
     UniformData lineWidth;
 	lineWidth.Type = UniformDataType::FLOAT1;
 	lineWidth.Name = "u_LineWidth";
-	lineWidth.Data.f1 = 2.0f; 
+	lineWidth.Data.f1 = 15.0f; 
     
 	UniformData color;
 	color.Type = UniformDataType::FLOAT4;
 	color.Name = "u_LineColor";
-	color.Data.f4 = { 1.0f, 1.0f, 1.0f, 1.0f };
+	color.Data.f4 = m_LineColor;
 
     RenderCommand cmd;
     cmd.ShaderPtr = m_Shader.get();

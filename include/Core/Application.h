@@ -5,6 +5,7 @@
 #include "Core/LayerStack.h"
 #include "Events/ApplicationEvent.h"
 #include "GUI/ImGuiLayer.h"
+#include "ProbeLayer.h"
 
 struct ApplicationCommandLineArgs
 {
@@ -55,6 +56,7 @@ private:
 	ApplicationSpecification m_Specification;
 	Scope<Window> m_Window;
 	ImGuiLayer* m_ImGuiLayer;
+	Ref<ProbeLayer> m_ProbeLayer;
 	LayerStack m_LayerStack;
 
 	bool m_Running = true;

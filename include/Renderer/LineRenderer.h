@@ -44,6 +44,8 @@ public:
     void EndScene();
 
 	void SetLineWidth(float width) { m_LineWidth = width; }
+
+    glm::vec4 m_LineColor = glm::vec4(1.0f);
 private:
     std::vector<NIRS::LineVertex> m_Vertices;
 
@@ -51,6 +53,7 @@ private:
     Ref<VertexBuffer> m_VBO;
     Ref<Shader> m_Shader;
 	Ref<Camera> m_BoundCamera;
+
 
     ViewID m_ViewTargetID;
     float m_LineWidth = 2.0f;
