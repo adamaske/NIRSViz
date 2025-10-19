@@ -46,6 +46,7 @@ public:
 	void SetLineWidth(float width) { m_LineWidth = width; }
 
     glm::vec4 m_LineColor = glm::vec4(1.0f);
+    float m_LineWidth = 2.0f;
 private:
     std::vector<NIRS::LineVertex> m_Vertices;
 
@@ -56,7 +57,6 @@ private:
 
 
     ViewID m_ViewTargetID;
-    float m_LineWidth = 2.0f;
 
     // Internal function to set up OpenGL buffers
     void SetupBuffers();

@@ -13,7 +13,10 @@ public:
 
 	void OnUpdate(float dt) override;
 	void OnEvent(Event& e) override;
+	void OnImGuiRender(bool standalone) override;
 
+	void StartControl(glm::vec2 initalPos);
+	void OnControlled(float dt);
 
 	void UpdateCameraVectors();
 

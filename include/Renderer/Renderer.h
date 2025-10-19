@@ -38,6 +38,11 @@ struct UniformData {
 	} Data;
 };
 
+// Renderer:: has a bunch of static functions for API calls
+struct RendererAPICall {
+	std::function<void()> call;// Here the user puts in the static function or lambda or sometighn
+};
+
 struct RenderCommand {
 	Shader* ShaderPtr = nullptr;
 	VertexArray* VAOPtr = nullptr;
@@ -48,6 +53,7 @@ struct RenderCommand {
 	DrawMode Mode = DRAW_ELEMENTS;
 
 	std::vector<UniformData> UniformCommands = {};
+	std::vector<RendererAPICall> APICalls = {};
 };
 
 struct RendererData
@@ -83,7 +89,9 @@ public:
 	static void SetClearColor(const glm::vec4& color);
 	static void Clear();
 	static void SetLineWidth(float width);
+	static void EnableDepthTest(bool enable);
 
+	static void SetDepthMask(bool write);
 private:
 	static Scope<RendererData> s_Data;
 

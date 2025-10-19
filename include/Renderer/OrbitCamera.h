@@ -33,6 +33,7 @@ public:
 
 	void OnUpdate(float dt) override;
 	void OnEvent(Event& e) override;
+	void OnImGuiRender(bool standalone) override;
 
 	void UpdateViewMatrix() override;
 	void UpdateProjectionMatrix() override;

@@ -109,4 +109,18 @@ private:
 	glm::vec3 m_Probe2DScale = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
+	// Camera Controls
+	void StartMouseControl();
+	void DoMouseControl(float dt);
+	void EndMouseControl();
+	// Stores the position (top-left corner) of the ImGui viewport window
+	glm::vec2 m_ViewportBoundsMin = { 0.0f, 0.0f };
+	// Stores the position (bottom-right corner) of the ImGui viewport window
+	glm::vec2 m_ViewportBoundsMax = { 0.0f, 0.0f };
+
+	glm::vec2 m_InitialMousePos = { 0.0f, 0.0f };
+	// Stores the current hover state
+	bool m_ViewportHovered = false;
+	bool m_CameraControlActive = false;
+	Window* m_Window = nullptr;
 };

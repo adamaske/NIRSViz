@@ -73,6 +73,11 @@ void Renderer::ExecuteQueue()
 
 		}
 
+		//Handle API Calls
+		for(const auto& apiCall : command.APICalls) {
+			apiCall.call();
+		}
+
 		auto shader = command.ShaderPtr;
 		shader->Bind();
 		shader->SetUniformMat4f("u_ViewMatrix", m_CurrentBoundCamera->GetViewMatrix());
@@ -174,4 +179,16 @@ void Renderer::Clear()
 void Renderer::SetLineWidth(float width)   
 {										   
 	glLineWidth(width);
+}
+
+void Renderer::EnableDepthTest(bool enable) {
+	if (enable) {
+		glEnable(GL_DEPTH_TEST);
+	}
+	else {
+		glDisable(GL_DEPTH_TEST);
+	}
+}
+void Renderer::SetDepthMask(bool write) {
+	glDepthMask(write ? GL_TRUE : GL_FALSE);
 }

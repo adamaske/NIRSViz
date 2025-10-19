@@ -5,6 +5,10 @@
 #include "Core/Input.h"
 #include "Events/KeyCodes.h"
 #include "Events/MouseCodes.h"
+
+#include <imgui.h>
+#include <glm/gtc/type_ptr.hpp>
+
 OrbitCamera::OrbitCamera() : Camera()
 {
 	SetOrbitPosition("Default");
@@ -23,6 +27,36 @@ void OrbitCamera::OnEvent(Event& e)
         SetViewportSize(e.GetWidth(), e.GetHeight());
         return false;
         });
+}
+
+void OrbitCamera::OnImGuiRender(bool standalone)
+{
+    if (standalone) ImGui::Begin("Roam Camera Settings");
+
+    if (ImGui::SliderFloat("Orbit Distance", &m_Radius, 0.1f, 1000.0f)) {
+        SetOrbitPosition(m_Theta, m_Phi, m_Radius);
+    }
+    if (ImGui::SliderFloat("Theta", &m_Theta, -360.0f, 360.0f)) {
+        SetOrbitPosition(m_Theta, m_Phi, m_Radius);
+    }
+    if (ImGui::SliderFloat("Phi", &m_Phi, -90.0f, 90.0f)) {
+        SetOrbitPosition(m_Theta, m_Phi, m_Radius);
+    }
+    for (int i = 0; i < orbit_positions.size(); i++) {
+        auto& pos = orbit_positions[i];
+        if (ImGui::Button(std::get<0>(pos).c_str())) {
+            SetOrbitPosition(std::get<0>(pos));
+        }
+        if (ImGui::IsItemHovered()) {
+            std::tuple<float, float> t_p = std::get<1>(pos);
+            float t = std::get<0>(t_p);
+            auto p = std::get<1>(t_p);
+            ImGui::SetTooltip("Theta: %.1f, Phi: %.1f", t, p);
+        }
+
+        if (i % 3 != 0) ImGui::SameLine();
+    }
+    if (standalone) ImGui::End();
 }
 
 void OrbitCamera::UpdateViewMatrix()

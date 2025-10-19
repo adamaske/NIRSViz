@@ -88,7 +88,7 @@ void LineRenderer::Flush()
     UniformData lineWidth;
 	lineWidth.Type = UniformDataType::FLOAT1;
 	lineWidth.Name = "u_LineWidth";
-	lineWidth.Data.f1 = 15.0f; 
+	lineWidth.Data.f1 = m_LineWidth; 
     
 	UniformData color;
 	color.Type = UniformDataType::FLOAT4;
@@ -102,5 +102,8 @@ void LineRenderer::Flush()
     cmd.Mode = DRAW_ARRAYS;
     cmd.ViewTargetID = m_ViewTargetID;
     cmd.UniformCommands = { color };
+    cmd.APICalls = {
+        RendererAPICall{ [lineWidth = m_LineWidth]() { Renderer::SetLineWidth(lineWidth); } }
+    };
     Renderer::Submit(cmd);
 }

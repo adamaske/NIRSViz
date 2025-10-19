@@ -16,6 +16,8 @@
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
 
+#include "Core/Input.h"
+
 namespace Utils {
 	std::string OpenSNIRFFileDialog() {
 		char filePath[MAX_PATH] = "";
@@ -50,6 +52,7 @@ ProbeLayer::~ProbeLayer()
 void ProbeLayer::OnAttach()
 {
 	auto& app = Application::Get();
+	m_Window = &app.GetWindow();
 
 	m_FlatColorShader = CreateRef<Shader>(
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
@@ -80,7 +83,11 @@ void ProbeLayer::OnAttach()
 
 	m_LineRenderer2D = CreateRef<LineRenderer>(m_ViewTargetID);
 	m_LineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
+	m_LineRenderer3D->m_LineColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+	m_LineRenderer3D->m_LineWidth = 4.0f;
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
+	m_ProjLineRenderer3D->m_LineColor = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
+	m_ProjLineRenderer3D->m_LineWidth = 8.0f;
 
 	m_SNIRF = CreateRef<SNIRF>();
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
@@ -93,11 +100,70 @@ void ProbeLayer::OnDetach()
 
 void ProbeLayer::OnUpdate(float dt)
 {
-	auto camera = GetActiveCamera();
-	camera->OnUpdate(dt);
 
-	UpdateProbeVisuals();
-	UpdateChannelVisuals();
+	auto camera = GetActiveCamera();
+	if (m_ViewportHovered)
+	{
+		if (Input::IsMouseButtonPressed(Mouse::ButtonRight)) {
+			if (!m_CameraControlActive) StartMouseControl();
+			DoMouseControl(dt);
+		}
+		else
+			if (m_CameraControlActive) EndMouseControl();
+	}
+	else 
+		if (m_CameraControlActive) EndMouseControl();
+
+	if (m_DrawChannelProjections3D || m_DrawChannels3D || m_DrawChannels2D ||
+		m_DrawProbes2D || m_DrawProbes3D) {
+		UpdateProbeVisuals();
+		UpdateChannelVisuals();
+	}
+
+	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) {
+		m_LineRenderer2D->BeginScene();
+		for (auto& cv : m_ChannelVisuals) {
+			m_LineRenderer2D->SubmitLine(cv.Line2D);
+		}
+		m_LineRenderer2D->EndScene();
+	}
+
+	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) {
+		m_LineRenderer3D->BeginScene();
+		for (auto& cv : m_ChannelVisuals) {
+			m_LineRenderer3D->SubmitLine(cv.Line3D);
+		}
+		m_LineRenderer3D->EndScene();
+	}
+
+	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) {
+		m_ProjLineRenderer3D->BeginScene();
+		for (auto& cv : m_ChannelVisuals) {
+			m_ProjLineRenderer3D->SubmitLine(cv.ProjectionLine3D);
+		}
+		m_ProjLineRenderer3D->EndScene();
+	}
+
+	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) { // Currently we dont apply any transform to 2D probes
+		for (const auto& cmd : m_SourceVisuals) {
+			Renderer::Submit(cmd.RenderCmd2D);
+		}
+		for (const auto& cmd : m_DetectorVisuals) {
+			Renderer::Submit(cmd.RenderCmd2D);
+		}
+	}
+
+	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
+		for (auto& pv : m_SourceVisuals) {
+			RenderCommand cmd = pv.RenderCmd3D;
+			Renderer::Submit(cmd);
+		}
+		for (auto& pv : m_DetectorVisuals) {
+			RenderCommand cmd = pv.RenderCmd3D;
+			Renderer::Submit(cmd);
+		}
+	}
+
 
 	UniformData lightPos;
 	lightPos.Type = UniformDataType::FLOAT3;
@@ -126,7 +192,7 @@ void ProbeLayer::OnUpdate(float dt)
 		cmd.ViewTargetID = m_ViewTargetID;
 		cmd.Transform = glm::mat4(1.0f);
 		cmd.Mode = DRAW_ELEMENTS;
-		
+
 		objectColor.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
 		opacity.Data.f1 = 1.0f;
 		cmd.UniformCommands = { lightPos, objectColor, opacity };
@@ -146,49 +212,7 @@ void ProbeLayer::OnUpdate(float dt)
 		Renderer::Submit(cmd);
 	}
 
-	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) { // Currently we dont apply any transform to 2D probes
-		for (const auto& cmd : m_SourceVisuals) {
-			Renderer::Submit(cmd.RenderCmd2D);
-		}
-		for (const auto& cmd : m_DetectorVisuals) {
-			Renderer::Submit(cmd.RenderCmd2D);
-		}
-	}
 
-	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
-		for (auto& pv : m_SourceVisuals) {
-			RenderCommand cmd = pv.RenderCmd3D;
-			Renderer::Submit(cmd);
-		}
-		for (auto& pv : m_DetectorVisuals) {
-			RenderCommand cmd = pv.RenderCmd3D;
-			Renderer::Submit(cmd);
-		}
-	}
-
-	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) {
-		m_LineRenderer2D->BeginScene();
-		for (auto& cv : m_ChannelVisuals) {
-			m_LineRenderer2D->SubmitLine(cv.Line2D);
-		}
-		m_LineRenderer2D->EndScene();
-	}
-
-	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) {
-		m_LineRenderer3D->BeginScene();
-		for(auto& cv : m_ChannelVisuals) {
-			m_LineRenderer3D->SubmitLine(cv.Line3D);
-		}
-		m_LineRenderer3D->EndScene();
-	}
-
-	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) {
-		m_ProjLineRenderer3D->BeginScene();
-		for (auto& cv : m_ChannelVisuals) {
-			m_ProjLineRenderer3D->SubmitLine(cv.ProjectionLine3D);
-		}
-		m_ProjLineRenderer3D->EndScene();
-	}
 }
 
 void ProbeLayer::OnRender()
@@ -227,8 +251,6 @@ void ProbeLayer::OnImGuiRender()
 	ImGui::ColorEdit4("Detector Color", &NIRS::DetectorColor[0], colorFlags);
 
 	ImGui::ColorEdit4("2D Channel Color", &m_LineRenderer2D->m_LineColor[0], colorFlags);
-	ImGui::ColorEdit4("3D Channel Color", &m_LineRenderer3D->m_LineColor[0], colorFlags);
-	ImGui::ColorEdit4("3D Project Color", &m_ProjLineRenderer3D->m_LineColor[0], colorFlags);
 	ImGui::End();
 }
 
@@ -246,6 +268,15 @@ void ProbeLayer::RenderProbeViewport()
 
 	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
+	m_ViewportHovered = ImGui::IsWindowHovered();
+
+	ImVec2 viewportMinRegion = ImGui::GetWindowContentRegionMin();
+	ImVec2 viewportMaxRegion = ImGui::GetWindowContentRegionMax();
+	ImVec2 windowPos = ImGui::GetWindowPos();
+
+	m_ViewportBoundsMin = { windowPos.x + viewportMinRegion.x, windowPos.y + viewportMinRegion.y };
+	m_ViewportBoundsMax = { windowPos.x + viewportMaxRegion.x, windowPos.y + viewportMaxRegion.y };
+
 	if (m_Framebuffer->GetSpecification().Width != (uint32_t)viewportPanelSize.x ||
 		m_Framebuffer->GetSpecification().Height != (uint32_t)viewportPanelSize.y)
 	{
@@ -256,6 +287,9 @@ void ProbeLayer::RenderProbeViewport()
 	}
 	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
+
+	// We want to store the coordinates for this window, then we can check wheter or not the cursors
+	// is over it in the OnEvent function
 
 	ImGui::End();
 	ImGui::PopStyleVar();
@@ -314,42 +348,41 @@ void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 	}
 	if (showContent)
 	{
-		ImGui::Checkbox("Draw 3D Probes", &m_DrawProbes3D);
-		ImGui::Checkbox("Draw 3D Channels", &m_DrawChannels3D);
-		ImGui::Checkbox("Draw 3D Projection", &m_DrawChannelProjections3D);
+		ImGui::Checkbox("Draw Probes", &m_DrawProbes3D); 
+		ImGui::DragFloat("Spread Factor", &m_Probe3DSpreadFactor,
+			0.01f, 0.0f, 5.0f, "%.2f"
+		);
+		ImGui::DragFloat("Mesh Scale", &m_Probe3DMeshScale,
+			0.01f, 0.0f, 2.0f, "%.2f"
+		);
 		ImGui::DragFloat3("Translation Offset", &m_Probe3DTranslationOffset.x,
 			0.05f, -100.0f, 100.0f, "%.2f"
 		);
-
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##Offset")) {
-			m_Probe3DTranslationOffset = glm::vec3(0.0f);
-		}
-
 		ImGui::DragFloat3(
 			"Rotation Axis (X, Y, Z)", &m_Probe3DRotationAxis.x,
 			0.01f, -1.0f, 1.0f, "%.2f"
 		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##Axis")) {
-			m_Probe3DRotationAxis = glm::vec3(0.0f);
-		}
-
 		ImGui::DragFloat(
 			"Rotation Angle (deg)", &m_Probe3DRotationAngle,
 			1.0f, -360.0f, 360.0f, "%.0f deg"
 		);
-		ImGui::DragFloat("Spread Factor", &m_Probe3DSpreadFactor,
-			0.01f, 0.0f, 5.0f, "%.2f"
-		);
-
-		ImGui::DragFloat("Mesh Scale", &m_Probe3DMeshScale,
-			0.01f, 0.0f, 2.0f, "%.2f"
-		);
-
 		ImGui::DragFloat3("View Target Position", &m_TargetProbePosition.x,
 			0.05f, -100.0f, 100.0f, "%.2f"
 		);
+
+		ImGui::Separator();
+
+		ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
+		ImGui::Checkbox("Draw Channels", &m_DrawChannels3D);
+		ImGui::ColorEdit4("Channel Color", &m_LineRenderer3D->m_LineColor[0], colorFlags);
+		ImGui::SliderFloat("Channel Width", &m_LineRenderer3D->m_LineWidth, 1.0f, 10.0f);
+
+		ImGui::Separator();
+
+		ImGui::Checkbox("Draw Projection", &m_DrawChannelProjections3D);
+		ImGui::ColorEdit4("Projection Color", &m_ProjLineRenderer3D->m_LineColor[0], colorFlags);
+		ImGui::SliderFloat("Projection Width", &m_ProjLineRenderer3D->m_LineWidth, 1.0f, 10.0f);
+
 	}
 	if (standalone) ImGui::End();
 }
@@ -552,50 +585,50 @@ void ProbeLayer::RenderCameraSettingsControls(bool createPanel)
 	}
 
 	auto cam = GetActiveCamera();
-	if (m_UseRoamCamera) {
-		ImGui::SliderFloat("Movement Speed", &m_RoamCamera->GetMovementSpeed(), 0.0f, 500.0f);
-		ImGui::SliderFloat("Rotation Speed", &m_RoamCamera->GetRotationSpeed(), 0.0f, 500.0f);
-
-		const glm::vec3& pos = cam->GetPosition();
-		ImGui::Text("Position: %.2f, %.2f, %.2f", pos.x, pos.y, pos.z);
-		const glm::vec3& front = cam->GetFront();
-		ImGui::Text("Front:    %.2f, %.2f, %.2f", front.x, front.y, front.z);
-		const glm::vec3& right = cam->GetRight();
-		ImGui::Text("Right:    %.2f, %.2f, %.2f", right.x, right.y, right.z);
-		const glm::vec3& up = cam->GetUp();
-		ImGui::Text("Up:       %.2f, %.2f, %.2f", up.x, up.y, up.z);
-		ImGui::Text("Pitch:    %.2f", m_RoamCamera->GetPitch());
-		ImGui::Text("Yaw:      %.2f", m_RoamCamera->GetYaw());
-
-	}
-	else {
-
-		if(ImGui::SliderFloat("Orbit Distance", &m_OrbitCamera->m_Radius, 0.1f, 1000.0f)) {
-			m_OrbitCamera->SetOrbitPosition(m_OrbitCamera->m_Theta, m_OrbitCamera->m_Phi, m_OrbitCamera->m_Radius);
-		}
-		if (ImGui::SliderFloat("Theta", &m_OrbitCamera->m_Theta, -360.0f, 360.0f)) {
-			m_OrbitCamera->SetOrbitPosition(m_OrbitCamera->m_Theta, m_OrbitCamera->m_Phi, m_OrbitCamera->m_Radius);
-		}
-		if (ImGui::SliderFloat("Phi", &m_OrbitCamera->m_Phi, -90.0f, 90.0f)) {
-			m_OrbitCamera->SetOrbitPosition(m_OrbitCamera->m_Theta, m_OrbitCamera->m_Phi, m_OrbitCamera->m_Radius);
-		}
-		for(int i = 0; i < m_OrbitCamera->orbit_positions.size(); i++) {
-			auto& pos = m_OrbitCamera->orbit_positions[i];
-			if (ImGui::Button(std::get<0>(pos).c_str())) {
-				m_OrbitCamera->SetOrbitPosition(std::get<0>(pos));
-			}
-			if (ImGui::IsItemHovered()) {
-				std::tuple<float, float> t_p = std::get<1>(pos);
-				float t = std::get<0>(t_p);
-				auto p = std::get<1>(t_p);
-				ImGui::SetTooltip("Theta: %.1f, Phi: %.1f", t, p);
-			}
-				
-			if(i % 3 != 0) ImGui::SameLine();
-		}
-	}
+	cam->OnImGuiRender(false);
 
 	if (createPanel) ImGui::End();
+}
+
+void ProbeLayer::StartMouseControl()
+{
+	m_CameraControlActive = true;
+
+	m_InitialMousePos = Input::GetMousePosition();
+	m_RoamCamera->StartControl(m_InitialMousePos);
+
+	glfwSetInputMode(m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+}
+
+void ProbeLayer::DoMouseControl(float dt)
+{
+	if (m_UseRoamCamera) {
+		m_RoamCamera->OnControlled(dt);
+	}
+
+	glfwSetCursorPos(m_Window->GetNativeWindow(), m_InitialMousePos.x, m_InitialMousePos.y);
+}
+
+void ProbeLayer::EndMouseControl()
+{
+	m_CameraControlActive = false;
+
+	glfwSetInputMode(m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+	// 3. Coordinate conversion and centering
+	int windowX, windowY;
+	glfwGetWindowPos(m_Window->GetNativeWindow(), &windowX, &windowY);
+
+	// Calculate screen-space center (using ImGui bounds)
+	float screenCenterX = (m_ViewportBoundsMin.x + m_ViewportBoundsMax.x) / 2.0f;
+	float screenCenterY = (m_ViewportBoundsMin.y + m_ViewportBoundsMax.y) / 2.0f;
+
+	// Convert to GLFW window-local coordinates
+	double windowLocalX = screenCenterX - (float)windowX;
+	double windowLocalY = screenCenterY - (float)windowY;
+
+	// 4. Set cursor position
+	glfwSetCursorPos(m_Window->GetNativeWindow(), windowLocalX, windowLocalY);
 }
 
 

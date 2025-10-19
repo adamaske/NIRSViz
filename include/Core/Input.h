@@ -5,7 +5,12 @@
 
 #include <glm/glm.hpp>
 
+#include<GLFW/glfw3.h>
 
+enum CursorMode {
+	Normal = 0,
+	Disabled = 1
+};
 class Input
 {
 public:
@@ -15,4 +20,6 @@ public:
 	static glm::vec2 GetMousePosition();
 	static float GetMouseX();
 	static float GetMouseY();
+	static void SetCursorMode(GLFWwindow* window, CursorMode mode);
+
 };

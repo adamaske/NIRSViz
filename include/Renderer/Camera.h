@@ -17,6 +17,7 @@ public:
 
 	virtual void OnUpdate(float dt) = 0;
 	virtual void OnEvent(Event& e) = 0;
+	virtual void OnImGuiRender(bool standalone) = 0;
 
 	virtual void UpdateViewMatrix() = 0;
 	virtual void UpdateProjectionMatrix() = 0;
