@@ -39,3 +39,7 @@ void VertexBuffer::SetData(const void* data, uint32_t size)
 	glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+
+void VertexBuffer::ClearData()
+{
+}

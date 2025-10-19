@@ -2,10 +2,10 @@
 #include "Renderer/LineRenderer.h"
 // Include your Renderer, Shader, and VertexArray headers
 
-namespace NIRS {
+namespace Utils {
 
     // Maximum number of line vertices we can draw in one batch (e.g., 2000 lines)
-    static constexpr uint32_t MAX_VERTICES = 3000;
+    static constexpr uint32_t MAX_VERTICES = 2000;
 }
 
 LineRenderer::LineRenderer(ViewID viewTargetID) : m_ViewTargetID(viewTargetID)
@@ -28,7 +28,7 @@ void LineRenderer::SetupBuffers()
     m_VAO = CreateRef<VertexArray>();
     m_VAO->Bind();
 
-    m_VBO = CreateRef<VertexBuffer>(NIRS::MAX_VERTICES * sizeof(NIRS::LineVertex));
+    m_VBO = CreateRef<VertexBuffer>(Utils::MAX_VERTICES * sizeof(NIRS::LineVertex));
     BufferLayout layout = {
         { ShaderDataType::Float3, "a_Position" }, // Offset 0
         { ShaderDataType::Float4, "a_Color" }     // Offset 12 (3 floats * 4 bytes/float)
@@ -36,30 +36,31 @@ void LineRenderer::SetupBuffers()
     m_VBO->SetLayout(layout);    
     m_VAO->AddVertexBuffer(m_VBO);
 
-    // Since we use glDrawArrays, no Index Buffer (IBO) is needed.
 
     // Pre-allocate the C++ side storage
-    m_Vertices.reserve(NIRS::MAX_VERTICES);
+    m_Vertices.reserve(Utils::MAX_VERTICES);
 }
 
 void LineRenderer::BeginScene()
 {
     m_Vertices.clear(); // Clear data from the previous frame
+
 }
 
 void LineRenderer::EndScene()
 {
-    Flush();
+    Flush(); 
+    m_Vertices.clear();
 }
 
 void LineRenderer::SubmitLine(const NIRS::Line& line)
 {
     // Check for buffer overflow and flush if needed
-    if (m_Vertices.size() + 2 > NIRS::MAX_VERTICES)
+    if (m_Vertices.size() + 2 > Utils::MAX_VERTICES)
     {
+        NVIZ_WARN("Line Renderer : Vertex overflow, flushing! MAX_VERTICES = ", Utils::MAX_VERTICES);
         Flush();
         m_Vertices.clear();
-        NVIZ_INFO("CLERED LINE REDERER");
     }
 
     // Add the start point
@@ -80,7 +81,7 @@ void LineRenderer::Flush()
     if (m_Vertices.empty())
         return;
 
-    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * 28);// sizeof(NIRS::LineVertex));
+    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
 
     UniformData lineWidth;
 	lineWidth.Type = UniformDataType::FLOAT1;

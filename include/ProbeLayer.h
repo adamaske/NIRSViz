@@ -12,6 +12,14 @@
 #include "Renderer/LineRenderer.h"
 #include "NIRS/Snirf.h"
 
+struct ProbeVisual {
+	NIRS::Probe3D Probe3D;
+	NIRS::Probe2D Probe2D;
+
+	RenderCommand RenderCmd3D;
+	RenderCommand RenderCmd2D;
+};
+
 class ProbeLayer : public Layer {
 public:
 	ProbeLayer();
@@ -28,16 +36,17 @@ public:
 	virtual void OnEvent(Event& event) override;
 
 	void RenderProbeViewport();
-	void LoadProbeButton();
 	void LoadProbeFile(const std::string& filepath);
-
+	void UpdateProbeVisuals();
 
 private:
 	bool m_DrawCortex = false;
 	bool m_DrawHead = false;
 	bool m_DrawScaleRef = true;
 	bool m_DrawProbes2D = true;
+	bool m_DrawChannels2D = true;
 	bool m_DrawProbes3D = true;
+	bool m_DrawChannels3D = true;
 
 	bool m_UseRoamCamera = true;
 	
@@ -63,16 +72,25 @@ private:
 	Ref<Mesh> m_ScaleRefMesh = nullptr;
 
 	Ref<SNIRF> m_SNIRF = nullptr;
+
+	std::vector<ProbeVisual> m_SourceVisuals;
+	std::vector<ProbeVisual> m_DetectorVisuals;
+
+	std::vector<NIRS::Channel> m_Channels;
+
+	// 3D Probe Alignment Parameters
 	glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3	m_Probe3DRotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 	float		m_Probe3DRotationAngle = 180.0f;
-	float		m_Probe3DSpreadFactor = 1.0f;
+	float		m_Probe3DSpreadFactor = 0.15f;
 	float		m_Probe3DMeshScale = 1.0f;
-	glm::vec3 m_TargetProbePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
+	// 2D Probe Alignment Parameters
 	glm::vec3 m_Probe2DTranslationOffset = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 m_Probe2DScale = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-	Ref<LineRenderer> m_LineRenderer = nullptr;
+	Ref<LineRenderer> m_LineRenderer2D = nullptr;
+	Ref<LineRenderer> m_LineRenderer3D = nullptr;
 };

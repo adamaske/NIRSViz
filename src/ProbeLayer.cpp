@@ -4,6 +4,8 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <set>
+
 #include "Core/Application.h"
 #include "Core/AssetManager.h"
 
@@ -58,7 +60,7 @@ void ProbeLayer::OnAttach()
 
 	m_RoamCamera = CreateRef<RoamCamera>();
 	m_OrbitCamera = CreateRef<OrbitCamera>();
-	m_RoamCamera->SetPosition({ 0.0f, 0.0f, 300.0f });
+	m_RoamCamera->SetPosition({ 0.0f, 0.0f, 40.0f });
 
 	FramebufferSpecification fbSpec; // Init a framebuffer to show the probe
 	fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::Depth };
@@ -73,11 +75,12 @@ void ProbeLayer::OnAttach()
 	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
 	m_ScaleRefMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/scale_reference_1m.obj");
 
-	m_SNIRF = CreateRef<SNIRF>();
-
-	m_LineRenderer = CreateRef<LineRenderer>(m_ViewTargetID);
+	m_LineRenderer2D = CreateRef<LineRenderer>(m_ViewTargetID);
+	m_LineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
 	
+	m_SNIRF = CreateRef<SNIRF>();
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
+
 }
 
 void ProbeLayer::OnDetach()
@@ -89,6 +92,7 @@ void ProbeLayer::OnUpdate(float dt)
 	auto camera = GetActiveCamera();
 	camera->OnUpdate(dt);
 
+	UpdateProbeVisuals();
 
 	UniformData lightPos;
 	lightPos.Type = UniformDataType::FLOAT3;
@@ -137,93 +141,67 @@ void ProbeLayer::OnUpdate(float dt)
 		Renderer::Submit(cmd);
 	}
 
-	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) {
-		auto probes2D = m_SNIRF->GetProbes2D();
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_FlatColorShader.get();
-		cmd.VAOPtr = m_ProbeMesh->GetVAO().get();
-		cmd.ViewTargetID = m_ViewTargetID;
-		cmd.Mode = DRAW_ELEMENTS;
-		for(auto& probe : probes2D) {
+	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) { // Currently we dont apply any transform to 2D probes
+		for (const auto& cmd : m_SourceVisuals) {
+			Renderer::Submit(cmd.RenderCmd2D);
+		}
+		for (const auto& cmd : m_DetectorVisuals) {
+			Renderer::Submit(cmd.RenderCmd2D);
+		}
+	}
 
-			cmd.Transform = glm::translate(glm::mat4(1.0f), glm::vec3(probe.Position.x, probe.Position.y, 0));
+	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) {
+		m_LineRenderer2D->BeginScene();
+		for (const auto& channel : m_SNIRF->GetChannels()) {
+			if (channel.Wavelength != NIRS::WavelengthType::HBO)
+				continue;
 
-			flatColor.Data.f4 = probe.Type == NIRS::SOURCE ? NIRS::SourceColor : NIRS::DetectorColor;
+			int sourceIndex = channel.SourceID - 1;
+			int detectorIndex = channel.DetectorID - 1;
 
-			cmd.UniformCommands = { flatColor };
+			auto t1 = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd2D.Transform;
+			auto t2 = m_SourceVisuals[channel.SourceID - 1].RenderCmd2D.Transform;
+
+			m_LineRenderer2D->SubmitLine(NIRS::Line{
+				t1[3],
+				t2[3],
+				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
+				});
+		}
+		m_LineRenderer2D->EndScene();
+	}
+
+
+	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
+		for (auto& pv : m_SourceVisuals) {
+			RenderCommand cmd = pv.RenderCmd3D;
+			Renderer::Submit(cmd);
+		}
+		for (auto& pv : m_DetectorVisuals) {
+			RenderCommand cmd = pv.RenderCmd3D;
 			Renderer::Submit(cmd);
 		}
 	}
-	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
 
-		auto probes = m_SNIRF->GetProbes3D();
-		auto transforms = std::vector<glm::mat4>();
-		transforms.resize(probes.size());
-		auto new_positions = std::vector<glm::vec3>();
-		new_positions.resize(probes.size());
+	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) {
+		m_LineRenderer3D->BeginScene();
+		for (const auto& channel : m_SNIRF->GetChannels()) {
+			if (channel.Wavelength != NIRS::WavelengthType::HBO)
+				continue;
 
-		glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(m_Probe3DRotationAngle), m_Probe3DRotationAxis);
-		glm::mat4 offset = glm::translate(glm::mat4(1.0f), m_Probe3DTranslationOffset);
-		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(m_Probe3DMeshScale));
-		for (size_t i = 0; i < probes.size(); i++)
-		{
-			auto probe = probes[i];
-			auto worldPos = probe.Position * m_Probe3DSpreadFactor;
+			int sourceIndex = channel.SourceID - 1;
+			int detectorIndex = channel.DetectorID - 1;
 
-			glm::vec3 direction = glm::normalize(m_TargetProbePosition - worldPos);
-			glm::vec3 z_axis = direction;
-			glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-			glm::vec3 x_axis = glm::normalize(glm::cross(worldUp, z_axis));
-			glm::vec3 y_axis = glm::normalize(glm::cross(z_axis, x_axis));
+			auto t1 = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd3D.Transform;
+			auto t2 = m_SourceVisuals[channel.SourceID - 1].RenderCmd3D.Transform;
 
-			glm::mat4 translation = glm::translate(glm::mat4(1.0f), worldPos);
-			glm::mat4 localRotation = glm::mat4(1.0f);
-			localRotation[0] = glm::vec4(x_axis, 0.0f); // New X-axis
-			localRotation[1] = glm::vec4(y_axis, 0.0f); // New Y-axis
-			localRotation[2] = glm::vec4(z_axis, 0.0f); // New Z-axis
-
-			localRotation[0] = glm::vec4(x_axis, 0.0f); // New X-axis (Right)
-			localRotation[2] = glm::vec4(glm::cross(x_axis, direction), 0.0f); // New Z-axis
-			// Align -Y to 'direction'. Since 'direction' is the new -Y, the new +Y is -direction.
-			localRotation[1] = glm::vec4(-direction, 0.0f); // New Y-axis (Up)
-
-			// Remeber : Parent transforms are applied right to left
-			glm::mat4 t = offset * rotation * translation * localRotation * scale;
-			transforms[i] = t;
-			new_positions[i] = t[3];
+			m_LineRenderer3D->SubmitLine(NIRS::Line{
+				t1[3],
+				t2[3],
+				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
+				});
 		}
-
-		m_LineRenderer->BeginScene();
-
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_FlatColorShader.get();
-		cmd.VAOPtr = m_ProbeMesh->GetVAO().get();
-		cmd.ViewTargetID = m_ViewTargetID;
-		cmd.Mode = DRAW_ELEMENTS;
-
-		// Global rotation, rotation and scale
-		// probes3D are a set of 3D positions
-		// I need to treat them all as a single model rotated 90 degrees on the x axis
-
-		for(int i = 0; i < probes.size(); i++) {
-			for (size_t j = 0; j < transforms.size(); j++)
-			{
-				if (i == j) continue;
-				m_LineRenderer->SubmitLine(NIRS::Line{ transforms[i][3],
-														transforms[j][3],
-														glm::vec4(1.0f) });
-			}
-			// Remeber : Parent transforms are applied right to left
-			cmd.Transform = transforms[i]; // offset* rotation* translation* localRotation* scale;
-
-			flatColor.Data.f4 = probes[i].Type == NIRS::SOURCE ? NIRS::SourceColor : NIRS::DetectorColor;
-
-			cmd.UniformCommands = { flatColor };
-			Renderer::Submit(cmd);
-		}
-
-
-		m_LineRenderer->EndScene();
+		m_LineRenderer3D->EndScene();
 	}
 }
 
@@ -251,8 +229,7 @@ void ProbeLayer::OnImGuiRender()
 	if (ImGui::CollapsingHeader("Probe 2D Global Transform"))
 	{
 		ImGui::Checkbox("Draw 2D Probes", &m_DrawProbes2D);
-		// --- 1. 2D Translation Offset (vec3) ---
-		// Allows movement along the X and Y axes.
+		ImGui::Checkbox("Draw 2D Channels", &m_DrawChannels2D);
 		ImGui::DragFloat3(
 			"Translation Offset (X, Y)",
 			&m_Probe2DTranslationOffset.x, // Edit X, Y, Z
@@ -266,8 +243,6 @@ void ProbeLayer::OnImGuiRender()
 			m_Probe2DTranslationOffset = glm::vec3(0.0f);
 		}
 
-		// --- 2. 2D Scale (vec3) ---
-		// Scale factor for the 2D probes.
 		ImGui::DragFloat3(
 			"Scale (X, Y)",
 			&m_Probe2DScale.x,
@@ -281,9 +256,6 @@ void ProbeLayer::OnImGuiRender()
 			m_Probe2DScale = glm::vec3(1.0f);
 		}
 
-		// --- 3. 2D Rotation (vec3) ---
-		// Since 2D rotation is typically only around the Z-axis (the axis pointing out of the screen), 
-		// a larger step and range is provided for Z, while X and Y are often left at 0.
 		ImGui::DragFloat3(
 			"Rotation (X, Y, Z)",
 			&m_Probe2DRotation.x,
@@ -301,8 +273,7 @@ void ProbeLayer::OnImGuiRender()
 	if (ImGui::CollapsingHeader("Probe 3D Global Transform"))
 	{
 		ImGui::Checkbox("Draw 3D Probes", &m_DrawProbes3D);
-		// --- 1. Translation Offset (vec3) ---
-		// Allows the user to offset the entire group of probes in world space.
+		ImGui::Checkbox("Draw 3D Channels", &m_DrawChannels3D);
 		ImGui::DragFloat3(
 			"Translation Offset",
 			&m_Probe3DTranslationOffset.x, // Start address of the vector
@@ -316,8 +287,6 @@ void ProbeLayer::OnImGuiRender()
 			m_Probe3DTranslationOffset = glm::vec3(0.0f);
 		}
 
-		// --- 2. Rotation Axis (vec3) ---
-		// Defines the vector around which the group of probes rotates.
 		ImGui::DragFloat3(
 			"Rotation Axis (X, Y, Z)",
 			&m_Probe3DRotationAxis.x,
@@ -331,8 +300,6 @@ void ProbeLayer::OnImGuiRender()
 			m_Probe3DRotationAxis = glm::vec3(0.0f);
 		}
 
-		// --- 3. Rotation Angle (float) ---
-		// Defines the angle of rotation around the specified axis.
 		ImGui::DragFloat(
 			"Rotation Angle (deg)",
 			&m_Probe3DRotationAngle,
@@ -341,9 +308,6 @@ void ProbeLayer::OnImGuiRender()
 			360.0f,
 			"%.0f deg"
 		);
-
-		// --- 4. Probe Spread Factor (float) ---
-		// Controls the spacing/distance between individual probes (multiplied by probe.Position).
 		ImGui::DragFloat(
 			"Spread Factor",
 			&m_Probe3DSpreadFactor,
@@ -353,8 +317,6 @@ void ProbeLayer::OnImGuiRender()
 			"%.2f"
 		);
 
-		// --- 5. Probe Mesh Scale (float) ---
-		// Controls the size of the individual mesh being rendered (e.g., the sphere/cube).
 		ImGui::DragFloat(
 			"Mesh Scale",
 			&m_Probe3DMeshScale,
@@ -419,26 +381,132 @@ void ProbeLayer::RenderProbeViewport()
 	ImGui::PopStyleVar();
 }
 
-void ProbeLayer::LoadProbeButton()
-{
-	// This is only called without a loaded probe
-	ImGui::Text("No .SNIRF file loaded.");
-	ImGui::SameLine();
-	if (ImGui::Button("Browse")) {
-		std::string newFile = Utils::OpenSNIRFFileDialog();
-		if (!newFile.empty()) {
-			LoadProbeFile(newFile);
-		}
-	}
-}
-
 void ProbeLayer::LoadProbeFile(const std::string& filepath)
 {
-
 	m_SNIRF->LoadFile(std::filesystem::path(filepath));
 
-	// For each probe poisition
-	// Im probe positions  
+	// Clear previous data
+	m_SourceVisuals.clear();
+	m_DetectorVisuals.clear();
+
+	auto detectors2D = m_SNIRF->GetDetectors2D();
+	auto sources2D = m_SNIRF->GetSources2D();
+
+	auto detectors3D = m_SNIRF->GetDetectors3D();
+	auto sources3D = m_SNIRF->GetSources3D();
+
+	NVIZ_ASSERT(detectors2D.size() == detectors3D.size(),
+		"Mismatch in number of 2D and 3D detectors");
+	NVIZ_ASSERT(sources2D.size() == sources3D.size(),
+		"Mismatch in number of 2D and 3D sources");
+
+	size_t numDetectors = detectors2D.size();
+	size_t numSources = sources2D.size();
+
+	for (size_t i = 0; i < numDetectors; i++)
+	{
+		ProbeVisual detectorPV;
+		detectorPV.Probe2D = detectors2D[i];
+		detectorPV.Probe3D = detectors3D[i];
+		m_DetectorVisuals.push_back(detectorPV);
+	}
+
+	for (size_t i = 0; i < numSources; i++)
+	{
+
+		ProbeVisual sourcePV;
+		sourcePV.Probe2D = sources2D[i];
+		sourcePV.Probe3D = sources3D[i];
+		m_SourceVisuals.push_back(sourcePV);
+	}
+
+	UpdateProbeVisuals();
+}
+void ProbeLayer::UpdateProbeVisuals()
+{
+	RenderCommand cmd2D_template;
+	cmd2D_template.ShaderPtr = m_FlatColorShader.get();
+	cmd2D_template.VAOPtr = m_ProbeMesh->GetVAO().get();
+	cmd2D_template.ViewTargetID = m_ViewTargetID;
+	cmd2D_template.Mode = DRAW_ELEMENTS;
+
+	RenderCommand cmd3D_template;
+	cmd3D_template.ShaderPtr = m_FlatColorShader.get();
+	cmd3D_template.VAOPtr = m_ProbeMesh->GetVAO().get();
+	cmd3D_template.ViewTargetID = m_ViewTargetID;
+	cmd3D_template.Mode = DRAW_ELEMENTS;
+
+	UniformData flatColor;
+	flatColor.Type = UniformDataType::FLOAT4;
+	flatColor.Name = "u_Color";
+
+	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(m_Probe3DRotationAngle), m_Probe3DRotationAxis);
+	glm::mat4 offset = glm::translate(glm::mat4(1.0f), m_Probe3DTranslationOffset);
+	glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(m_Probe3DMeshScale));
+
+	for (auto& pv : m_SourceVisuals) {
+		auto worldPos = pv.Probe3D.Position * m_Probe3DSpreadFactor;
+
+		glm::vec3 direction = glm::normalize(m_TargetProbePosition - worldPos);
+		glm::vec3 z_axis = direction;
+		glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		glm::vec3 x_axis = glm::normalize(glm::cross(worldUp, z_axis));
+		glm::vec3 y_axis = glm::normalize(glm::cross(z_axis, x_axis));
+
+		glm::mat4 translation = glm::translate(glm::mat4(1.0f), worldPos);
+		glm::mat4 localRotation = glm::mat4(1.0f);
+		localRotation[0] = glm::vec4(x_axis, 0.0f); // New X-axis
+		localRotation[1] = glm::vec4(y_axis, 0.0f); // New Y-axis
+		localRotation[2] = glm::vec4(z_axis, 0.0f); // New Z-axis
+
+		localRotation[0] = glm::vec4(x_axis, 0.0f); // New X-axis (Right)
+		localRotation[2] = glm::vec4(glm::cross(x_axis, direction), 0.0f); // New Z-axis
+		// Align -Y to 'direction'. Since 'direction' is the new -Y, the new +Y is -direction.
+		localRotation[1] = glm::vec4(-direction, 0.0f); // New Y-axis (Up)
+
+		flatColor.Data.f4 = pv.Probe2D.Type == NIRS::SOURCE ? NIRS::SourceColor : NIRS::DetectorColor;
+
+		pv.RenderCmd3D = cmd3D_template;
+		pv.RenderCmd3D.Transform = offset * rotation * translation * localRotation * scale;
+		pv.RenderCmd3D.UniformCommands = { flatColor };
+
+		pv.RenderCmd2D = cmd2D_template;
+		pv.RenderCmd2D.Transform = glm::translate(glm::mat4(1.0f), glm::vec3(pv.Probe2D.Position.x, pv.Probe2D.Position.y, 0));
+		pv.RenderCmd2D.UniformCommands = { flatColor };
+
+	}
+
+	for (auto& pv : m_DetectorVisuals) {
+		auto worldPos = pv.Probe3D.Position * m_Probe3DSpreadFactor;
+
+		glm::vec3 direction = glm::normalize(m_TargetProbePosition - worldPos);
+		glm::vec3 z_axis = direction;
+		glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		glm::vec3 x_axis = glm::normalize(glm::cross(worldUp, z_axis));
+		glm::vec3 y_axis = glm::normalize(glm::cross(z_axis, x_axis));
+
+		glm::mat4 translation = glm::translate(glm::mat4(1.0f), worldPos);
+		glm::mat4 localRotation = glm::mat4(1.0f);
+		localRotation[0] = glm::vec4(x_axis, 0.0f); // New X-axis
+		localRotation[1] = glm::vec4(y_axis, 0.0f); // New Y-axis
+		localRotation[2] = glm::vec4(z_axis, 0.0f); // New Z-axis
+
+		localRotation[0] = glm::vec4(x_axis, 0.0f); // New X-axis (Right)
+		localRotation[2] = glm::vec4(glm::cross(x_axis, direction), 0.0f); // New Z-axis
+		// Align -Y to 'direction'. Since 'direction' is the new -Y, the new +Y is -direction.
+		localRotation[1] = glm::vec4(-direction, 0.0f); // New Y-axis (Up)
+
+		flatColor.Data.f4 = pv.Probe2D.Type == NIRS::SOURCE ? NIRS::SourceColor : NIRS::DetectorColor;
+
+		pv.RenderCmd3D = cmd3D_template;
+		pv.RenderCmd3D.Transform = offset * rotation * translation * localRotation * scale;
+		pv.RenderCmd3D.UniformCommands = { flatColor };
+
+		pv.RenderCmd2D = cmd2D_template;
+		pv.RenderCmd2D.Transform = glm::translate(glm::mat4(1.0f), glm::vec3(pv.Probe2D.Position.x, pv.Probe2D.Position.y, 0));
+		pv.RenderCmd2D.UniformCommands = { flatColor };
+	}
+	
 }
 
 void ProbeLayer::RenderCameraSettingsControls(bool createPanel)
@@ -515,4 +583,5 @@ void ProbeLayer::RenderCameraSettingsControls(bool createPanel)
 
 	if (createPanel) ImGui::End();
 }
+
 

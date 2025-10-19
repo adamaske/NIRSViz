@@ -145,7 +145,9 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
 
 	Group metadata = nirs.getGroup("metaDataTags");
     Group probe = nirs.getGroup("probe");
-	ParseProbe(probe);
+
+	ParseProbe(probe); // THIS MUST BE FIRST
+    ParseData1(data1);
 
     Print();
 }
@@ -153,27 +155,27 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
 
 void SNIRF::Print()
 {
-    NVIZ_INFO("PROBES : 2D");
-    size_t print_count = std::min((size_t)10, m_Probes2D.size());
-    for (size_t i = 0; i < print_count; i++)
-    {
-        auto& probe2D = m_Probes2D[i];
-        auto& probe3D = m_Probes3D[i];
-        NVIZ_INFO("    {} : ( {}, {} )", Utils::ProbeTypeToString(probe2D.Type), probe2D.Position.x, probe2D.Position.y);
-        NVIZ_INFO("    {} : ( {}, {}, {} )", Utils::ProbeTypeToString(probe3D.Type), probe3D.Position.x, probe3D.Position.y, probe3D.Position.z);
-    }
-    NVIZ_INFO("Landmarks : {}", m_Landmarks.size());
-    print_count = std::min((size_t)10, m_Landmarks.size());
+	NVIZ_INFO("SNIRF File       : {}", m_Filepath.string());
+	NVIZ_INFO("     Sources     : {}", m_Sources2D.size());
+    NVIZ_INFO("     Detectors   : {}", m_Detectors2D.size());
+
+    NVIZ_INFO("Landmarks : 3D{}", m_Landmarks.size());
+    auto print_count = std::min((size_t)3, m_Landmarks.size());
     for (size_t i = 0; i < print_count; i++)
     {
         auto& lm = m_Landmarks[i];
         NVIZ_INFO("    {} : ( {}, {}, {} )", lm.Name, lm.Position.x, lm.Position.y, lm.Position.z);
     }
+
+	NVIZ_INFO("Wavelengths : {}, {}", m_Wavelengths[0], m_Wavelengths[1]);
+
+	NVIZ_INFO("Channel Data : {} channels, {} time points", m_ChannelData.rows(), m_ChannelData.cols());
+
+
 }
 
 void SNIRF::ParseProbe(const HighFive::Group& probe)
 {
-    NVIZ_INFO("PROBE : ");
     std::vector<std::string> object_names = probe.listObjectNames();
 
     using Map_RM = Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
@@ -192,7 +194,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double x = row_vector(0);
             double y = row_vector(1);
 
-            m_Probes2D.push_back({ glm::vec2(x, y), DETECTOR });
+            m_Detectors2D.push_back({ glm::vec2(x, y), DETECTOR });
         }
     }
     auto detectorPos3D = probe.getDataSet("detectorPos3D"); 
@@ -210,7 +212,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double y = row_vector(1);
             double z = row_vector(2);
 
-            m_Probes3D.push_back({ glm::vec3(x, z, y), DETECTOR });
+            m_Detectors3D.push_back({ glm::vec3(x, z, y), DETECTOR });
         }
     }
 
@@ -228,7 +230,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double x = row_vector(0);
             double y = row_vector(1);
 
-            m_Probes2D.push_back({ glm::vec2(x, y), SOURCE });
+            m_Sources2D.push_back({ glm::vec2(x, y), SOURCE });
         }
     }
     auto sourcePos3D = probe.getDataSet("sourcePos3D"); 
@@ -246,11 +248,18 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double y = row_vector(1);
             double z = row_vector(2);
 
-            m_Probes3D.push_back({ glm::vec3(x, z, y), SOURCE });
+            m_Sources3D.push_back({ glm::vec3(x, z, y), SOURCE });
         }
     }
 
     auto wavelengths = probe.getDataSet("wavelengths");
+    {
+        auto dims = wavelengths.getDimensions();
+        std::vector<int> wl(dims[0]);
+		wavelengths.read(wl);
+		m_Wavelengths = wl; 
+        std::sort(m_Wavelengths.begin(), m_Wavelengths.end()); // Sort in ascending order to make sure HbR is the 0th 
+    }
 
     auto landmarkLabels = probe.getDataSet("landmarkLabels");
     auto landmarkPos3D = probe.getDataSet("landmarkPos3D");
@@ -277,3 +286,62 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
         }
     }
 }
+
+void SNIRF::ParseData1(const HighFive::Group& data1)
+{
+    using Map_RM = Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
+    auto dataTimeSeries = data1.getDataSet("dataTimeSeries");
+    {
+        auto dims = dataTimeSeries.getDimensions();
+        auto nd_array = std::vector<double>(dims[0] * dims[1]);
+        dataTimeSeries.read_raw<double>(nd_array.data());
+        m_ChannelData = Map_RM(nd_array.data(), dims[0], dims[1]).transpose();
+	}
+
+	std::string base_name = "measurementList";
+    for (size_t i = 1; i < m_ChannelData.rows() + 1; i++)
+    {
+		auto name = base_name + std::to_string(i);
+
+		auto measurementList = data1.getGroup(name);
+
+        auto dataType = 0;
+        measurementList.getDataSet("dataType").read(dataType);
+		auto dataTypeIndex = 0;
+        measurementList.getDataSet("dataTypeIndex").read(dataTypeIndex);
+        std::string dataTypeLabel = "";
+        measurementList.getDataSet("dataTypeLabel").read(dataTypeLabel);
+
+        int sourceIndex = 0;
+        measurementList.getDataSet("sourceIndex").read(sourceIndex);
+
+        int detectorIndex = 0;
+        measurementList.getDataSet("detectorIndex").read(detectorIndex);
+
+        int wavelengthIndex = 0;
+        measurementList.getDataSet("wavelengthIndex").read(wavelengthIndex);
+        
+		NIRS::Channel channel;
+		channel.SourceID = sourceIndex;
+		channel.DetectorID = detectorIndex;
+		channel.Wavelength = NIRS::WavelengthType(wavelengthIndex - 1); 
+
+        auto channel_row = m_ChannelData.row(i - 1);
+        channel.Data.resize(m_ChannelData.cols()); 
+        std::copy(channel_row.data(),
+                  channel_row.data() + channel_row.size(), 
+                  channel.Data.begin()); 
+		m_Channels.push_back(channel);
+
+        NVIZ_INFO("Measurement List : {0}", name);
+        //NVIZ_INFO("    dataType        : {0}", dataType);
+        //NVIZ_INFO("    dataTypeIndex   : {0}", dataTypeIndex);
+        NVIZ_INFO("    dataTypeLabel   : {0}", dataTypeLabel); // Either raw-DC, or conc or something else
+        NVIZ_INFO("Channel : ");
+        NVIZ_INFO("    Source ID     : {0}", channel.SourceID);
+        NVIZ_INFO("    Detector ID   : {0}", channel.DetectorID);
+        NVIZ_INFO("    Wavelength    : {0}", NIRS::WavelengthTypeToString(channel.Wavelength));
+        NVIZ_INFO("    Data          : {0}", channel.Data.size());
+    }
+}
+

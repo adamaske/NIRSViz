@@ -14,6 +14,8 @@ public:
 
 	void SetData(const void* data, uint32_t size);
 
+	void ClearData();
+
 	const BufferLayout& GetLayout() { return m_Layout; }
 	void SetLayout(const BufferLayout& layout) { m_Layout = layout; }
 
