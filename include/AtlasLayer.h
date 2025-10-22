@@ -32,8 +32,17 @@ public:
 	void RenderCameraSettings(bool standalone);
 	void RenderMainViewport();
 
+	void RenderHeadSettings();
+	void RenderCortexSettings();
+
+	void RenderEditor();
+	void RenderAlignmentSettings();
+	void RenderEditorViewport();
+
 private:
-	ViewID m_ViewTargetID = 2; // Passed to renderer to specify this viewport
+	ViewID m_EditorViewID = 2; // Passed to renderer to specify this viewport
+	bool m_EditorOpen = false;
+	Ref<OrbitCamera> m_EditorCamera = nullptr;
 
 	Ref<Framebuffer> m_EditorFramebuffer = nullptr;
 
