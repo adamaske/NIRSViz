@@ -48,15 +48,14 @@ public:
     glm::vec4 m_LineColor = glm::vec4(1.0f);
     float m_LineWidth = 2.0f;
 private:
-    std::vector<NIRS::LineVertex> m_Vertices;
+    ViewID m_ViewTargetID;
+    std::vector<NIRS::LineVertex> m_Vertices = {};
 
     Ref<VertexArray> m_VAO;
     Ref<VertexBuffer> m_VBO;
     Ref<Shader> m_Shader;
 	Ref<Camera> m_BoundCamera;
 
-
-    ViewID m_ViewTargetID;
 
     // Internal function to set up OpenGL buffers
     void SetupBuffers();

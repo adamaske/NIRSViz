@@ -39,9 +39,20 @@ void AtlasLayer::OnAttach()
 	m_EditorFramebuffer = CreateRef<Framebuffer>(fbSpec);
 
 	ViewportManager::RegisterViewport({ "Atlas Editor", m_EditorViewID, m_EditorCamera, m_EditorFramebuffer });
+	auto mainID = ViewportManager::GetViewport("MainViewport").ID;
 
 	m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
 	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
+
+	m_HeadGraph = CreateRef<Graph>(CreateGraphFromTriangleMesh(m_HeadMesh.get(), glm::mat4(1.0f)));
+	m_CortexGraph = CreateRef<Graph>(CreateGraphFromTriangleMesh(m_CortexMesh.get(), glm::mat4(1.0f)));
+
+	m_NaisonInionLineRenderer = CreateRef<LineRenderer>(mainID);
+	m_LPARPALineRenderer = CreateRef<LineRenderer>(mainID);
+
+	m_LandmarkRenderer = CreateRef<PointRenderer>(mainID);
+	m_WaypointRenderer = CreateRef<PointRenderer>(mainID);
+	m_CoordinateRenderer = CreateRef<PointRenderer>(mainID);
 
 	m_LightPosUniform.Type = UniformDataType::FLOAT3;
 	m_LightPosUniform.Name = "u_LightPos";
@@ -62,7 +73,17 @@ void AtlasLayer::OnUpdate(float dt)
 {
 	auto viewport = ViewportManager::GetViewport("MainViewport");
 	auto camera = viewport.CameraPtr;
+	m_NaisonInionLineRenderer->BeginScene();
+	m_LPARPALineRenderer->BeginScene();
 
+	m_WaypointRenderer->BeginScene();
+	m_LandmarkRenderer->BeginScene();
+	m_CoordinateRenderer->BeginScene();
+
+	m_CoordinateRenderer->SubmitPoint(glm::vec3(0.0f, 10.0f, 0.0f));
+	m_CoordinateRenderer->SubmitPoint(glm::vec3(4.0f, 10.0f, 0.0f));
+	m_CoordinateRenderer->SubmitPoint(glm::vec3(-4.0f, 10.0f, 0.0f));
+	m_LPARPALineRenderer->SubmitLine({ glm::vec3(-5.0f, 15.0f, -5.0f), glm::vec3(5.0f, 15.0f, 5.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
 
 	m_LightPosUniform.Data.f3 = camera->GetPosition();
 
@@ -124,6 +145,13 @@ void AtlasLayer::OnUpdate(float dt)
 
 		}
 	}
+
+	m_NaisonInionLineRenderer->EndScene();
+	m_LPARPALineRenderer->EndScene();
+
+	m_WaypointRenderer->EndScene();
+	m_LandmarkRenderer->EndScene();
+	m_CoordinateRenderer->EndScene();
 }
 
 void AtlasLayer::OnRender()
@@ -137,10 +165,22 @@ void AtlasLayer::OnImGuiRender()
 	RenderHeadSettings();
 	RenderCortexSettings();
 
-	if (m_EditorOpen) {
-		RenderEditor();
+	ImGui::Separator();
+	ImGui::SliderFloat("Waypoint Size", &m_WaypointRenderer->GetPointSize(), 0.0f, 20.0f);
+	ImGui::ColorEdit4("Waypoint Color", &m_WaypointRenderer->GetPointColor()[0], 0);
+	
+	ImGui::Separator();
+	ImGui::SliderFloat("Landmark Size", &m_LandmarkRenderer->GetPointSize(), 0.0f, 20.0f);
+	ImGui::ColorEdit4("Landmark Color", &m_LandmarkRenderer->GetPointColor()[0], 0);
 
-	}
+	ImGui::Separator();
+	ImGui::SliderFloat("Coordinate Size", &m_CoordinateRenderer->GetPointSize(), 0.0f, 20.0f);
+	ImGui::ColorEdit4("Coordinate Color", &m_CoordinateRenderer->GetPointColor()[0], 0);
+
+	//if (m_EditorOpen) {
+	//	RenderEditor();
+	//
+	//}
 
 	ImGui::End();
 }

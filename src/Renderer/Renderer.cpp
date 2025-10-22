@@ -12,7 +12,8 @@ void Renderer::Init()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_LINE_SMOOTH); 
-	glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE); 
+	glEnable(GL_PROGRAM_POINT_SIZE); // Allows Vertex Shader to set gl_PointSize
 }
 
 void Renderer::Shutdown()
@@ -120,6 +121,9 @@ void Renderer::ExecuteQueue()
 		case DrawMode::DRAW_ARRAYS:
 			DrawArrays(command.VAOPtr, 0);
 			break;
+		case DrawMode::DRAW_POINTS:
+			DrawPoints(command.VAOPtr, 0);
+			break;
 		}
 		
 
@@ -156,6 +160,12 @@ void Renderer::DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount)
 	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
 }
 
+void Renderer::DrawPoints(const VertexArray* vertexArray, uint32_t vertexCount)
+{
+	vertexArray->Bind();
+	glDrawArrays(GL_POINTS, 0, vertexArray->GetVertexCount());
+}
+
 void Renderer::OnWindowResize(uint32_t width, uint32_t height)
 {
 	SetViewport(0, 0, width, height);
@@ -179,6 +189,11 @@ void Renderer::Clear()
 void Renderer::SetLineWidth(float width)   
 {										   
 	glLineWidth(width);
+}
+
+void Renderer::SetPointSize(float size)
+{
+	glPointSize(size);
 }
 
 void Renderer::EnableDepthTest(bool enable) {

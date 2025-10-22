@@ -193,9 +193,7 @@ void SNIRF::ParseMetadataTags(const HighFive::Group& metadata)
     for(auto& name : object_names)
     {
         DataSet dataset = metadata.getDataSet(name);
-        std::string value;
-        dataset.read(value);
-        NVIZ_INFO("Metadata Tag : {0} = {1}", name, value);
+        NVIZ_INFO("Metadata Tag : {0}", name);
 	}
 }
 
@@ -317,9 +315,13 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 
     DataSet time = data1.getDataSet("time");
     {
-        std::vector<float> time_data(time.getDimensions()[0]);
+        std::vector<double> time_data(time.getDimensions()[0]);
         time.read(time_data);
-
+		m_Time.resize(time_data.size());
+        for (size_t i = 0; i < time_data.size(); i++)
+        {
+            m_Time[i] = time_data[i] * 10;
+        }
         float total_duration = time_data.back() - time_data.front();
         size_t num_intervals = time_data.size() - 1;
         float avg_dt = total_duration / num_intervals;
@@ -366,7 +368,27 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 		NIRS::Channel channel;
 		channel.SourceID = sourceIndex;
 		channel.DetectorID = detectorIndex;
-		channel.Wavelength = NIRS::WavelengthType(wavelengthIndex - 1); 
+        
+        if (dataTypeIndex == -1) {
+            // Parse dataTypeLabel
+            if(dataTypeLabel == "HbO") {
+                channel.Wavelength = NIRS::WavelengthType::HBO;
+            }
+            else if (dataTypeLabel == "HbR") {
+                channel.Wavelength = NIRS::WavelengthType::HBR;
+            }
+            else if (dataTypeLabel == "HbT") {
+                channel.Wavelength = NIRS::WavelengthType::HBT;
+            }
+            else {
+                NVIZ_ERROR("Unknown dataTypeLabel: {0}", dataTypeLabel);
+                channel.Wavelength = NIRS::WavelengthType::HBR; // Default to something
+			}
+        }
+        else {
+            channel.Wavelength = NIRS::WavelengthType(wavelengthIndex - 1);
+        }
+
 
         std::vector<double> channel_data_vec;
         auto channel_row = m_ChannelData.row(i - 1);
@@ -378,8 +400,8 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 		m_Channels.push_back(channel);
         if (i == 1) {
             NVIZ_INFO("Measurement List : {0}", name);
-            //NVIZ_INFO("    dataType        : {0}", dataType);
-            //NVIZ_INFO("    dataTypeIndex   : {0}", dataTypeIndex);
+            NVIZ_INFO("    dataType        : {0}", dataType);
+            NVIZ_INFO("    dataTypeIndex   : {0}", dataTypeIndex);
             NVIZ_INFO("    dataTypeLabel   : {0}", dataTypeLabel); // Either raw-DC, or conc or something else
             NVIZ_INFO("Channel : ");
             NVIZ_INFO("    Source ID     : {0}", channel.SourceID);

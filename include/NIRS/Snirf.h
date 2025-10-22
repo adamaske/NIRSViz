@@ -116,6 +116,9 @@ public:
 
 	int GetSourceAmount()	{ return m_Sources2D.size(); };
 	int GetDetectorAmount()	{ return m_Detectors2D.size(); };
+
+	double GetSamplingRate() { return m_SamplingRate; };
+	std::vector<double> GetTime() { return m_Time; };
 private:
 	std::filesystem::path m_Filepath = std::filesystem::path("");
 
@@ -126,6 +129,7 @@ private:
 
 	double m_SamplingRate = 0.0;
 	double m_DurationSeconds = 0.0;
+	std::vector<double> m_Time = {};
 
 	std::vector<NIRS::Probe2D> m_Sources2D	 = {};
 	std::vector<NIRS::Probe2D> m_Detectors2D = {};

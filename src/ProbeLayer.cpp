@@ -67,7 +67,7 @@ void ProbeLayer::OnAttach()
 	m_LineRenderer3D->m_LineWidth = 4.0f;
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(1);
 	m_ProjLineRenderer3D->m_LineColor = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
-	m_ProjLineRenderer3D->m_LineWidth = 8.0f;
+	m_ProjLineRenderer3D->m_LineWidth = 4.0f;
 
 	m_SNIRF = CreateRef<SNIRF>();
 	AssetManager::Register<SNIRF>("SNIRF", m_SNIRF);

@@ -41,14 +41,12 @@ void PlottingLayer::OnImGuiRender()
 	
 	auto channels = m_SNIRF->GetChannels();
 	size_t n = channels.size();
-	std::vector<double> t(n);
-	const double sampling_rate = 5.1; // The example sampling rate in Hz
-	const double dt = 1.0 / sampling_rate; // Time step (seconds per sample)
-	for (size_t k = 0; k < n; ++k)
-	{
-		t[k] = (double)k * dt;
-	}
+	auto t = m_SNIRF->GetTime();
 
+	// User input
+	// For example 1, 2, 3, 4, shows these specific channels
+	// Or they can do 1-16, 32-45, ... .Then only these are displayd
+	
 	if (ImPlot::BeginPlot("Channels")) {
 		ImPlot::SetupAxes("x", "y");
 		auto count = std::min((size_t)n, n);
@@ -63,11 +61,8 @@ void PlottingLayer::OnImGuiRender()
 
 		ImPlot::EndPlot();
 	}
-	
 
-	
 	ImGui::End();
-
 	ImPlot::ShowDemoWindow();
 }
 

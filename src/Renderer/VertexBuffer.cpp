@@ -34,10 +34,11 @@ void VertexBuffer::Unbind()
 
 void VertexBuffer::SetData(const void* data, uint32_t size) 
 {
-	m_Size = size;
 	glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-	glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	m_Size = size;
 }
 
 void VertexBuffer::ClearData()

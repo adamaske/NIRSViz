@@ -45,14 +45,17 @@ void LineRenderer::SetupBuffers()
 
 void LineRenderer::BeginScene()
 {
-    m_Vertices.clear(); // Clear data from the previous frame
+
+    if(m_Vertices.size() > 0)
+        m_Vertices.clear(); // Clear data from the previous frame
 
 }
 
 void LineRenderer::EndScene()
 {
     Flush(); 
-    m_Vertices.clear();
+    if (m_Vertices.size() > 0)
+        m_Vertices.clear();
 }
 
 void LineRenderer::SubmitLine(const NIRS::Line& line)

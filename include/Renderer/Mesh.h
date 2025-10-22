@@ -35,8 +35,8 @@ public:
 	Ref<VertexBuffer> GetVBO() { return m_VBO; };
 	Ref<IndexBuffer> GetIBO() { return m_IBO; };
 
-	std::vector<Vertex> GetVertices() { return m_Vertices; };
-	std::vector<unsigned int> GetIndices() { return m_Indices; };
+	const std::vector<Vertex> GetVertices() { return m_Vertices; };
+	const std::vector<unsigned int> GetIndices() { return m_Indices; };
 private:
 	Ref<VertexArray> m_VAO;
 	Ref<VertexBuffer> m_VBO;
