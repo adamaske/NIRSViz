@@ -14,11 +14,14 @@ class ChannelDataRegistry {
 	using ChannelData = std::vector<double>;
 public:
 	ChannelDataRegistry() {
+		NVIZ_ASSERT(!s_Instance, "ChannelDataRegistry instance already exists!");
+		s_Instance = this;
 	};
 
 	int SubmitChannelData(const ChannelData& data) {
 		std::size_t hash_val = HashChannelData(data);
-		if (m_LookupMap.count(hash_val)) {
+
+		if (m_LookupMap.count(hash_val)) { 
 			int potential_index = m_LookupMap.at(hash_val);
 			if (m_DataStorage[potential_index] == data) {
 				return potential_index;
@@ -45,6 +48,9 @@ public:
 		m_LookupMap.clear();
 	}
 
+	static ChannelDataRegistry& Get() {
+		return *s_Instance;
+	}
 private:
 	std::vector<ChannelData> m_DataStorage;
 
@@ -67,6 +73,8 @@ private:
 		}
 		return seed;
 	}
+
+	static ChannelDataRegistry* s_Instance;
 };
 
 class SNIRF {
@@ -74,9 +82,11 @@ public:
 	SNIRF();
 	SNIRF(const std::filesystem::path& filepath);
 
+	void Print();
+
 	void LoadFile(const std::filesystem::path& filepath);
 
-	void Print();
+	void ParseMetadataTags(const HighFive::Group& metadata);
 	void ParseProbe(const HighFive::Group& probe);
 	void ParseData1(const HighFive::Group& data1);
 
@@ -113,6 +123,9 @@ private:
 		Eigen::Dynamic,
 		Eigen::Dynamic,
 		Eigen::RowMajor> m_ChannelData;
+
+	double m_SamplingRate = 0.0;
+	double m_DurationSeconds = 0.0;
 
 	std::vector<NIRS::Probe2D> m_Sources2D	 = {};
 	std::vector<NIRS::Probe2D> m_Detectors2D = {};

@@ -29,6 +29,9 @@ set(IMGUI_SOURCES
     ${VENDOR_DIR}/imgui/imgui_demo.cpp
     ${VENDOR_DIR}/imgui/backends/imgui_impl_glfw.cpp
     ${VENDOR_DIR}/imgui/backends/imgui_impl_opengl3.cpp
+    ${VENDOR_DIR}/implot/implot.cpp
+    ${VENDOR_DIR}/implot/implot_demo.cpp
+    ${VENDOR_DIR}/implot/implot_items.cpp
 )
 
 set(HDF5_ROOT "C:/Program Files/HDF_Group/HDF5/1.14.6")
@@ -70,6 +73,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${VENDOR_DIR}/glad/include
     ${VENDOR_DIR}/glm
     ${VENDOR_DIR}/imgui 
+    ${VENDOR_DIR}/implot
     ${VENDOR_DIR}/HighFive/include
     ${VENDOR_DIR}/Eigen/include 
 )

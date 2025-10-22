@@ -70,6 +70,7 @@ void ProbeLayer::OnAttach()
 	m_ProjLineRenderer3D->m_LineWidth = 8.0f;
 
 	m_SNIRF = CreateRef<SNIRF>();
+	AssetManager::Register<SNIRF>("SNIRF", m_SNIRF);
 
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
 	//LoadProbeFile("C:/nirs/hd_fnirs/raw_data/right hemisphere/passive/sub01_run01.snirf");

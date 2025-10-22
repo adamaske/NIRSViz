@@ -132,9 +132,10 @@ void MainViewportLayer::RenderCameraSettings(bool standalone) {
 }
 
 void MainViewportLayer::RenderMainViewport() {
+	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 	bool visible = true;
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoResize; // Removed NoResize flag for testing
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_None; // Removed NoResize flag for testing
 	ImGui::Begin("Viewport", &visible, window_flags);
 
 	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();

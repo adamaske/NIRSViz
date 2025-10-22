@@ -8,10 +8,6 @@
 #include "Renderer/RoamCamera.h"
 #include "Renderer/OrbitCamera.h"
 
-
-
-
-
 class AtlasLayer : public Layer {
 public:
 	AtlasLayer();

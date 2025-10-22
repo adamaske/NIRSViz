@@ -41,10 +41,12 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	m_MainViewportLayer = CreateRef<MainViewportLayer>();
 	m_ProbeLayer = CreateRef<ProbeLayer>();
 	m_AtlasLayer = CreateRef<AtlasLayer>();
+	m_PlottingLayer = CreateRef<PlottingLayer>();
 
 	PushLayer(m_MainViewportLayer.get());
 	PushLayer(m_ProbeLayer.get());
 	PushLayer(m_AtlasLayer.get());
+	PushLayer(m_PlottingLayer.get());
 }
 
 Application::~Application()

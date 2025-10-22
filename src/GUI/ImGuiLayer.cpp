@@ -8,6 +8,8 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
+#include <implot.h>
+
 #include "Core/Application.h"
 
 ImGuiLayer::ImGuiLayer()
@@ -23,6 +25,7 @@ void ImGuiLayer::OnAttach()
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImPlot::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -62,6 +65,7 @@ void ImGuiLayer::OnDetach()
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+	ImPlot::DestroyContext();
 }
 
 void ImGuiLayer::OnEvent(Event& e)

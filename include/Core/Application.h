@@ -8,6 +8,7 @@
 #include "GUI/ImGuiLayer.h"
 #include "ProbeLayer.h"
 #include "AtlasLayer.h"
+#include "PlottingLayer.h"
 #include "MainViewportLayer.h"
 
 struct ApplicationCommandLineArgs
@@ -69,4 +70,5 @@ private:
 	Ref<MainViewportLayer> m_MainViewportLayer;
 	Ref<ProbeLayer> m_ProbeLayer;
 	Ref<AtlasLayer> m_AtlasLayer;
+	Ref<PlottingLayer> m_PlottingLayer;
 };
