@@ -25,7 +25,7 @@ namespace NIRS {
 		ProbeID SourceID; // This is 1-indexed index
 		ProbeID DetectorID;
 		WavelengthType Wavelength;
-		std::vector<double> Data; // Time series data for this channel
+		int DataIndex; // Index into the channel data registry
 	};
 
 	enum ProbeType {

@@ -50,7 +50,7 @@ void ImGuiLayer::OnAttach()
 	SetDarkThemeColors();
 
 	Application& app = Application::Get();
-	GLFWwindow* window = app.GetWindow().GetNativeWindow();
+	GLFWwindow* window = app.GetWindow()->GetNativeWindow();
 
 	// Setup Platform/Renderer bindings
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -81,13 +81,22 @@ void ImGuiLayer::Begin()
 	ImGui::NewFrame();
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 	ImGui::ShowDemoWindow();
+
+	auto& layerStack = Application::Get().GetLayerStack();
+
+	if (ImGui::BeginMainMenuBar()) {
+
+		for (auto* layer : layerStack)
+			layer->RenderMenuBar();
+		ImGui::EndMainMenuBar();
+	}
 }
 
 void ImGuiLayer::End()
 {
 	ImGuiIO& io = ImGui::GetIO();
 	Application& app = Application::Get();
-	io.DisplaySize = ImVec2((float)app.GetWindow().GetWidth(), (float)app.GetWindow().GetHeight());
+	io.DisplaySize = ImVec2((float)app.GetWindow()->GetWidth(), (float)app.GetWindow()->GetHeight());
 
 	// Rendering
 	ImGui::Render();

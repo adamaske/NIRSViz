@@ -33,7 +33,7 @@ void OrbitCamera::OnImGuiRender(bool standalone)
 {
     if (standalone) ImGui::Begin("Roam Camera Settings");
 
-    if (ImGui::SliderFloat("Orbit Distance", &m_Radius, 0.1f, 1000.0f)) {
+    if (ImGui::SliderFloat("Orbit Distance", &m_Radius, 0.1f, 150.0f)) {
         SetOrbitPosition(m_Theta, m_Phi, m_Radius);
     }
     if (ImGui::SliderFloat("Theta", &m_Theta, -360.0f, 360.0f)) {

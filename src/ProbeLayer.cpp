@@ -12,6 +12,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Shader.h"
 #include "Renderer/VertexBuffer.h"
+#include "Renderer/ViewportManager.h"
 
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
@@ -52,44 +53,24 @@ ProbeLayer::~ProbeLayer()
 void ProbeLayer::OnAttach()
 {
 	auto& app = Application::Get();
-	m_Window = &app.GetWindow();
 
 	m_FlatColorShader = CreateRef<Shader>(
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
-	m_PhongShader = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/Phong.vert",
-		"C:/dev/NIRSViz/Assets/Shaders/Phong.frag");
 
-	m_RoamCamera = CreateRef<RoamCamera>();
-	m_OrbitCamera = CreateRef<OrbitCamera>();
-	m_RoamCamera->SetPosition({ 0.0f, 6.0f, -16.0f });
-	m_RoamCamera->SetYaw(90.0f);
-	m_RoamCamera->UpdateCameraVectors();
-	m_RoamCamera->UpdateViewMatrix();
-	m_RoamCamera->UpdateProjectionMatrix();
-
-	FramebufferSpecification fbSpec; // Init a framebuffer to show the probe
-	fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::Depth };
-	fbSpec.Width = app.GetWindow().GetWidth();
-	fbSpec.Height = app.GetWindow().GetHeight();
-	m_Framebuffer = CreateRef<Framebuffer>(fbSpec);
-
-	Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
 
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
-	m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
-	m_CortexMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
 
-	m_LineRenderer2D = CreateRef<LineRenderer>(m_ViewTargetID);
-	m_LineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
+	m_LineRenderer2D = CreateRef<LineRenderer>(1);
+	m_LineRenderer3D = CreateRef<LineRenderer>(1);
 	m_LineRenderer3D->m_LineColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
 	m_LineRenderer3D->m_LineWidth = 4.0f;
-	m_ProjLineRenderer3D = CreateRef<LineRenderer>(m_ViewTargetID);
+	m_ProjLineRenderer3D = CreateRef<LineRenderer>(1);
 	m_ProjLineRenderer3D->m_LineColor = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
 	m_ProjLineRenderer3D->m_LineWidth = 8.0f;
 
 	m_SNIRF = CreateRef<SNIRF>();
+
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
 	//LoadProbeFile("C:/nirs/hd_fnirs/raw_data/right hemisphere/passive/sub01_run01.snirf");
 }
@@ -100,19 +81,6 @@ void ProbeLayer::OnDetach()
 
 void ProbeLayer::OnUpdate(float dt)
 {
-
-	auto camera = GetActiveCamera();
-	if (m_ViewportHovered)
-	{
-		if (Input::IsMouseButtonPressed(Mouse::ButtonRight)) {
-			if (!m_CameraControlActive) StartMouseControl();
-			DoMouseControl(dt);
-		}
-		else
-			if (m_CameraControlActive) EndMouseControl();
-	}
-	else 
-		if (m_CameraControlActive) EndMouseControl();
 
 	if (m_DrawChannelProjections3D || m_DrawChannels3D || m_DrawChannels2D ||
 		m_DrawProbes2D || m_DrawProbes3D) {
@@ -163,56 +131,6 @@ void ProbeLayer::OnUpdate(float dt)
 			Renderer::Submit(cmd);
 		}
 	}
-
-
-	UniformData lightPos;
-	lightPos.Type = UniformDataType::FLOAT3;
-	lightPos.Name = "u_LightPos";
-	lightPos.Data.f3 = camera->GetPosition();
-
-	UniformData objectColor;
-	objectColor.Type = UniformDataType::FLOAT4;
-	objectColor.Name = "u_ObjectColor";
-	objectColor.Data.f4 = { 0.2f, 0.2f, 0.2f, 1.0f };
-
-	UniformData flatColor;
-	flatColor.Type = UniformDataType::FLOAT4;
-	flatColor.Name = "u_Color";
-	flatColor.Data.f4 = { 0.2f, 0.2f, 0.2f, 1.0f };
-
-	UniformData opacity;
-	opacity.Type = UniformDataType::FLOAT1;
-	opacity.Name = "u_Opacity";
-	opacity.Data.f1 = m_HeadOpacity;
-
-	if (m_DrawCortex) {
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_PhongShader.get();
-		cmd.VAOPtr = m_CortexMesh->GetVAO().get();
-		cmd.ViewTargetID = m_ViewTargetID;
-		cmd.Transform = glm::mat4(1.0f);
-		cmd.Mode = DRAW_ELEMENTS;
-
-		objectColor.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
-		opacity.Data.f1 = 1.0f;
-		cmd.UniformCommands = { lightPos, objectColor, opacity };
-		Renderer::Submit(cmd);
-	}
-
-	if (m_DrawHead) {
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_PhongShader.get();
-		cmd.VAOPtr = m_HeadMesh->GetVAO().get();
-		cmd.ViewTargetID = m_ViewTargetID;
-		cmd.Transform = glm::mat4(1.0f);
-		cmd.Mode = DRAW_ELEMENTS;
-		objectColor.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
-		opacity.Data.f1 = m_HeadOpacity;
-		cmd.UniformCommands = { lightPos, objectColor, opacity };
-		Renderer::Submit(cmd);
-	}
-
-
 }
 
 void ProbeLayer::OnRender()
@@ -221,36 +139,19 @@ void ProbeLayer::OnRender()
 
 void ProbeLayer::OnImGuiRender()
 {
-	RenderProbeViewport();
 
 	ImGui::Begin("Probe Settings");
-	ImGui::Text("Loaded Probe File:");
-	ImGui::SameLine();
-	if (ImGui::Button("Reload")) {
-		std::string newFile = Utils::OpenSNIRFFileDialog();
-		if (!newFile.empty()) {
-			LoadProbeFile(newFile);
-		}
-	}
 	ImGui::TextWrapped("%s", m_SNIRF->IsFileLoaded() ? m_SNIRF->GetFilepath().c_str() : "...");
 
-	Render2DProbeTransformControls(true);
-	Render3DProbeTransformControls(true);
-
-
-	ImGui::Checkbox("Draw Head", &m_DrawHead);
-	ImGui::SliderFloat("Head Opacity", &m_HeadOpacity, 0.0f, 1.0f);
-
-	ImGui::Checkbox("Draw Cortex", &m_DrawCortex);
-
-	RenderCameraSettingsControls(true);
-
-	// NIRS Properties 
 	ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
 	ImGui::ColorEdit4("Source Color", &NIRS::SourceColor[0], colorFlags);
 	ImGui::ColorEdit4("Detector Color", &NIRS::DetectorColor[0], colorFlags);
 
 	ImGui::ColorEdit4("2D Channel Color", &m_LineRenderer2D->m_LineColor[0], colorFlags);
+
+	Render2DProbeTransformControls(false);
+	Render3DProbeTransformControls(false);
+
 	ImGui::End();
 }
 
@@ -259,40 +160,25 @@ void ProbeLayer::OnEvent(Event& event)
 
 }
 
-void ProbeLayer::RenderProbeViewport()
+void ProbeLayer::RenderMenuBar()
 {
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-	bool visible = true;
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_None; // Removed NoResize flag for testing
-	ImGui::Begin("Probe Viewport", &visible, window_flags);
 
-	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-
-	m_ViewportHovered = ImGui::IsWindowHovered();
-
-	ImVec2 viewportMinRegion = ImGui::GetWindowContentRegionMin();
-	ImVec2 viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-	ImVec2 windowPos = ImGui::GetWindowPos();
-
-	m_ViewportBoundsMin = { windowPos.x + viewportMinRegion.x, windowPos.y + viewportMinRegion.y };
-	m_ViewportBoundsMax = { windowPos.x + viewportMaxRegion.x, windowPos.y + viewportMaxRegion.y };
-
-	if (m_Framebuffer->GetSpecification().Width != (uint32_t)viewportPanelSize.x ||
-		m_Framebuffer->GetSpecification().Height != (uint32_t)viewportPanelSize.y)
+	if (ImGui::BeginMenu("Probe"))
 	{
-		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0)
-		{
-			m_Framebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+		if (ImGui::MenuItem("Load Probe (.snirf)")) {
+			std::string newFile = Utils::OpenSNIRFFileDialog();
+			if (!newFile.empty()) {
+				LoadProbeFile(newFile);
+			}
 		}
+
+		if (ImGui::MenuItem("Edit Probe")) {
+			// Open Editor Panel
+
+		}
+
+		ImGui::EndMenu();
 	}
-	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
-	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
-
-	// We want to store the coordinates for this window, then we can check wheter or not the cursors
-	// is over it in the OnEvent function
-
-	ImGui::End();
-	ImGui::PopStyleVar();
 }
 
 void ProbeLayer::Render2DProbeTransformControls(bool standalone)
@@ -430,16 +316,17 @@ void ProbeLayer::LoadProbeFile(const std::string& filepath)
 }
 void ProbeLayer::UpdateProbeVisuals()
 {
+	auto viewport = ViewportManager::GetViewport("MainViewport");
 	RenderCommand cmd2D_template;
 	cmd2D_template.ShaderPtr = m_FlatColorShader.get();
 	cmd2D_template.VAOPtr = m_ProbeMesh->GetVAO().get();
-	cmd2D_template.ViewTargetID = m_ViewTargetID;
+	cmd2D_template.ViewTargetID = viewport.ID;
 	cmd2D_template.Mode = DRAW_ELEMENTS;
 
 	RenderCommand cmd3D_template;
 	cmd3D_template.ShaderPtr = m_FlatColorShader.get();
 	cmd3D_template.VAOPtr = m_ProbeMesh->GetVAO().get();
-	cmd3D_template.ViewTargetID = m_ViewTargetID;
+	cmd3D_template.ViewTargetID = viewport.ID;
 	cmd3D_template.Mode = DRAW_ELEMENTS;
 
 	UniformData flatColor;
@@ -555,80 +442,3 @@ void ProbeLayer::UpdateChannelVisuals()
 		m_ChannelVisuals.push_back(cv);
 	}
 }
-
-void ProbeLayer::RenderCameraSettingsControls(bool createPanel)
-{
-	if (createPanel) ImGui::Begin("Camera Settings");
-	else ImGui::Text("Camera Settings");
-
-
-	const char* combo_preview_value = m_UseRoamCamera ? "Free Roam" : "Orbit Target";
-	if (ImGui::BeginCombo("Camera Mode", combo_preview_value))
-	{
-		if (ImGui::Selectable("Free Roam", m_UseRoamCamera)) {
-			m_UseRoamCamera = true;
-			// we need to reregister the view with the new camera
-			Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
-		}
-
-		if (m_UseRoamCamera)
-			ImGui::SetItemDefaultFocus();
-
-		if (ImGui::Selectable("Orbit Target", !m_UseRoamCamera)) {
-			m_UseRoamCamera = false;
-			// Set the orbit distance equal to the distance from the roam camera to the origin
-			m_OrbitCamera->SetRadius(glm::distance(m_RoamCamera->GetPosition(), glm::vec3(0.0f)));
-			Renderer::RegisterView(m_ViewTargetID, GetActiveCamera(), m_Framebuffer);
-		}
-
-		ImGui::EndCombo();
-	}
-
-	auto cam = GetActiveCamera();
-	cam->OnImGuiRender(false);
-
-	if (createPanel) ImGui::End();
-}
-
-void ProbeLayer::StartMouseControl()
-{
-	m_CameraControlActive = true;
-
-	m_InitialMousePos = Input::GetMousePosition();
-	m_RoamCamera->StartControl(m_InitialMousePos);
-
-	glfwSetInputMode(m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-}
-
-void ProbeLayer::DoMouseControl(float dt)
-{
-	if (m_UseRoamCamera) {
-		m_RoamCamera->OnControlled(dt);
-	}
-
-	glfwSetCursorPos(m_Window->GetNativeWindow(), m_InitialMousePos.x, m_InitialMousePos.y);
-}
-
-void ProbeLayer::EndMouseControl()
-{
-	m_CameraControlActive = false;
-
-	glfwSetInputMode(m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-	// 3. Coordinate conversion and centering
-	int windowX, windowY;
-	glfwGetWindowPos(m_Window->GetNativeWindow(), &windowX, &windowY);
-
-	// Calculate screen-space center (using ImGui bounds)
-	float screenCenterX = (m_ViewportBoundsMin.x + m_ViewportBoundsMax.x) / 2.0f;
-	float screenCenterY = (m_ViewportBoundsMin.y + m_ViewportBoundsMax.y) / 2.0f;
-
-	// Convert to GLFW window-local coordinates
-	double windowLocalX = screenCenterX - (float)windowX;
-	double windowLocalY = screenCenterY - (float)windowY;
-
-	// 4. Set cursor position
-	glfwSetCursorPos(m_Window->GetNativeWindow(), windowLocalX, windowLocalY);
-}
-
-

@@ -126,6 +126,7 @@ SNIRF::SNIRF()
 
 SNIRF::SNIRF(const std::filesystem::path& filepath)
 {
+	m_ChannelDataRegistry = ChannelDataRegistry();
 	LoadFile(filepath);
 }
 
@@ -334,11 +335,13 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 		channel.DetectorID = detectorIndex;
 		channel.Wavelength = NIRS::WavelengthType(wavelengthIndex - 1); 
 
+        std::vector<double> channel_data_vec;
         auto channel_row = m_ChannelData.row(i - 1);
-        channel.Data.resize(m_ChannelData.cols()); 
-        std::copy(channel_row.data(),
-                  channel_row.data() + channel_row.size(), 
-                  channel.Data.begin()); 
+        channel_data_vec.resize(m_ChannelData.cols());
+        std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
+
+		channel.DataIndex = m_ChannelDataRegistry.SubmitChannelData(channel_data_vec);
+
 		m_Channels.push_back(channel);
 
         NVIZ_INFO("Measurement List : {0}", name);
@@ -349,7 +352,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         NVIZ_INFO("    Source ID     : {0}", channel.SourceID);
         NVIZ_INFO("    Detector ID   : {0}", channel.DetectorID);
         NVIZ_INFO("    Wavelength    : {0}", NIRS::WavelengthTypeToString(channel.Wavelength));
-        NVIZ_INFO("    Data          : {0}", channel.Data.size());
+        NVIZ_INFO("    Data          : {0}", channel.DataIndex);
     }
 }
 

@@ -1,6 +1,8 @@
 #include "pch.h"
+
 #include "Core/Application.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/ViewportManager.h"
 
 #include "ProbeLayer.h"
 #include "Core/AssetManager.h"
@@ -27,18 +29,22 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	window_spec.resizeable = true;
 	window_spec.vsync = true;
 
-	m_Window = CreateScope<Window>(window_spec);
+	m_Window = CreateRef<Window>(window_spec);
 	m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 
 	Renderer::Init();
 
-	m_ImGuiLayer = new ImGuiLayer();
-	PushOverlay(m_ImGuiLayer);
+	ViewportManager::Init();
 
+	m_ImGuiLayer = CreateRef<ImGuiLayer>();
+	PushOverlay(m_ImGuiLayer.get());
+	m_MainViewportLayer = CreateRef<MainViewportLayer>();
 	m_ProbeLayer = CreateRef<ProbeLayer>();
+	m_AtlasLayer = CreateRef<AtlasLayer>();
 
+	PushLayer(m_MainViewportLayer.get());
 	PushLayer(m_ProbeLayer.get());
-
+	PushLayer(m_AtlasLayer.get());
 }
 
 Application::~Application()
@@ -100,14 +106,6 @@ void Application::PushLayer(Layer* layer)
 void Application::PushOverlay(Layer* layer)
 {
 	m_LayerStack.PushOverlay(layer);
-}
-
-Layer* Application::GetLayer(const std::string& name)
-{
-	// The layerstack 
-
-
-	return nullptr;
 }
 
 bool Application::OnWindowClose(WindowCloseEvent& e)

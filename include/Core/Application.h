@@ -4,8 +4,11 @@
 #include "Core/Window.h"
 #include "Core/LayerStack.h"
 #include "Events/ApplicationEvent.h"
+
 #include "GUI/ImGuiLayer.h"
 #include "ProbeLayer.h"
+#include "AtlasLayer.h"
+#include "MainViewportLayer.h"
 
 struct ApplicationCommandLineArgs
 {
@@ -44,24 +47,26 @@ public:
 	void PushLayer(Layer* layer);
 	void PushOverlay(Layer* layer);
 
-	Layer* GetLayer(const std::string& name);
-
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
 
-	Window& GetWindow() { return *m_Window; }
+	Ref<Window> GetWindow() { return m_Window; }
 	const ApplicationSpecification& GetSpecification() const { return m_Specification; }
+
+	LayerStack& GetLayerStack() { return m_LayerStack; }
 private:
 	static Application* s_Instance;
-	ApplicationSpecification m_Specification;
-	Scope<Window> m_Window;
-	ImGuiLayer* m_ImGuiLayer;
-	Ref<ProbeLayer> m_ProbeLayer;
-	LayerStack m_LayerStack;
 
+	ApplicationSpecification m_Specification;
 	bool m_Running = true;
 	bool m_Minimized = false;
 	float m_LastTime = 0.0f;
 
+	Ref<Window> m_Window;
 
+	LayerStack m_LayerStack;
+	Ref<ImGuiLayer> m_ImGuiLayer;
+	Ref<MainViewportLayer> m_MainViewportLayer;
+	Ref<ProbeLayer> m_ProbeLayer;
+	Ref<AtlasLayer> m_AtlasLayer;
 };
