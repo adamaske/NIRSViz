@@ -12,18 +12,19 @@
 
 #include "MeshGraph.h"
 
+#include "NIRS/NIRS.h"
 struct Ray;
 
 
-enum LandmarkType {
+enum ManualLandmarkType {
 	NAISON,
 	INION,
 	LPA,
 	RPA
 };
 
-struct Landmark {
-	LandmarkType Type;
+struct ManualLandmark { // This
+    ManualLandmarkType Type;
 	glm::vec3 Position;
 	glm::vec4 Color;
 };
@@ -63,9 +64,9 @@ public:
 
 	void GenerateCoordinateSystem();
 
-	std::map<std::string, glm::vec3> FindReferencePointsAlongPath(std::vector<glm::vec3> world_space_vertices, 
+	std::map<NIRS::Landmark, glm::vec3> FindReferencePointsAlongPath(std::vector<glm::vec3> world_space_vertices,
 									  std::vector<unsigned int> path_indices, 
-									  std::vector<std::string> labels, 
+									  std::vector<NIRS::Landmark> labels,
 									  std::vector<float> percentages);
 private:
 	ViewID m_EditorViewID = 2; // Passed to renderer to specify this viewport
@@ -90,26 +91,26 @@ private:
 	UniformData m_ObjectColorUniform;
 	UniformData m_OpacityUniform;
 
-	Ref<LineRenderer> m_NaisonInionLineRenderer = nullptr;
-	Ref<LineRenderer> m_LPARPALineRenderer = nullptr;
-	Ref<LineRenderer> m_NaisonInionPathRenderer = nullptr;
-	Ref<LineRenderer> m_LPARPALinePathRenderer = nullptr;
 
-
-	Ref<PointRenderer> m_LandmarkRenderer = nullptr;
 	Ref<PointRenderer> m_WaypointRenderer = nullptr;
 
-	std::map<std::string, glm::vec3> m_Coordinates;
-	Ref<PointRenderer> m_CoordinateRenderer = nullptr;
+	bool m_DrawLandmarks = true;
+	std::map<NIRS::Landmark, glm::vec3> m_Landmarks;
+	std::map<NIRS::Landmark, bool> m_LandmarkVisibility;
+	Ref<PointRenderer> m_LandmarkRenderer = nullptr;
+	char m_CoordinateInputBuffer[256] = "";
+	std::vector<std::string> m_SelectedLandmarks;
 
-	float m_LandmarkSize = 1.5f;
+	float m_ManualLandmarkSize = 1.2f; 
+	bool m_DrawManualLandmarks = true;
 	Ref<Mesh> m_SphereMesh = nullptr;
-	std::map<LandmarkType, Landmark> m_Landmarks = // one of each, naison is green, inion is red, lpa is blue, rpa is yellow
+	Ref<PointRenderer> m_ManualLandmarkRenderer = nullptr;
+	std::map<ManualLandmarkType, ManualLandmark> m_ManualLandmarks = // one of each, naison is green, inion is red, lpa is blue, rpa is yellow
 	{
-		{ LandmarkType::NAISON, { LandmarkType::NAISON,		glm::vec3(0, -5.2, -10.4),	glm::vec4(0.0f, 1.0f, 0.1f, 1.0f) } },
-		{ LandmarkType::INION,	{ LandmarkType::INION,		glm::vec3(-0.4, -4.1, 10.9),	glm::vec4(1.0f, 0.0f, 0.1f, 1.0f) } },
-		{ LandmarkType::LPA,	{ LandmarkType::LPA,		glm::vec3(-9.1, -5.8, 0),	glm::vec4(0.1f, 0.0f, 1.0f, 1.0f) } },
-		{ LandmarkType::RPA,	{ LandmarkType::RPA,		glm::vec3(9.1, -5.8, 0),	glm::vec4(1.0f, 1.0f, 0.1f, 1.0f) } }
+		{ ManualLandmarkType::NAISON,   { ManualLandmarkType::NAISON,		glm::vec3(0, -5.2, -10.4),	glm::vec4(0.0f, 1.0f, 0.1f, 1.0f) } },
+		{ ManualLandmarkType::INION,    { ManualLandmarkType::INION,		glm::vec3(-0.4, -4.1, 10.9),	glm::vec4(1.0f, 0.0f, 0.1f, 1.0f) } },
+		{ ManualLandmarkType::LPA,	    { ManualLandmarkType::LPA,		glm::vec3(-9.1, -5.8, 0),	glm::vec4(0.1f, 0.0f, 1.0f, 1.0f) } },
+		{ ManualLandmarkType::RPA,	    { ManualLandmarkType::RPA,		glm::vec3(9.1, -5.8, 0),	glm::vec4(1.0f, 1.0f, 0.1f, 1.0f) } }
 	};
 
 	// vertex path
@@ -121,9 +122,14 @@ private:
 
 	VertexPath m_NaisonInionRoughPath;
 	VertexPath m_NaisonInionFinePath;
+	Ref<LineRenderer> m_NaisonInionPathRenderer = nullptr;
+	Ref<LineRenderer> m_LPARPALinePathRenderer = nullptr;
 
 	VertexPath m_LPARPARoughPath;
 	VertexPath m_LPARPAFinePath;
+
+	Ref<LineRenderer> m_NaisonInionLineRenderer = nullptr;
+	Ref<LineRenderer> m_LPARPALineRenderer = nullptr;
 
 	bool m_DrawPaths = true;
 	Ref<LineRenderer> m_NaisonInionRaysRenderer = nullptr;

@@ -9,16 +9,41 @@
 #include <glm/geometric.hpp>
 #include "glm/gtx/string_cast.hpp"
 #include "Raycast.h"
+#include "NIRS/NIRS.h"
 
 namespace Utils {
-	std::string LandmarkTypeToString(LandmarkType type) {
+	std::string LandmarkTypeToString(ManualLandmarkType type) {
 		switch (type) {
-		case LandmarkType::NAISON: return "Naison";
-		case LandmarkType::INION: return "Inion";
-		case LandmarkType::LPA: return "LPA";
-		case LandmarkType::RPA: return "RPA";
+		case ManualLandmarkType::NAISON: return "Naison";
+		case ManualLandmarkType::INION: return "Inion";
+		case ManualLandmarkType::LPA: return "LPA";
+		case ManualLandmarkType::RPA: return "RPA";
 		default: return "Unknown";
 		}
+	}
+
+	std::vector<std::string> SplitCooridnateSelector(const std::string& s, char delimiter) {
+		std::vector<std::string> tokens;
+		std::string token;
+		std::istringstream tokenStream(s);
+
+		while (std::getline(tokenStream, token, delimiter)) {
+			// --- 1. Trim leading whitespace ---
+			token.erase(token.begin(), std::find_if(token.begin(), token.end(), [](unsigned char ch) {
+				return !std::isspace(ch);
+				}));
+
+			// --- 2. Trim trailing whitespace ---
+			token.erase(std::find_if(token.rbegin(), token.rend(), [](unsigned char ch) {
+				return !std::isspace(ch);
+				}).base(), token.end());
+
+			// --- 3. Add to vector if not empty (e.g., to handle "A,,B") ---
+			if (!token.empty()) {
+				tokens.push_back(token);
+			}
+		}
+		return tokens;
 	}
 }
 
@@ -60,9 +85,9 @@ void AtlasLayer::OnAttach()
 	m_NaisonInionRaysRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(0, 1, 0, 1), 2.0f);
 	m_LPARPARaysRenderer		= CreateRef<LineRenderer>(mainID, glm::vec4(0, 0, 1, 1), 2.0f);
 
-	m_LandmarkRenderer			= CreateRef<PointRenderer>(mainID, glm::vec4(0.3, 0, 1, 1), 0.8);
+	m_ManualLandmarkRenderer	= CreateRef<PointRenderer>(mainID, glm::vec4(0.3, 0, 1, 1), 0.8);
 	m_WaypointRenderer			= CreateRef<PointRenderer>(mainID, glm::vec4(1, 0, 0.3, 1), 0.8);
-	m_CoordinateRenderer		= CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
+	m_LandmarkRenderer		= CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
 
 	// SETUP CORTEX
 	m_CortexMesh =	CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
@@ -103,63 +128,7 @@ void AtlasLayer::OnUpdate(float dt)
 
 	if(m_DrawPaths) m_NaisonInionPathRenderer->EndScene();
 
-	{
-		m_NaisonInionLineRenderer->BeginScene();
-		m_LPARPALineRenderer->BeginScene();
-		m_NaisonInionLineRenderer->SubmitLine({
-			m_Landmarks[LandmarkType::NAISON].Position,
-			m_Landmarks[LandmarkType::INION].Position
-			});
-		m_LPARPALineRenderer->SubmitLine({
-			m_Landmarks[LandmarkType::LPA].Position,
-			m_Landmarks[LandmarkType::RPA].Position
-			});
-		m_NaisonInionLineRenderer->EndScene();
-		m_LPARPALineRenderer->EndScene();
-	}
-
-	{
-		if (m_DrawRays) {
-			m_NaisonInionRaysRenderer->BeginScene();
-			m_LPARPARaysRenderer->BeginScene();
-			for (auto& ray : m_NaisonInionRays) {
-				m_NaisonInionRaysRenderer->SubmitLine({
-				ray.Origin,
-				ray.End
-					});
-			}
-			for (auto& ray : m_LPARPARays) {
-				m_LPARPARaysRenderer->SubmitLine({
-				ray.Origin,
-				ray.End
-					});
-			}
-			m_NaisonInionRaysRenderer->EndScene();
-			m_LPARPARaysRenderer->EndScene();
-		}
-	}
-	
-	{
-		if (m_DrawWaypoints) {
-			m_WaypointRenderer->BeginScene();
-			for (auto& intersection : m_NaisonInionIntersectionPoints) {
-				m_WaypointRenderer->SubmitPoint({ intersection });
-			}
-			for (auto& intersection : m_LPARPAIntersectionPoints) {
-				m_WaypointRenderer->SubmitPoint({ intersection });
-			}
-			m_WaypointRenderer->EndScene();
-		}
-	}
-
-	m_CoordinateRenderer->BeginScene();
-	for (auto& [name, position] : m_Coordinates) {
-		m_CoordinateRenderer->SubmitPoint({ position });
-	};
-	m_CoordinateRenderer->EndScene();
-
-
-	{
+	if(m_DrawManualLandmarks) {
 		RenderCommand cmd3D_template;
 		cmd3D_template.ShaderPtr = m_FlatColorShader.get();
 		cmd3D_template.VAOPtr = m_SphereMesh->GetVAO().get();
@@ -170,17 +139,72 @@ void AtlasLayer::OnUpdate(float dt)
 		flatColor.Type = UniformDataType::FLOAT4;
 		flatColor.Name = "u_Color";
 
-		for (auto& [type, landmark] : m_Landmarks) {
+		for (auto& [type, landmark] : m_ManualLandmarks) {
 
 			cmd3D_template.Transform = glm::mat4(1.0f);
 			cmd3D_template.Transform = glm::translate(cmd3D_template.Transform, landmark.Position);
-			cmd3D_template.Transform = glm::scale(cmd3D_template.Transform, glm::vec3(m_LandmarkSize));
+			cmd3D_template.Transform = glm::scale(cmd3D_template.Transform, glm::vec3(m_ManualLandmarkSize));
 
 			flatColor.Data.f4 = landmark.Color;
 			cmd3D_template.UniformCommands = { flatColor };
 
 			Renderer::Submit(cmd3D_template);
 		}
+
+		m_NaisonInionLineRenderer->BeginScene();
+		m_LPARPALineRenderer->BeginScene();
+		
+		m_NaisonInionLineRenderer->SubmitLine({
+			m_ManualLandmarks[ManualLandmarkType::NAISON].Position,
+			m_ManualLandmarks[ManualLandmarkType::INION].Position
+		});
+		m_LPARPALineRenderer->SubmitLine({
+			m_ManualLandmarks[ManualLandmarkType::LPA].Position,
+			m_ManualLandmarks[ManualLandmarkType::RPA].Position
+		});
+		
+		m_NaisonInionLineRenderer->EndScene();
+		m_LPARPALineRenderer->EndScene();
+	}
+
+	if (m_DrawRays) {
+		m_NaisonInionRaysRenderer->BeginScene();
+		m_LPARPARaysRenderer->BeginScene();
+		for (auto& ray : m_NaisonInionRays) {
+			m_NaisonInionRaysRenderer->SubmitLine({
+			ray.Origin,
+			ray.End
+				});
+		}
+		for (auto& ray : m_LPARPARays) {
+			m_LPARPARaysRenderer->SubmitLine({
+			ray.Origin,
+			ray.End
+				});
+		}
+		m_NaisonInionRaysRenderer->EndScene();
+		m_LPARPARaysRenderer->EndScene();
+	}
+
+	if (m_DrawWaypoints) {
+		m_WaypointRenderer->BeginScene();
+		for (auto& intersection : m_NaisonInionIntersectionPoints) {
+			m_WaypointRenderer->SubmitPoint({ intersection });
+		}
+		for (auto& intersection : m_LPARPAIntersectionPoints) {
+			m_WaypointRenderer->SubmitPoint({ intersection });
+		}
+		m_WaypointRenderer->EndScene();
+	}
+
+	if (m_DrawLandmarks) {
+		m_LandmarkRenderer->BeginScene();
+		for (auto& [label, position] : m_Landmarks) {
+			if (m_LandmarkVisibility[label] == true) {
+				m_LandmarkRenderer->SubmitPoint({ position });
+			}
+		};
+		m_LandmarkRenderer->EndScene();
 	}
 
 	if (m_DrawCortex) {
@@ -272,10 +296,10 @@ void AtlasLayer::OnImGuiRender()
 		ImGui::SliderFloat("LPA-RPA Ray Width", &m_LPARPARaysRenderer->m_LineWidth, 1.0f, 10.0f);
 	}
 
-	if (ImGui::CollapsingHeader("Landmark Alignment")) {
-
-		ImGui::SliderFloat("Landmark Size", &m_LandmarkSize, 0.0f, 20.0f);
-		for (auto& landmark : m_Landmarks) {
+	if (ImGui::CollapsingHeader("Landmark Manual Alignment")) {
+		ImGui::Checkbox("Draw Landmarks", &m_DrawManualLandmarks);
+		ImGui::SliderFloat("Landmark Size", &m_ManualLandmarkSize, 0.0f, 20.0f);
+		for (auto& landmark : m_ManualLandmarks) {
 
 			ImGui::Text("%s Position", Utils::LandmarkTypeToString(landmark.second.Type).c_str());
 			ImGui::DragFloat3((std::string("##") + Utils::LandmarkTypeToString(landmark.second.Type) + "Pos").c_str(),
@@ -301,10 +325,72 @@ void AtlasLayer::OnImGuiRender()
 		ImGui::ColorEdit4("Path Color", &m_NaisonInionPathRenderer->m_LineColor[0], 0);
 	}
 
+	if (ImGui::CollapsingHeader("Coordinates")) {
 
-	ImGui::Separator();
-	ImGui::SliderFloat("Coordinate Size", &m_CoordinateRenderer->GetPointSize(), 0.0f, 20.0f);
-	ImGui::ColorEdit4("Coordinate Color", &m_CoordinateRenderer->GetPointColor()[0], 0);
+		ImGui::Separator();
+		ImGui::Checkbox("Draw Coordinates", &m_DrawLandmarks);
+		ImGui::SliderFloat("Coordinate Size", &m_LandmarkRenderer->GetPointSize(), 0.0f, 20.0f);
+		ImGui::ColorEdit4("Coordinate Color", &m_LandmarkRenderer->GetPointColor()[0], 0);
+
+
+		static bool parse_needed = false;
+		if (ImGui::InputTextWithHint("##ElectrodeInput", "e.g., Cz, Fz, Fp1",
+			m_CoordinateInputBuffer, IM_ARRAYSIZE(m_CoordinateInputBuffer),
+			ImGuiInputTextFlags_EnterReturnsTrue)) {
+			// This is triggered when 'Enter' is pressed
+			parse_needed = true;
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Parse Electrodes")) {
+			parse_needed = true;
+		}
+
+		if (parse_needed) {
+			// Perform the split and store the result
+			m_SelectedLandmarks = Utils::SplitCooridnateSelector(std::string(m_CoordinateInputBuffer), ',');
+			if (m_SelectedLandmarks.size() > 0) {
+
+				for(auto& [label, visibility] : m_LandmarkVisibility) {
+					visibility = false; // Hide all first
+				}
+
+				for(auto& coord_label : m_SelectedLandmarks) {
+					std::optional<NIRS::Landmark> label = NIRS::StringToLandmark(coord_label);
+					if (label.has_value()) {
+
+
+						if (m_LandmarkVisibility.find(label.value()) != m_LandmarkVisibility.end()) {
+							m_LandmarkVisibility[label.value()] = true; // Show selected
+						}
+						else {
+							NVIZ_WARN("Coordinate Label Not Found: {0}", coord_label);
+						}
+					
+					}
+
+					
+				}
+			}
+			else {
+				for (auto& [label, visibility] : m_LandmarkVisibility) {
+					visibility = true; // Hide all first
+				}
+			}
+			parse_needed = false; // Reset the flag
+		}
+
+		// --- Display the results for verification ---
+		ImGui::Text("Parsed Electrodes (%zu):", m_SelectedLandmarks.size());
+		if (!m_SelectedLandmarks.empty()) {
+			for (size_t i = 0; i < m_SelectedLandmarks.size(); ++i) {
+				ImGui::BulletText("%s", m_SelectedLandmarks[i].c_str());
+			}
+		}
+		else {
+			ImGui::Text("No electrodes parsed yet.");
+		}
+	}
 
 
 	//if (m_EditorOpen) {
@@ -436,8 +522,8 @@ void AtlasLayer::GenerateCoordinateSystem()
 	else					NVIZ_ERROR("Head Graph NOT Fully Connected: Path Finding May Fail");
 
 	// Find the cloest vertex to each landmark
-	std::map<LandmarkType, unsigned int> landmark_vertex_indices;
-	for (auto& [type, landmark] : m_Landmarks) {
+	std::map<ManualLandmarkType, unsigned int> landmark_vertex_indices;
+	for (auto& [type, landmark] : m_ManualLandmarks) {
 		auto position = landmark.Position;
 		float min_distance = std::numeric_limits<float>::max();
 		for (unsigned int i = 0; i < world_space_vertices.size(); i++)
@@ -454,8 +540,8 @@ void AtlasLayer::GenerateCoordinateSystem()
 
 	// Step 1 : NZ to IZ, find waypoints, find fine path, find Cz 
 #if 1
-	glm::vec3 naison_pos = world_space_vertices[landmark_vertex_indices[LandmarkType::NAISON]];
-	glm::vec3 inion_pos = world_space_vertices[landmark_vertex_indices[LandmarkType::INION]];
+	glm::vec3 naison_pos = world_space_vertices[landmark_vertex_indices[ManualLandmarkType::NAISON]];
+	glm::vec3 inion_pos = world_space_vertices[landmark_vertex_indices[ManualLandmarkType::INION]];
 #else
 	glm::vec3 naison_pos = m_Landmarks[LandmarkType::NAISON].Position;
 	glm::vec3 inion_pos = m_Landmarks[LandmarkType::INION].Position;
@@ -546,8 +632,8 @@ void AtlasLayer::GenerateCoordinateSystem()
 	m_NaisonInionFinePath = std::vector<unsigned int>(m_NaisonInionFinePath.rbegin(), m_NaisonInionFinePath.rend());
 
 	// Insert NZ and IZ at start and end
-	m_NaisonInionFinePath.insert(m_NaisonInionFinePath.begin(), landmark_vertex_indices[LandmarkType::NAISON]);
-	m_NaisonInionFinePath.push_back(landmark_vertex_indices[LandmarkType::INION]);
+	m_NaisonInionFinePath.insert(m_NaisonInionFinePath.begin(), landmark_vertex_indices[ManualLandmarkType::NAISON]);
+	m_NaisonInionFinePath.push_back(landmark_vertex_indices[ManualLandmarkType::INION]);
 
 	std::vector<NIRS::Line> naison_inion_path_lines;
 	for (unsigned int i = 0; i < m_NaisonInionFinePath.size() - 1; i++)
@@ -560,21 +646,25 @@ void AtlasLayer::GenerateCoordinateSystem()
 	m_NaisonInionPathRenderer->SetPersistentLines(naison_inion_path_lines);
 
 	{
-		std::vector<std::string> labels = { "Nz", "FpZ", "Fz", "Cz", "Pz", "Oz", "Iz" };
+		using namespace NIRS;
+		std::vector<NIRS::Landmark> labels = { Nz, Fpz, Fz, Cz, Pz, Oz, Iz };
 		std::vector<float> percentages = { 0.0f, 0.10f, 0.30f, 0.50f, 0.70f, 0.90f, 1.0f };
+
+		// TODO : Have this take in a map instead
 		auto coordinates = FindReferencePointsAlongPath(world_space_vertices, m_NaisonInionFinePath, labels, percentages);
 		for (auto& [label, position] : coordinates) {
-			m_Coordinates[label] = position;
+			m_Landmarks[label] = position;
+			m_LandmarkVisibility[label] = true;
 		};
 	}
 
 
 }
 
-std::map<std::string, glm::vec3> AtlasLayer::FindReferencePointsAlongPath(
+std::map<NIRS::Landmark, glm::vec3> AtlasLayer::FindReferencePointsAlongPath(
 	std::vector<glm::vec3> world_space_vertices, 
 	std::vector<unsigned int> path_indices, 
-	std::vector<std::string> labels, 
+	std::vector<NIRS::Landmark> labels, 
 	std::vector<float> percentages)
 {
 	std::vector<float> cumulative_distances;
@@ -595,7 +685,7 @@ std::map<std::string, glm::vec3> AtlasLayer::FindReferencePointsAlongPath(
 		};
 
 
-	std::map<std::string, glm::vec3> point_label_map;
+	std::map<NIRS::Landmark, glm::vec3> point_label_map;
 
 	for (size_t i = 0; i < labels.size(); i++)
 	{

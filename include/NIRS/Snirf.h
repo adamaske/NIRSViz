@@ -95,7 +95,7 @@ public:
 	bool IsFileLoaded() { return !m_Filepath.empty(); };
 
 
-	std::vector<NIRS::Landmark> GetLandmarks() { return m_Landmarks; };
+	//std::vector<NIRS::Landmark> GetLandmarks() { return m_ManualLandmarks; };
 
 
 	std::vector<NIRS::Probe2D> GetSources2D() { return m_Sources2D; };
@@ -135,7 +135,7 @@ private:
 	std::vector<NIRS::Probe2D> m_Detectors2D = {};
 	std::vector<NIRS::Probe3D> m_Sources3D	 = {};
 	std::vector<NIRS::Probe3D> m_Detectors3D = {};
-	std::vector<NIRS::Landmark> m_Landmarks	 = {};
+	//std::vector<NIRS::Landmark> m_Landmarks	 = {};
 	std::vector<NIRS::Channel> m_Channels	 = {};
 	std::vector<int> m_Wavelengths			 = {};
 

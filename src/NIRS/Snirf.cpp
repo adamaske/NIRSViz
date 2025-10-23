@@ -140,13 +140,13 @@ void SNIRF::Print()
     NVIZ_INFO("     Sources     : {}", m_Sources2D.size());
     NVIZ_INFO("     Detectors   : {}", m_Detectors2D.size());
 
-    NVIZ_INFO("Landmarks : 3D{}", m_Landmarks.size());
-    auto print_count = std::min((size_t)3, m_Landmarks.size());
-    for (size_t i = 0; i < print_count; i++)
-    {
-        auto& lm = m_Landmarks[i];
-        NVIZ_INFO("    {} : ( {}, {}, {} )", lm.Name, lm.Position.x, lm.Position.y, lm.Position.z);
-    }
+    //NVIZ_INFO("Landmarks : 3D{}", m_Landmarks.size());
+    //auto print_count = std::min((size_t)3, m_Landmarks.size());
+    //for (size_t i = 0; i < print_count; i++)
+    //{
+    //    auto& lm = m_Landmarks[i];
+    //    NVIZ_INFO("    {} : ( {}, {}, {} )", lm.Name, lm.Position.x, lm.Position.y, lm.Position.z);
+    //}
 
     NVIZ_INFO("Wavelengths : {}, {}", m_Wavelengths[0], m_Wavelengths[1]);
 
@@ -163,7 +163,7 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
     m_Detectors2D.clear();
     m_Sources3D.clear();
     m_Detectors3D.clear();
-    m_Landmarks.clear();
+    //m_Landmarks.clear();
     m_Channels.clear();
     m_Wavelengths.clear();
     m_ChannelData.resize(0, 0);
@@ -284,30 +284,30 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
         std::sort(m_Wavelengths.begin(), m_Wavelengths.end()); // Sort in ascending order to make sure HbR is the 0th 
     }
 
-    auto landmarkLabels = probe.getDataSet("landmarkLabels");
-    auto landmarkPos3D = probe.getDataSet("landmarkPos3D");
-    {
-        auto label_dims = landmarkLabels.getDimensions();
-        std::vector<std::string> labels(label_dims[0]);
-        landmarkLabels.read(labels);
-
-        auto dims = landmarkPos3D.getDimensions();
-        auto nd_array = std::vector<double>(dims[0] * dims[1]);
-        landmarkPos3D.read_raw<double>(nd_array.data());
-        auto positions = Map_RM(nd_array.data(), dims[0], dims[1]);
-
-        for (int i = 0; i < positions.rows(); i++) {
-
-            auto row_vector = positions.row(i);
-
-            // Process the data for the i-th detector
-            double x = row_vector(0);
-            double y = row_vector(1);
-            double z = row_vector(2);
-
-            m_Landmarks.push_back({ labels[i], { x, y, z} });
-        }
-    }
+    //auto landmarkLabels = probe.getDataSet("landmarkLabels");
+    //auto landmarkPos3D = probe.getDataSet("landmarkPos3D");
+    //{
+    //    auto label_dims = landmarkLabels.getDimensions();
+    //    std::vector<std::string> labels(label_dims[0]);
+    //    landmarkLabels.read(labels);
+    //
+    //    auto dims = landmarkPos3D.getDimensions();
+    //    auto nd_array = std::vector<double>(dims[0] * dims[1]);
+    //    landmarkPos3D.read_raw<double>(nd_array.data());
+    //    auto positions = Map_RM(nd_array.data(), dims[0], dims[1]);
+    //
+    //    for (int i = 0; i < positions.rows(); i++) {
+    //
+    //        auto row_vector = positions.row(i);
+    //
+    //        // Process the data for the i-th detector
+    //        double x = row_vector(0);
+    //        double y = row_vector(1);
+    //        double z = row_vector(2);
+    //
+    //        m_Landmarks.push_back({ labels[i], { x, y, z} });
+    //    }
+    //}
 }
 
 void SNIRF::ParseData1(const HighFive::Group& data1)
