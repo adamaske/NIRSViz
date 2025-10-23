@@ -109,6 +109,56 @@ bool ValidateGraph(const Graph& graph, int start_idx, int end_idx, int num_verti
 	return is_connected;
 }
 
+bool IsGraphConnected(const Graph& graph, int num_vertices)
+{
+	if (num_vertices == 0) {
+		return true; // An empty graph is trivially connected.
+	}
+
+	// Check for a non-existent starting node, though this might be redundant
+	// if graph.size() == num_vertices is always true.
+	if (num_vertices > graph.size()) {
+		// Handle error or return false if graph structure is inconsistent
+		// throw std::out_of_range("num_vertices exceeds graph structure size.");
+	}
+
+	std::vector<bool> visited(num_vertices, false);
+	std::queue<int> q; // Using int for consistency, but unsigned int is fine too
+	int reachable_count = 0;
+
+	// Start the traversal from vertex 0 (or any arbitrary vertex)
+	const int start_idx = 0;
+
+	q.push(start_idx);
+	visited[start_idx] = true;
+	reachable_count++; // Node 0 is reachable
+
+	while (!q.empty()) {
+		int u = q.front();
+		q.pop();
+
+		// Iterate over all neighbors (edges) of the current vertex u
+		// Assumes graph[u] provides access to neighbors
+		for (const auto& edge : graph[u]) {
+			int v = edge.DestinationIndex;
+
+			if (v >= num_vertices) {
+				// Safety check: handle out-of-bounds destination index
+				continue;
+			}
+
+			if (!visited[v]) {
+				visited[v] = true;
+				q.push(v);
+				reachable_count++;
+			}
+		}
+	}
+
+	// The graph is connected if the search reached every single vertex
+	return (reachable_count == num_vertices);
+}
+
 std::vector<unsigned int> DjikstraShortestPath(const Graph& graph, unsigned int start_index, unsigned int end_index)
 {
 	if (start_index >= graph.size() || end_index >= graph.size()) {

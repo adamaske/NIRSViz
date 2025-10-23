@@ -61,13 +61,9 @@ void ProbeLayer::OnAttach()
 
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
 
-	m_LineRenderer2D = CreateRef<LineRenderer>(1);
-	m_LineRenderer3D = CreateRef<LineRenderer>(1);
-	m_LineRenderer3D->m_LineColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-	m_LineRenderer3D->m_LineWidth = 4.0f;
-	m_ProjLineRenderer3D = CreateRef<LineRenderer>(1);
-	m_ProjLineRenderer3D->m_LineColor = glm::vec4(0.0f, 0.8f, 0.0f, 1.0f);
-	m_ProjLineRenderer3D->m_LineWidth = 4.0f;
+	m_LineRenderer2D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(1.0f), 2.0f);
+	m_LineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 2.0f);
+	m_ProjLineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.0f, 0.8f, 0.0f, 1.0f), 2.0f);
 
 	m_SNIRF = CreateRef<SNIRF>();
 	AssetManager::Register<SNIRF>("SNIRF", m_SNIRF);
@@ -422,22 +418,19 @@ void ProbeLayer::UpdateChannelVisuals()
 
 		cv.Line2D = NIRS::Line{
 				start2D,
-				end2D,
-				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
+				end2D
 		};
 
 		cv.Line3D = NIRS::Line{
 				start3D,
-				end3D,
-				glm::vec4(0.8f, 0.8f, 0.2f, 1.0f)
+				end3D
 		};
 
 		auto projStart3D = (start3D + end3D) / 2.0f; 
 		auto projEnd3D = m_TargetProbePosition;
 		cv.ProjectionLine3D = NIRS::Line{
 			projStart3D,
-			projEnd3D,
-			glm::vec4(0.2f, 0.8f, 0.2f, 1.0f)
+			projEnd3D
 		};
 
 		m_ChannelVisuals.push_back(cv);

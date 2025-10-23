@@ -27,5 +27,9 @@ constexpr Ref<T> CreateRef(Args&& ... args)
 	return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
+#define MAIN_VIEWPORT 1
+#define ALTAS_VIEWPORT 2
+#define PROBE_EDITOR 3
+
 #include "Core/Log.h"
 #include "Core/Assert.h"

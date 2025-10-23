@@ -33,4 +33,5 @@ struct DijkstraNode {
 
 Graph CreateGraphFromTriangleMesh(Mesh* mesh, const glm::mat4 local_matrix);
 bool ValidateGraph(const Graph& graph, int start_idx, int end_idx, int num_vertices);
+bool IsGraphConnected(const Graph& graph, int num_vertices);
 std::vector<unsigned int> DjikstraShortestPath(const Graph& graph, unsigned int start_index, unsigned int end_index);

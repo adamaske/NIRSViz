@@ -57,14 +57,12 @@ private:
 	bool m_DrawProbes2D = false;
 	bool m_DrawChannels2D = false;
 	
-	bool m_DrawProbes3D = true;
-	bool m_DrawChannels3D = true;
-	bool m_DrawChannelProjections3D = true;
+	bool m_DrawProbes3D = false;
+	bool m_DrawChannels3D = false;
+	bool m_DrawChannelProjections3D = false;
 
 	Ref<Shader> m_FlatColorShader = nullptr;
-
 	Ref<Mesh> m_ProbeMesh = nullptr;
-
 	Ref<SNIRF> m_SNIRF = nullptr;
 
 	std::vector<ProbeVisual> m_SourceVisuals;

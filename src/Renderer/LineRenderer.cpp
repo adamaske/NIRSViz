@@ -8,7 +8,7 @@ namespace Utils {
     static constexpr uint32_t MAX_VERTICES = 2000;
 }
 
-LineRenderer::LineRenderer(ViewID viewTargetID) : m_ViewTargetID(viewTargetID)
+LineRenderer::LineRenderer(ViewID viewTargetID, glm::vec4 color, float size) : m_ViewTargetID(viewTargetID), m_LineColor(color), m_LineWidth(size)
 {
     m_Shader = CreateRef<Shader>(
         "C:/dev/NIRSViz/Assets/Shaders/Line.vert",
@@ -22,6 +22,26 @@ LineRenderer::~LineRenderer()
     // RAII handles destruction of m_VAO/m_Shader
     m_VAO.reset();
 	m_VBO.reset();
+}
+
+void LineRenderer::SetPersistentLines(std::vector<NIRS::Line> lines)
+{
+    m_PersistentLines = true;
+    m_Vertices.clear();
+    for (auto& line : lines) {
+                // Add the start point
+        m_Vertices.push_back({
+            line.Start,
+            glm::vec4(1.0f),
+            });
+        // Add the end point
+        m_Vertices.push_back({
+            line.End,
+            glm::vec4(1.0f),
+			});
+    }
+
+    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
 }
 
 void LineRenderer::SetupBuffers()
@@ -45,17 +65,38 @@ void LineRenderer::SetupBuffers()
 
 void LineRenderer::BeginScene()
 {
-
-    if(m_Vertices.size() > 0)
-        m_Vertices.clear(); // Clear data from the previous frame
-
+    if (m_PersistentLines)
+        return;
+    m_Vertices.clear(); 
 }
 
 void LineRenderer::EndScene()
 {
+    if (m_PersistentLines) {
+        UniformData lineWidth;
+        lineWidth.Type = UniformDataType::FLOAT1;
+        lineWidth.Name = "u_LineWidth";
+        lineWidth.Data.f1 = m_LineWidth;
+
+        UniformData color;
+        color.Type = UniformDataType::FLOAT4;
+        color.Name = "u_LineColor";
+        color.Data.f4 = m_LineColor;
+
+        RenderCommand cmd;
+        cmd.ShaderPtr = m_Shader.get();
+        cmd.VAOPtr = m_VAO.get();
+        cmd.Transform = glm::mat4(1.0f);
+        cmd.Mode = DRAW_ARRAYS;
+        cmd.ViewTargetID = m_ViewTargetID;
+        cmd.UniformCommands = { color };
+        cmd.APICalls = {
+            RendererAPICall{ [lineWidth = m_LineWidth]() { Renderer::SetLineWidth(lineWidth); } }
+        };
+        Renderer::Submit(cmd);
+        return;
+    }
     Flush(); 
-    if (m_Vertices.size() > 0)
-        m_Vertices.clear();
 }
 
 void LineRenderer::SubmitLine(const NIRS::Line& line)
@@ -71,13 +112,13 @@ void LineRenderer::SubmitLine(const NIRS::Line& line)
     // Add the start point
     m_Vertices.push_back({
         line.Start,
-        line.Color
+        glm::vec4(1.0f),
         });
 
     // Add the end point
     m_Vertices.push_back({
         line.End,
-        line.Color
+        glm::vec4(1.0f),
         });
 }
 

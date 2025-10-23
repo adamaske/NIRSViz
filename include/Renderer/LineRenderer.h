@@ -18,7 +18,6 @@ namespace NIRS {
     struct Line {
         glm::vec3 Start;
         glm::vec3 End;
-		glm::vec4 Color;
     };
 
     // Structure for a single vertex (Start or End point)
@@ -31,9 +30,11 @@ namespace NIRS {
 
 class LineRenderer {
 public:
-    LineRenderer(ViewID viewTargetID);
+    LineRenderer(ViewID viewTargetID, glm::vec4 color, float size);
     ~LineRenderer();
 
+    void SetPersistentLines(std::vector<NIRS::Line> lines);
+    bool m_PersistentLines = false;
     // Add a single line to the drawing queue
     void SubmitLine(const NIRS::Line& line);
 
