@@ -28,8 +28,10 @@ public:
 
 	void RenderMenuBar() override;
 
+	void EditProcessingStream();
 private:
 	Ref<SNIRF> m_SNIRF;
 
 	float m_DeltaTime = 0.0f;
+	bool m_EditingProcessingStream = false;
 };

@@ -36,6 +36,8 @@ void PlottingLayer::OnRender()
 
 void PlottingLayer::OnImGuiRender()
 {
+	if (m_EditingProcessingStream) EditProcessingStream();
+
 	ImGui::Begin("Plotting");
 	ImGui::Text("Loaded SNIRF file : %s", m_SNIRF->GetFilepath().c_str());
 	
@@ -70,17 +72,28 @@ void PlottingLayer::OnEvent(Event& event)
 {
 }
 
+void PlottingLayer::EditProcessingStream()
+{
+	// Open Processing Panel
+	ImGui::Begin("Processing Stream Editor", &m_EditingProcessingStream);
+
+	ImGui::Button("+");
+
+
+	ImGui::End();
+}
+
 void PlottingLayer::RenderMenuBar()
 {
 	if (ImGui::BeginMenu("Data"))
 	{
 		if (ImGui::MenuItem("Edit Preprocessing Stream")) {
-			// Open Preprocessing Panel
-			
+			// Open Processing Panel
+			m_EditingProcessingStream = true;
 		}
 
-		if (ImGui::MenuItem("Edit Probe")) {
-			// Open Editor Panel
+		if (ImGui::MenuItem("Run Stream")) {
+			// Processing 
 
 		}
 
