@@ -1,9 +1,10 @@
 #pragma once
 
 #include "Core/Base.h"
-#include "Renderer/Shader.h"
-#include "Renderer/VertexArray.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/Shader.h"
+#include "Renderer/Mesh.h"
+#include "Renderer/VertexArray.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
@@ -12,7 +13,7 @@
 using Point = glm::vec3;
 class PointRenderer {
 public:
-    PointRenderer(ViewID viewTargetID);
+    PointRenderer(ViewID viewTargetID, glm::vec4 color, float size);
     ~PointRenderer();
 
     void SetupBuffers();
@@ -38,6 +39,7 @@ private:
     Ref<VertexBuffer> m_VBO;
 
     Ref<Shader> m_Shader;
+	Ref<Mesh> m_SphereMesh;
 
     ViewID m_ViewTargetID;
 

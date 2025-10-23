@@ -41,9 +41,6 @@ void Renderer::ExecuteQueue()
 		return a.ViewTargetID < b.ViewTargetID;
 	});
 
-
-	
-	
 	ViewID currentViewID = (ViewID)-1; // An invalid ID to force the first bind
 
 	for (const auto& command : s_Data->CommandQueue) {
@@ -162,6 +159,7 @@ void Renderer::DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount)
 
 void Renderer::DrawPoints(const VertexArray* vertexArray, uint32_t vertexCount)
 {
+	NVIZ_INFO("DRAW POINTS CALLED WITH VERTEX COUNT: {0}", vertexArray->GetVertexCount());
 	vertexArray->Bind();
 	glDrawArrays(GL_POINTS, 0, vertexArray->GetVertexCount());
 }

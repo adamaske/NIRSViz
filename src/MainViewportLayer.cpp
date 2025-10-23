@@ -34,8 +34,9 @@ void MainViewportLayer::OnAttach()
 	ViewportManager::RegisterViewport({ "MainViewport", m_ViewTargetID, GetActiveCamera(), m_Framebuffer });
 
 
-	m_RoamCamera->SetPosition({ 0.0f, 6.0f, -16.0f });
-	m_RoamCamera->SetYaw(90.0f);
+	m_RoamCamera->SetPosition({ -14.0f, 5.0f, -15.0f });
+	m_RoamCamera->SetYaw(50.0f);
+	m_RoamCamera->SetPitch(-15.0f);
 	m_RoamCamera->UpdateCameraVectors();
 	m_RoamCamera->UpdateViewMatrix();
 	m_RoamCamera->UpdateProjectionMatrix();

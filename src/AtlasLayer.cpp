@@ -6,6 +6,19 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportManager.h"
 
+namespace Utils {
+	std::string LandmarkTypeToString(LandmarkType type) {
+		switch (type) {
+		case LandmarkType::NAISON: return "Naison";
+		case LandmarkType::INION: return "Inion";
+		case LandmarkType::LPA: return "LPA";
+		case LandmarkType::RPA: return "RPA";
+		default: return "Unknown";
+		}
+	}
+}
+
+
 AtlasLayer::AtlasLayer() : Layer("AtlasLayer")
 {
 }
@@ -24,6 +37,12 @@ void AtlasLayer::OnAttach()
 	m_PhongShader = CreateRef<Shader>(
 		"C:/dev/NIRSViz/Assets/Shaders/Phong.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/Phong.frag");
+
+	m_FlatColorShader = CreateRef<Shader>(
+		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
+		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
+
+	m_SphereMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
 
 	m_HeadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model.obj");
 
@@ -50,9 +69,9 @@ void AtlasLayer::OnAttach()
 	m_NaisonInionLineRenderer = CreateRef<LineRenderer>(mainID);
 	m_LPARPALineRenderer = CreateRef<LineRenderer>(mainID);
 
-	m_LandmarkRenderer = CreateRef<PointRenderer>(mainID);
-	m_WaypointRenderer = CreateRef<PointRenderer>(mainID);
-	m_CoordinateRenderer = CreateRef<PointRenderer>(mainID);
+	m_LandmarkRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(0.3, 0, 1, 1), 0.8);
+	m_WaypointRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(1, 0, 0.3, 1), 0.8);
+	m_CoordinateRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
 
 	m_LightPosUniform.Type = UniformDataType::FLOAT3;
 	m_LightPosUniform.Name = "u_LightPos";
@@ -76,16 +95,52 @@ void AtlasLayer::OnUpdate(float dt)
 	m_NaisonInionLineRenderer->BeginScene();
 	m_LPARPALineRenderer->BeginScene();
 
+	m_NaisonInionLineRenderer->SubmitLine({
+		m_Landmarks[LandmarkType::NAISON].Position,
+		m_Landmarks[LandmarkType::INION].Position,
+		glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)
+		});
+	m_LPARPALineRenderer->SubmitLine({
+		m_Landmarks[LandmarkType::LPA].Position,
+		m_Landmarks[LandmarkType::RPA].Position,
+		glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)
+		});
+
 	m_WaypointRenderer->BeginScene();
-	m_LandmarkRenderer->BeginScene();
 	m_CoordinateRenderer->BeginScene();
 
-	m_CoordinateRenderer->SubmitPoint(glm::vec3(0.0f, 10.0f, 0.0f));
-	m_CoordinateRenderer->SubmitPoint(glm::vec3(4.0f, 10.0f, 0.0f));
-	m_CoordinateRenderer->SubmitPoint(glm::vec3(-4.0f, 10.0f, 0.0f));
-	m_LPARPALineRenderer->SubmitLine({ glm::vec3(-5.0f, 15.0f, -5.0f), glm::vec3(5.0f, 15.0f, 5.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) });
+
+	m_NaisonInionLineRenderer->EndScene();
+	m_LPARPALineRenderer->EndScene();
+
+	m_WaypointRenderer->EndScene();
+	m_CoordinateRenderer->EndScene();
 
 	m_LightPosUniform.Data.f3 = camera->GetPosition();
+
+	{
+		RenderCommand cmd3D_template;
+		cmd3D_template.ShaderPtr = m_FlatColorShader.get();
+		cmd3D_template.VAOPtr = m_SphereMesh->GetVAO().get();
+		cmd3D_template.ViewTargetID = 1; // Main
+		cmd3D_template.Mode = DRAW_ELEMENTS;
+
+		UniformData flatColor;
+		flatColor.Type = UniformDataType::FLOAT4;
+		flatColor.Name = "u_Color";
+
+		for (auto& [type, landmark] : m_Landmarks) {
+
+			cmd3D_template.Transform = glm::mat4(1.0f);
+			cmd3D_template.Transform = glm::translate(cmd3D_template.Transform, landmark.Position);
+			cmd3D_template.Transform = glm::scale(cmd3D_template.Transform, glm::vec3(m_LandmarkSize));
+
+			flatColor.Data.f4 = landmark.Color;
+			cmd3D_template.UniformCommands = { flatColor };
+
+			Renderer::Submit(cmd3D_template);
+		}
+	}
 
 	if (m_DrawCortex) {
 		RenderCommand cmd;
@@ -145,13 +200,6 @@ void AtlasLayer::OnUpdate(float dt)
 
 		}
 	}
-
-	m_NaisonInionLineRenderer->EndScene();
-	m_LPARPALineRenderer->EndScene();
-
-	m_WaypointRenderer->EndScene();
-	m_LandmarkRenderer->EndScene();
-	m_CoordinateRenderer->EndScene();
 }
 
 void AtlasLayer::OnRender()
@@ -165,17 +213,32 @@ void AtlasLayer::OnImGuiRender()
 	RenderHeadSettings();
 	RenderCortexSettings();
 
-	ImGui::Separator();
+	if (ImGui::Button("Generate Coordinate System")) {
+		// Generate coordinate system based on landmarks
+	};
+
+	ImGui::SeparatorText("Landmark Alignment");
+
+	ImGui::SliderFloat("Landmark Size", &m_LandmarkSize, 0.0f, 20.0f);
+	for (auto& landmark : m_Landmarks) {
+
+		ImGui::Text("%s Position", Utils::LandmarkTypeToString(landmark.second.Type).c_str());
+		ImGui::DragFloat3((std::string("##") + Utils::LandmarkTypeToString(landmark.second.Type) + "Pos").c_str(),
+			&landmark.second.Position.x,
+			0.1f, -1000.0f, 1000.0f, "%.1f"
+		);
+
+		ImGui::Separator();
+	}
+
+	//ImGui::Separator();
 	ImGui::SliderFloat("Waypoint Size", &m_WaypointRenderer->GetPointSize(), 0.0f, 20.0f);
 	ImGui::ColorEdit4("Waypoint Color", &m_WaypointRenderer->GetPointColor()[0], 0);
-	
-	ImGui::Separator();
-	ImGui::SliderFloat("Landmark Size", &m_LandmarkRenderer->GetPointSize(), 0.0f, 20.0f);
-	ImGui::ColorEdit4("Landmark Color", &m_LandmarkRenderer->GetPointColor()[0], 0);
 
 	ImGui::Separator();
 	ImGui::SliderFloat("Coordinate Size", &m_CoordinateRenderer->GetPointSize(), 0.0f, 20.0f);
 	ImGui::ColorEdit4("Coordinate Color", &m_CoordinateRenderer->GetPointColor()[0], 0);
+
 
 	//if (m_EditorOpen) {
 	//	RenderEditor();

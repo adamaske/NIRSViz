@@ -8,6 +8,6 @@ uniform mat4 u_ProjectionMatrix;
 uniform float u_PointSize;
 void main()
 {
-    
-    gl_Position = u_ViewMatrix * u_ProjectionMatrix * u_Transform * vec4(aPosition, 1.0);
+    gl_PointSize = u_PointSize;
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix  * u_Transform * vec4(aPosition, 1.0);
 }

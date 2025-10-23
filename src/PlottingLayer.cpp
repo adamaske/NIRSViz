@@ -72,4 +72,18 @@ void PlottingLayer::OnEvent(Event& event)
 
 void PlottingLayer::RenderMenuBar()
 {
+	if (ImGui::BeginMenu("Data"))
+	{
+		if (ImGui::MenuItem("Edit Preprocessing Stream")) {
+			// Open Preprocessing Panel
+			
+		}
+
+		if (ImGui::MenuItem("Edit Probe")) {
+			// Open Editor Panel
+
+		}
+
+		ImGui::EndMenu();
+	}
 }

@@ -22,7 +22,7 @@ enum LandmarkType {
 
 struct Landmark {
 	LandmarkType Type;
-	Transform* Transform;
+	glm::vec3 Position;
 	glm::vec4 Color;
 };
 
@@ -76,6 +76,7 @@ private:
 	bool m_DrawCortex = true;
 
 	Ref<Shader> m_PhongShader = nullptr;
+	Ref<Shader> m_FlatColorShader = nullptr;
 
 	UniformData m_LightPosUniform;
 	UniformData m_ObjectColorUniform;
@@ -87,4 +88,14 @@ private:
 	Ref<PointRenderer> m_LandmarkRenderer = nullptr;
 	Ref<PointRenderer> m_WaypointRenderer = nullptr;
 	Ref<PointRenderer> m_CoordinateRenderer = nullptr;
+
+	float m_LandmarkSize = 1.5f;
+	Ref<Mesh> m_SphereMesh = nullptr;
+	std::map<LandmarkType, Landmark> m_Landmarks = // one of each, naison is green, inion is red, lpa is blue, rpa is yellow
+	{
+		{ LandmarkType::NAISON, { LandmarkType::NAISON,		glm::vec3(0, -5.2, -10.4),	glm::vec4(0.0f, 1.0f, 0.1f, 1.0f) } },
+		{ LandmarkType::INION,	{ LandmarkType::INION,		glm::vec3(0, -4.1, 10.9),	glm::vec4(1.0f, 0.0f, 0.1f, 1.0f) } },
+		{ LandmarkType::LPA,	{ LandmarkType::LPA,		glm::vec3(-9.1, -5.8, 0),	glm::vec4(0.1f, 0.0f, 1.0f, 1.0f) } },
+		{ LandmarkType::RPA,	{ LandmarkType::RPA,		glm::vec3(9.1, -5.8, 0),	glm::vec4(1.0f, 1.0f, 0.1f, 1.0f) } }
+	};
 };
