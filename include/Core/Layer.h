@@ -1,14 +1,13 @@
 #pragma once
 
 #include "Events/Event.h"
+#include "ECS.h"
 
 class Layer
 {
-private:
-	std::string debug_name;
 public:
 
-	Layer(const std::string& name = "Layer") : debug_name(debug_name)
+	Layer(const EntityID& settingsID) : m_SettingsEntityID(settingsID)
 	{
 	};
 	virtual ~Layer() = default;
@@ -21,5 +20,6 @@ public:
 	virtual void OnEvent(Event& event) {};
 	virtual void RenderMenuBar() {};
 
-	const std::string& GetName() const { return debug_name; }
+protected:
+	EntityID m_SettingsEntityID = 0;
 };

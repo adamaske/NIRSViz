@@ -1,37 +1,49 @@
 #pragma once
 #include "Core/Base.h"
+
 #include <optional> // For C++17 and later
 #include <iostream>
 #include <string>
 #include <unordered_map>
 #include <algorithm> // For std::transform (optional, but good for case insensitivity)
-namespace NIRS {
-    using ProbeID = uint32_t;
 
+namespace NIRS {
+
+    // --- Defintions ---
     static glm::vec4 SourceColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
     static glm::vec4 DetectorColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
+    using ProbeID = uint32_t;
+	using ChannelID = uint32_t;
+    using ChannelDataID = uint32_t;
+    using ChannelValue = double;
+
+    struct Line {
+        glm::vec3 Start;
+        glm::vec3 End;
+    };
+
+    struct LineVertex {
+        glm::vec3 Position;
+        glm::vec4 Color;
+    };
+
+	// --- Wavelengths ---
     enum class WavelengthType {
         HBR = 0,
         HBO = 1,
         HBT = 2
     };
-
     static std::string WavelengthTypeToString(WavelengthType type) {
         switch (type) {
         case WavelengthType::HBR: return "HbR";
         case WavelengthType::HBO: return "HbO";
+        case WavelengthType::HBT: return "HbT";
         }
         return "INVALID";
     }
 
-    struct Channel {
-        ProbeID SourceID; // This is 1-indexed index
-        ProbeID DetectorID;
-        WavelengthType Wavelength;
-        int DataIndex; // Index into the channel data registry
-    };
-
+	// --- Probes ---
     enum ProbeType {
         SOURCE,
         DETECTOR
@@ -48,10 +60,22 @@ namespace NIRS {
         ProbeID ID;
     };
 
-    //struct Landmark {
-    //	std::string Name;
-    //	glm::vec3 Position;
-    //};
+    struct Channel {
+        ChannelID ID;
+
+        ProbeID SourceID; // This is 1-indexed index
+        ProbeID DetectorID;
+        WavelengthType Wavelength;
+        ChannelDataID DataIndex; // Index into the channel data registry
+    };
+
+    struct ChannelVisualization {
+        ChannelID ChannelID;
+        Line Line2D;
+        Line Line3D;
+        Line ProjectionLine3D;
+		glm::vec3 IntersectionPoint3D; // Intersection point on cortex
+    };
 
 
     enum Landmark {

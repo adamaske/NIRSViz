@@ -11,14 +11,6 @@ PointRenderer::PointRenderer(ViewID viewTargetID, glm::vec4 color, float size) :
     );
  
     m_SphereMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
-
-    //SetupBuffers();
-}
-PointRenderer::~PointRenderer()
-{
-}    
-
-void PointRenderer::SetupBuffers() {
     m_VAO = CreateRef<VertexArray>();
     m_VAO->Bind();
 
@@ -29,9 +21,14 @@ void PointRenderer::SetupBuffers() {
     };
     m_VBO->SetLayout(layout);
     m_VAO->AddVertexBuffer(m_VBO);
-
 }
-void PointRenderer::Flush() {
+
+PointRenderer::~PointRenderer()
+{
+
+}    
+
+void PointRenderer::Draw() {
     if (m_Points.empty())
         return;
 
@@ -54,43 +51,19 @@ void PointRenderer::Flush() {
 
         Renderer::Submit(cmd3D_template);
     }
-   // m_VBO->SetData(m_Points.data(), m_Points.size()*sizeof(Point));
-
-   // UniformData size;
-   // size.Type = UniformDataType::FLOAT1;
-   // size.Name = "u_PointSize";
-   // size.Data.f1 = m_PointSize;
-
-   // UniformData color;
-   // color.Type = UniformDataType::FLOAT4;
-   // color.Name = "u_PointColor";
-   // color.Data.f4 = m_PointColor;
-
-   // RenderCommand cmd;
-   // cmd.ShaderPtr = m_Shader.get();
-   // cmd.VAOPtr = m_VAO.get();
-   // cmd.Transform = glm::mat4(1.0f);
-   // cmd.Mode = DRAW_POINTS;
-   // cmd.ViewTargetID = m_ViewTargetID;
-
-   // cmd.UniformCommands = { color, size };
-   ////cmd.APICalls = {
-   ////    RendererAPICall{ [pointSize = m_PointSize]() { 
-   ////        Renderer::SetPointSize(pointSize); } } };
-
-   // Renderer::Submit(cmd);
 }
 
 void PointRenderer::SubmitPoint(const Point& point)
 {
     m_Points.push_back(point);
+
 }
 
+void PointRenderer::SubmitPoints(const std::vector<Point>& points)
+{
+	m_Points.insert(m_Points.end(), points.begin(), points.end());
+}
 
-void PointRenderer::BeginScene() {
+void PointRenderer::Clear() {
     m_Points.clear();
-}
-
-void PointRenderer::EndScene() {
-    Flush();
 }

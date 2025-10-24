@@ -366,6 +366,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         measurementList.getDataSet("wavelengthIndex").read(wavelengthIndex);
         
 		NIRS::Channel channel;
+		channel.ID = i; // Hopefully this is fine? We shouldnt actually care about this ID, its just for us to identify channels internally
 		channel.SourceID = sourceIndex;
 		channel.DetectorID = detectorIndex;
         

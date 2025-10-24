@@ -3,13 +3,16 @@
 #include "Core/Layer.h"
 
 #include "Core/Window.h"
+
+#include "Renderer/Mesh.h"
 #include "Renderer/Shader.h"
+#include "Renderer/VertexArray.h"
 #include "Renderer/Framebuffer.h"
 #include "Renderer/RoamCamera.h"
 #include "Renderer/OrbitCamera.h"
-#include "Renderer/VertexArray.h"
-#include "Renderer/Mesh.h"
 #include "Renderer/LineRenderer.h"
+
+#include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
 
 struct ProbeVisual {
@@ -20,19 +23,9 @@ struct ProbeVisual {
 	RenderCommand RenderCmd2D;
 };
 
-struct ChannelVisual {
-	NIRS::Channel Channel;
-	NIRS::Line Line3D;
-	NIRS::Line Line2D;
-
-	// Projection towards cortex
-	NIRS::Line ProjectionLine3D;
-	NIRS::Line ProjectionLine2D;
-};
-
 class ProbeLayer : public Layer {
 public:
-	ProbeLayer();
+	ProbeLayer(const EntityID& settingsID);
 	~ProbeLayer();
 
 	void OnAttach() override;
@@ -53,6 +46,7 @@ public:
 	void UpdateProbeVisuals();
 	void UpdateChannelVisuals();
 
+	void ProjectChannelsToCortex();
 private:
 	bool m_DrawProbes2D = false;
 	bool m_DrawChannels2D = false;
@@ -68,8 +62,13 @@ private:
 	std::vector<ProbeVisual> m_SourceVisuals;
 	std::vector<ProbeVisual> m_DetectorVisuals;
 
-	std::vector<NIRS::Channel> m_Channels;
-	std::vector<ChannelVisual> m_ChannelVisuals;
+	std::vector<NIRS::Channel> m_Channels; // Copy of sNIRF channels, the timeseries data is seperatetly stored, so this is fine. 
+	std::map<NIRS::ChannelID, NIRS::Channel> m_ChannelMap; // The idientifer is artificial, just an index to correlate visuals to the correct channel
+	std::map<NIRS::ChannelID, NIRS::ChannelVisualization> m_ChannelVisualsMap;
+
+	// Uses a vector because its not sure every channel actually hits the cortex.
+	std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> m_ChannelProjectionIntersections; // Channel index to intersection point on cortex
+
 	Ref<LineRenderer> m_LineRenderer2D = nullptr;
 	Ref<LineRenderer> m_LineRenderer3D = nullptr;
 	Ref<LineRenderer> m_ProjLineRenderer3D = nullptr;

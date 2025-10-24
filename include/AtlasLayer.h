@@ -35,9 +35,30 @@ struct Waypoint { // This aids the path finding algorithm to pass in straight li
 	glm::vec3 Position; // World position
 };
 
+struct Cortex { 
+	Ref<Mesh> Mesh;
+	Ref<Transform> Transform;
+	Ref<Graph> Graph;
+
+	std::string MeshFilepath;
+
+	bool Draw = true;
+};
+
+struct Head {
+	Ref<Mesh> Mesh;
+	Ref<Transform> Transform;
+	Ref<Graph> Graph;
+
+	std::string MeshFilepath;
+
+	bool Draw = true;
+	float Opacity = 0.5f;
+};
+
 class AtlasLayer : public Layer {
 public:
-	AtlasLayer();
+	AtlasLayer(const EntityID& settingsID);
 	~AtlasLayer();
 
 
@@ -62,13 +83,24 @@ public:
 	void RenderAlignmentSettings();
 	void RenderEditorViewport();
 
+	Head LoadHead(const std::string& mesh_filepath);
+	Cortex LoadCortex(const std::string& mesh_filepath);
+	void DrawHead();
+
+	void DrawCortex();
+
 	void GenerateCoordinateSystem();
 
 	std::map<NIRS::Landmark, glm::vec3> FindReferencePointsAlongPath(std::vector<glm::vec3> world_space_vertices,
 									  std::vector<unsigned int> path_indices, 
 									  std::vector<NIRS::Landmark> labels,
 									  std::vector<float> percentages);
+
+	void LandmarkSelector(bool standalone);
 private:
+	// Shareable
+	Ref<Head> m_Head = nullptr;
+	Ref<Cortex> m_Cortex = nullptr;
 
 	using VertexPath = std::vector<unsigned int>;
 	using WaypointList = std::vector<Waypoint>;
@@ -79,16 +111,6 @@ private:
 	bool m_EditorOpen = false;
 	Ref<OrbitCamera> m_EditorCamera = nullptr;
 	Ref<Framebuffer> m_EditorFramebuffer = nullptr;
-
-	Ref<Mesh> m_HeadMesh = nullptr;
-	Ref<Transform> m_HeadTransform = nullptr;
-	Ref<Graph> m_HeadGraph = nullptr;
-	bool m_DrawHead = true;
-	float m_HeadOpacity = 0.5f;
-
-	Ref<Mesh> m_CortexMesh = nullptr;
-	Ref<Graph>	m_CortexGraph = nullptr;
-	bool m_DrawCortex = true;
 
 	Ref<Shader> m_PhongShader = nullptr;
 	Ref<Shader> m_FlatColorShader = nullptr;

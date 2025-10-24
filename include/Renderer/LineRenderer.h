@@ -1,49 +1,26 @@
 #pragma once
 
+#include <vector>
+#include <memory>
+#include <glm/glm.hpp>
+
 #include "Core/Base.h"
+#include "NIRS/NIRS.h"
+
 #include "Renderer/Shader.h"
 #include "Renderer/VertexArray.h"
 #include "Renderer/Renderer.h"
-#include <glm/glm.hpp>
-#include <vector>
-#include <memory>
 
-// Assuming you have classes for Shader and VertexArray
-// class Shader;
-// class VertexArray; 
-
-namespace NIRS {
-
-    // Structure for a single line segment
-    struct Line {
-        glm::vec3 Start;
-        glm::vec3 End;
-    };
-
-    // Structure for a single vertex (Start or End point)
-    struct LineVertex {
-        glm::vec3 Position;
-        glm::vec4 Color;
-    };
-
-} // namespace NVIZ
 
 class LineRenderer {
 public:
     LineRenderer(ViewID viewTargetID, glm::vec4 color, float size);
     ~LineRenderer();
 
-    void SetPersistentLines(std::vector<NIRS::Line> lines);
-    void AddPersistentLines(std::vector<NIRS::Line> lines);
-    bool m_PersistentLines = false;
-    // Add a single line to the drawing queue
     void SubmitLine(const NIRS::Line& line);
-
-    // Begin the rendering frame (call once before submitting lines)
-    void BeginScene();
-
-    // End the rendering frame (call once after submitting all lines)
-    void EndScene();
+    void SubmitLines(const std::vector<NIRS::Line>& lines);
+    void Clear();
+    void Draw();
 
 	void SetLineWidth(float width) { m_LineWidth = width; }
 
@@ -58,11 +35,5 @@ private:
     Ref<Shader> m_Shader;
 	Ref<Camera> m_BoundCamera;
 
-
-    // Internal function to set up OpenGL buffers
     void SetupBuffers();
-
-    // Internal function to execute the draw call
-    void Flush();
-
 };

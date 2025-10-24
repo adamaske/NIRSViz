@@ -6,7 +6,7 @@
 
 #include "Core/AssetManager.h"
 
-PlottingLayer::PlottingLayer() : Layer("PlottingLayer")
+PlottingLayer::PlottingLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
 
@@ -41,6 +41,8 @@ void PlottingLayer::OnImGuiRender()
 	ImGui::Begin("Plotting");
 	ImGui::Text("Loaded SNIRF file : %s", m_SNIRF->GetFilepath().c_str());
 	
+	ImGui::Checkbox("Project to Cortex", &m_ProjectToCortex); // What happens here?
+
 	auto channels = m_SNIRF->GetChannels();
 	size_t n = channels.size();
 	auto t = m_SNIRF->GetTime();

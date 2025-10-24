@@ -25,7 +25,8 @@ public:
         auto it = container.Container.find(name);
         if (it == container.Container.end()) {
             // Handle error: Asset not found
-            throw std::runtime_error("AssetManager: Asset '" + name + "' not found for type.");
+            NVIZ_WARN("AssetManager: Asset '" + name + "' not found for type.");
+            return nullptr;
         }
 
         // 3. Cast the stored Ref<T> to the required Ref<T> and return it

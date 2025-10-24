@@ -12,8 +12,7 @@
 
 #include "Core/Application.h"
 
-ImGuiLayer::ImGuiLayer()
-	: Layer("ImGuiLayer")
+ImGuiLayer::ImGuiLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
 ImGuiLayer::~ImGuiLayer()

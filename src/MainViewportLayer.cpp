@@ -7,7 +7,7 @@
 #include "Events/MouseCodes.h"
 #include "Renderer/ViewportManager.h"
 
-MainViewportLayer::MainViewportLayer()
+MainViewportLayer::MainViewportLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
 

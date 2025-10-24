@@ -2,14 +2,17 @@
 #include "AtlasLayer.h"
 
 #include <imgui.h>
+#include <glm/geometric.hpp>
+#include "glm/gtx/string_cast.hpp"
+
 #include <Core/Application.h>
+#include "Core/AssetManager.h"
+
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportManager.h"
 
-#include <glm/geometric.hpp>
-#include "glm/gtx/string_cast.hpp"
-#include "Raycast.h"
 #include "NIRS/NIRS.h"
+#include "Raycast.h"
 
 namespace Utils {
 	std::string LandmarkTypeToString(ManualLandmarkType type) {
@@ -48,7 +51,7 @@ namespace Utils {
 }
 
 
-AtlasLayer::AtlasLayer() : Layer("AtlasLayer")
+AtlasLayer::AtlasLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
 
@@ -69,10 +72,8 @@ void AtlasLayer::OnAttach()
 	m_EditorCamera =		CreateRef<OrbitCamera>();
 	ViewportManager::RegisterViewport({ "Atlas Editor", m_EditorViewID, m_EditorCamera, m_EditorFramebuffer });
 
-	// SETUP HEAD
-	m_HeadMesh =		CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/head_model_2.obj");
-	m_HeadTransform =	CreateRef<Transform>();
-	m_HeadGraph =		CreateRef<Graph>(CreateGraphFromTriangleMesh(m_HeadMesh.get(), glm::mat4(1.0f))); 
+	LoadHead("C:/dev/NIRSViz/Assets/Models/head_model_2.obj");
+	LoadCortex("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
 
 	// SETUP COORDINATE SYSTEM GENERATION
 	auto mainID = ViewportManager::GetViewport("MainViewport").ID;
@@ -88,11 +89,7 @@ void AtlasLayer::OnAttach()
 	m_WaypointRenderer			= CreateRef<PointRenderer>(mainID, glm::vec4(1, 0, 0.3, 1), 0.8);
 	m_LandmarkRenderer		= CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
 
-	// SETUP CORTEX
-	m_CortexMesh =	CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
-	m_CortexGraph = CreateRef<Graph>(CreateGraphFromTriangleMesh(m_CortexMesh.get(), glm::mat4(1.0f)));
 
-	
 
 	// SETUP RENDERING 
 	m_PhongShader = CreateRef<Shader>(
@@ -121,13 +118,20 @@ void AtlasLayer::OnDetach()
 
 void AtlasLayer::OnUpdate(float dt)
 {
+
+
 	auto viewport = ViewportManager::GetViewport("MainViewport");
 	auto camera = viewport.CameraPtr;
 	m_LightPosUniform.Data.f3 = camera->GetPosition();
 
-	if (m_DrawPaths) {
-		m_CalculatedPathRenderer->EndScene();
-	}
+	DrawCortex();
+	DrawHead();
+
+	if (m_DrawWaypoints) m_WaypointRenderer->Draw();
+	if (m_DrawPaths) m_CalculatedPathRenderer->Draw();
+	if (m_DrawLandmarks) m_LandmarkRenderer->Draw();
+
+
 	if(m_DrawManualLandmarks) {
 		RenderCommand cmd3D_template;
 		cmd3D_template.ShaderPtr = m_FlatColorShader.get();
@@ -151,8 +155,8 @@ void AtlasLayer::OnUpdate(float dt)
 			Renderer::Submit(cmd3D_template);
 		}
 
-		m_NaisonInionLineRenderer->BeginScene();
-		m_LPARPALineRenderer->BeginScene();
+		m_NaisonInionLineRenderer->Clear();
+		m_LPARPALineRenderer->Clear();
 		
 		m_NaisonInionLineRenderer->SubmitLine({
 			m_ManualLandmarks[ManualLandmarkType::NAISON].Position,
@@ -163,108 +167,17 @@ void AtlasLayer::OnUpdate(float dt)
 			m_ManualLandmarks[ManualLandmarkType::RPA].Position
 		});
 		
-		m_NaisonInionLineRenderer->EndScene();
-		m_LPARPALineRenderer->EndScene();
+		m_NaisonInionLineRenderer->Draw();
+		m_LPARPALineRenderer->Draw();
 	}
 
 	if (m_DrawRays) {
-		m_NaisonInionRaysRenderer->BeginScene();
-		m_LPARPARaysRenderer->BeginScene();
-		for (auto& ray : m_NaisonInionRays) {
-			m_NaisonInionRaysRenderer->SubmitLine({
-			ray.Origin,
-			ray.End
-				});
-		}
-		for (auto& ray : m_LPARPARays) {
-			m_LPARPARaysRenderer->SubmitLine({
-			ray.Origin,
-			ray.End
-				});
-		}
-		m_NaisonInionRaysRenderer->EndScene();
-		m_LPARPARaysRenderer->EndScene();
+		m_NaisonInionRaysRenderer->Draw();
+		m_LPARPARaysRenderer->Draw();
 	}
 
-	if (m_DrawWaypoints) {
-		m_WaypointRenderer->BeginScene();
-		for (auto& intersection : m_NaisonInionIntersectionPoints) {
-			m_WaypointRenderer->SubmitPoint({ intersection });
-		}
-		for (auto& intersection : m_LPARPAIntersectionPoints) {
-			m_WaypointRenderer->SubmitPoint({ intersection });
-		}
-		m_WaypointRenderer->EndScene();
-	}
 
-	if (m_DrawLandmarks) {
-		m_LandmarkRenderer->BeginScene();
-		for (auto& [label, position] : m_Landmarks) {
-			if (m_LandmarkVisibility[label] == true) {
-				m_LandmarkRenderer->SubmitPoint({ position });
-			}
-		};
-		m_LandmarkRenderer->EndScene();
-	}
 
-	if (m_DrawCortex) {
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_PhongShader.get();
-		cmd.VAOPtr = m_CortexMesh->GetVAO().get();
-		cmd.ViewTargetID = viewport.ID;
-		cmd.Transform = glm::mat4(1.0f);
-		cmd.Mode = DRAW_ELEMENTS;
-
-		m_ObjectColorUniform.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
-		m_OpacityUniform.Data.f1 = 1.0f;
-		cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
-		Renderer::Submit(cmd);
-	}
-
-	if (m_DrawHead) {
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_PhongShader.get();
-		cmd.VAOPtr = m_HeadMesh->GetVAO().get();
-		cmd.ViewTargetID = viewport.ID;
-		cmd.Transform = glm::mat4(1.0f);
-		cmd.Mode = DRAW_ELEMENTS;
-		m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
-		m_OpacityUniform.Data.f1 = m_HeadOpacity;
-		cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
-		Renderer::Submit(cmd);
-	}
-
-	if (m_EditorOpen) {
-		{
-			m_LightPosUniform.Data.f3 = m_EditorCamera->GetPosition();
-
-			RenderCommand cmd;
-			cmd.ShaderPtr = m_PhongShader.get();
-			cmd.VAOPtr = m_CortexMesh->GetVAO().get();
-			cmd.ViewTargetID = m_EditorViewID;
-			cmd.Transform = glm::mat4(1.0f);
-			cmd.Mode = DRAW_ELEMENTS;
-
-			m_ObjectColorUniform.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
-			m_OpacityUniform.Data.f1 = 1.0f;
-			cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
-			Renderer::Submit(cmd);
-		}
-
-		{
-			RenderCommand cmd;
-			cmd.ShaderPtr = m_PhongShader.get();
-			cmd.VAOPtr = m_HeadMesh->GetVAO().get();
-			cmd.ViewTargetID = m_EditorViewID;
-			cmd.Transform = glm::mat4(1.0f);
-			cmd.Mode = DRAW_ELEMENTS;
-			m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
-			m_OpacityUniform.Data.f1 = m_HeadOpacity;
-			cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
-			Renderer::Submit(cmd);
-
-		}
-	}
 }
 
 void AtlasLayer::OnRender()
@@ -278,9 +191,8 @@ void AtlasLayer::OnImGuiRender()
 	RenderHeadSettings();
 	RenderCortexSettings();
 
-	if (ImGui::Button("Generate Coordinate System")) {
-		GenerateCoordinateSystem();
-	};
+	ImGui::Separator();
+	if (ImGui::Button("Generate Coordinate System")) GenerateCoordinateSystem();
 
 	if(ImGui::CollapsingHeader("Coordinate System Settings")) {
 		ImGui::SliderFloat("Theta Step Size", &m_ThetaStepSize, 1.0f, 50.0f);
@@ -296,9 +208,9 @@ void AtlasLayer::OnImGuiRender()
 		ImGui::SliderFloat("LPA-RPA Ray Width", &m_LPARPARaysRenderer->m_LineWidth, 1.0f, 10.0f);
 	}
 
-	if (ImGui::CollapsingHeader("Landmark Manual Alignment")) {
-		ImGui::Checkbox("Draw Landmarks", &m_DrawManualLandmarks);
-		ImGui::SliderFloat("Landmark Size", &m_ManualLandmarkSize, 0.0f, 20.0f);
+	if (ImGui::CollapsingHeader("Manual Landmark Alignment")) {
+		ImGui::Checkbox("Draw Manual Landmarks", &m_DrawManualLandmarks);
+		ImGui::SliderFloat("Manual Landmark Size", &m_ManualLandmarkSize, 0.0f, 20.0f);
 		for (auto& landmark : m_ManualLandmarks) {
 
 			ImGui::Text("%s Position", Utils::LandmarkTypeToString(landmark.second.Type).c_str());
@@ -310,7 +222,6 @@ void AtlasLayer::OnImGuiRender()
 			ImGui::Separator();
 		}
 	}
-
 
 	//ImGui::Separator();
 	if(ImGui::CollapsingHeader("Waypoint Settings")) {
@@ -325,78 +236,16 @@ void AtlasLayer::OnImGuiRender()
 		ImGui::ColorEdit4("Path Color", &m_CalculatedPathRenderer->m_LineColor[0], 0);
 	}
 
-	if (ImGui::CollapsingHeader("Coordinates")) {
+	if (ImGui::CollapsingHeader("Landmarks")) {
 
 		ImGui::Separator();
-		ImGui::Checkbox("Draw Coordinates", &m_DrawLandmarks);
-		ImGui::SliderFloat("Coordinate Size", &m_LandmarkRenderer->GetPointSize(), 0.0f, 20.0f);
-		ImGui::ColorEdit4("Coordinate Color", &m_LandmarkRenderer->GetPointColor()[0], 0);
+		ImGui::Checkbox("Draw Landmarks", &m_DrawLandmarks);
+		ImGui::SliderFloat("Landmark Size", &m_LandmarkRenderer->GetPointSize(), 0.0f, 20.0f);
+		ImGui::ColorEdit4("Landmark Color", &m_LandmarkRenderer->GetPointColor()[0], 0);
 
-
-		static bool parse_needed = false;
-		if (ImGui::InputTextWithHint("##ElectrodeInput", "e.g., Cz, Fz, Fp1",
-			m_CoordinateInputBuffer, IM_ARRAYSIZE(m_CoordinateInputBuffer),
-			ImGuiInputTextFlags_EnterReturnsTrue)) {
-			// This is triggered when 'Enter' is pressed
-			parse_needed = true;
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Parse Electrodes")) {
-			parse_needed = true;
-		}
-
-		if (parse_needed) {
-			// Perform the split and store the result
-			m_SelectedLandmarks = Utils::SplitCooridnateSelector(std::string(m_CoordinateInputBuffer), ',');
-			if (m_SelectedLandmarks.size() > 0) {
-
-				for(auto& [label, visibility] : m_LandmarkVisibility) {
-					visibility = false; // Hide all first
-				}
-
-				for(auto& coord_label : m_SelectedLandmarks) {
-					std::optional<NIRS::Landmark> label = NIRS::StringToLandmark(coord_label);
-					if (label.has_value()) {
-
-
-						if (m_LandmarkVisibility.find(label.value()) != m_LandmarkVisibility.end()) {
-							m_LandmarkVisibility[label.value()] = true; // Show selected
-						}
-						else {
-							NVIZ_WARN("Coordinate Label Not Found: {0}", coord_label);
-						}
-					
-					}
-
-					
-				}
-			}
-			else {
-				for (auto& [label, visibility] : m_LandmarkVisibility) {
-					visibility = true; // Hide all first
-				}
-			}
-			parse_needed = false; // Reset the flag
-		}
-
-		// --- Display the results for verification ---
-		ImGui::Text("Parsed Electrodes (%zu):", m_SelectedLandmarks.size());
-		if (!m_SelectedLandmarks.empty()) {
-			for (size_t i = 0; i < m_SelectedLandmarks.size(); ++i) {
-				ImGui::BulletText("%s", m_SelectedLandmarks[i].c_str());
-			}
-		}
-		else {
-			ImGui::Text("No electrodes parsed yet.");
-		}
+		ImGui::Separator();
+		LandmarkSelector(false);
 	}
-
-
-	//if (m_EditorOpen) {
-	//	RenderEditor();
-	//
-	//}
 
 	ImGui::End();
 }
@@ -411,10 +260,41 @@ void AtlasLayer::RenderMenuBar()
 	{
 		if (ImGui::MenuItem("Load Head Anatomy")) {
 
+			char filePath[MAX_PATH] = "";
+
+			OPENFILENAMEA ofn;
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = NULL;
+			ofn.lpstrFile = filePath;
+			ofn.nMaxFile = sizeof(filePath);
+			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
+			ofn.nFilterIndex = 1;
+			ofn.lpstrInitialDir = NULL;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+			if (GetOpenFileNameA(&ofn)) {
+				LoadHead(std::string(filePath));
+			}
 		}
 
-		if (ImGui::MenuItem("Load Brain Anatomy")) {
+		if (ImGui::MenuItem("Load Cortex Anatomy")) {
+			char filePath[MAX_PATH] = "";
 
+			OPENFILENAMEA ofn;
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = NULL;
+			ofn.lpstrFile = filePath;
+			ofn.nMaxFile = sizeof(filePath);
+			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
+			ofn.nFilterIndex = 1;
+			ofn.lpstrInitialDir = NULL;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+
+			if (GetOpenFileNameA(&ofn)) {
+				LoadCortex(std::string(filePath));
+			}
 		}
 
 		if(ImGui::MenuItem("Configure Alignment")) {
@@ -434,13 +314,13 @@ void AtlasLayer::RenderMenuBar()
 
 void AtlasLayer::RenderHeadSettings() {
 
-	ImGui::Checkbox("Draw Head Anatomy", &m_DrawHead);
-	ImGui::SliderFloat("Head Opacity", &m_HeadOpacity, 0.0f, 1.0f);
+	ImGui::Checkbox("Draw Head Anatomy", &m_Head->Draw);
+	ImGui::SliderFloat("Head Opacity", &m_Head->Opacity, 0.0f, 1.0f);
 
 }
 void AtlasLayer::RenderCortexSettings() {
 
-	ImGui::Checkbox("Draw Brain Anatomy", &m_DrawCortex);
+	ImGui::Checkbox("Draw Brain Anatomy", &m_Cortex->Draw);
 }
 
 
@@ -495,19 +375,100 @@ void AtlasLayer::RenderEditorViewport() {
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 }
 
+Head AtlasLayer::LoadHead(const std::string& mesh_filepath)
+{
+	Head head;
+
+	head.Mesh = CreateRef<Mesh>(mesh_filepath);
+	head.Transform = CreateRef<Transform>();
+	head.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(head.Mesh.get(), glm::mat4(1.0f)));
+
+	head.MeshFilepath = mesh_filepath;
+
+	m_Head = CreateRef<Head>(head);
+	AssetManager::Register<Head>("Head", m_Head);
+	return head;
+}
+
+Cortex AtlasLayer::LoadCortex(const std::string& mesh_filepath)
+{
+	Cortex cortex;
+	cortex.Mesh = CreateRef<Mesh>(mesh_filepath);
+	cortex.Transform = CreateRef<Transform>();
+	cortex.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(cortex.Mesh.get(), glm::mat4(1.0f)));
+	cortex.MeshFilepath = mesh_filepath;
+
+	m_Cortex = CreateRef<Cortex>(cortex);
+	AssetManager::Register<Cortex>("Cortex", m_Cortex);
+	return cortex;
+}
+
+void AtlasLayer::DrawHead()
+{
+	if (!m_Head) return;
+	if (!m_Head->Draw) return;
+
+	RenderCommand cmd;
+	cmd.ShaderPtr = m_PhongShader.get();
+	cmd.VAOPtr = m_Head->Mesh->GetVAO().get();
+	cmd.ViewTargetID = MAIN_VIEWPORT;
+	cmd.Transform = glm::mat4(1.0f);
+	cmd.Mode = DRAW_ELEMENTS;
+	m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
+	m_OpacityUniform.Data.f1 = m_Head->Opacity;
+	cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
+	Renderer::Submit(cmd);
+}
+
+void AtlasLayer::DrawCortex()
+{
+	if (!m_Cortex) return;
+	if (!m_Cortex->Draw) return;
+
+	auto& app = Application::Get();
+	auto coordinator = app.GetECSCoordinator();
+	if (coordinator->getComponent<ApplicationSettingsComponent>(m_SettingsEntityID).ProjectChannelsToCortex) {
+		// This way we know that we need to capture the intersection points which is calculated
+		//
+		//
+		auto intersections = coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelProjectionIntersections;
+		auto values = coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelValues;
+
+		// How do we pass these to the shader?
+
+		// The value[ID] corresponds to intersections[ID] 
+
+		// We need to pass each value and intersection point to the shader
+		// How?
+	}
+
+	RenderCommand cmd;
+	cmd.ShaderPtr = m_PhongShader.get();
+	cmd.VAOPtr = m_Cortex->Mesh->GetVAO().get();
+	cmd.ViewTargetID = MAIN_VIEWPORT;
+	cmd.Transform = glm::mat4(1.0f);
+	cmd.Mode = DRAW_ELEMENTS;
+
+	m_ObjectColorUniform.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };
+	m_OpacityUniform.Data.f1 = 1.0f;
+	cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
+	Renderer::Submit(cmd);
+}
+
+
 void AtlasLayer::GenerateCoordinateSystem()
 {
 	// Generate coordinate system based on landmarks
 
-	auto vertices = m_HeadMesh->GetVertices();
-	auto indices = m_HeadMesh->GetIndices();
+	auto vertices = m_Head->Mesh->GetVertices();
+	auto indices = m_Head->Mesh->GetIndices();
 
 	auto vert_num = vertices.size();
 	auto ind_num = indices.size();
 	NVIZ_INFO("IND NUM: {0}", ind_num);
 
 	// We need world-space vertices for ray intersecrtions
-	auto world_matrix = m_HeadTransform->GetMatrix(); // Assuming identity for now
+	auto world_matrix = m_Head->Transform->GetMatrix(); // Assuming identity for now
 	std::vector<glm::vec3> world_space_vertices(vert_num);
 	for (size_t i = 0; i < vertices.size(); i++)
 	{
@@ -517,7 +478,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 	}
 
 	// Verify head graph is fully connected
-	bool is_fully_connected = IsGraphConnected(*m_HeadGraph.get(), (int)vert_num);
+	bool is_fully_connected = IsGraphConnected(*m_Head->Graph.get(), (int)vert_num);
 	if (is_fully_connected) NVIZ_INFO("Head Graph Fully Connected : {0}", is_fully_connected);
 	else					NVIZ_ERROR("Head Graph NOT Fully Connected: Path Finding May Fail");
 
@@ -622,7 +583,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 	{
 		auto start = m_NaisonInionRoughPath[i];
 		auto end = m_NaisonInionRoughPath[i+1];
-		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+		auto path = DjikstraShortestPath(*m_Head->Graph, start, end);
 
 		for (auto& step : path) {
 			m_NaisonInionFinePath.push_back(step);
@@ -643,7 +604,20 @@ void AtlasLayer::GenerateCoordinateSystem()
 		naison_inion_path_lines.push_back({ start, end });
 	}
 
-	m_CalculatedPathRenderer->SetPersistentLines(naison_inion_path_lines);
+
+	for (auto& ray : m_NaisonInionRays) {
+		m_NaisonInionRaysRenderer->SubmitLine({
+		ray.Origin,
+		ray.End
+			});
+	}
+	for (auto& ray : m_LPARPARays) {
+		m_LPARPARaysRenderer->SubmitLine({
+		ray.Origin,
+		ray.End
+			});
+	}
+	m_CalculatedPathRenderer->SubmitLines(naison_inion_path_lines);
 
 	{
 		using namespace NIRS;
@@ -736,6 +710,13 @@ void AtlasLayer::GenerateCoordinateSystem()
 		}
 	}
 
+	m_WaypointRenderer->Clear();
+	for (auto& intersection : m_NaisonInionIntersectionPoints) {
+		m_WaypointRenderer->SubmitPoint({ intersection });
+	}
+	for (auto& intersection : m_LPARPAIntersectionPoints) {
+		m_WaypointRenderer->SubmitPoint({ intersection });
+	}
 	// We have a rough path, now we can set finepath
 
 	m_LPARPAFinePath.clear();
@@ -743,7 +724,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 	{
 		auto start = m_LPARPARoughPath[i];
 		auto end = m_LPARPARoughPath[i + 1];
-		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+		auto path = DjikstraShortestPath(*m_Head->Graph, start, end);
 
 		for (auto& step : path) {
 			m_LPARPAFinePath.push_back(step);
@@ -765,7 +746,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 		lpa_rpa_path_lines.push_back({ start, end });
 	}
 
-	m_CalculatedPathRenderer->AddPersistentLines(lpa_rpa_path_lines);
+	m_CalculatedPathRenderer->SubmitLines(lpa_rpa_path_lines);
 
 	{
 		using namespace NIRS;
@@ -821,7 +802,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 	{
 		auto start = m_LeftHorizontalRoughPath[i];
 		auto end = m_LeftHorizontalRoughPath[i + 1];
-		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+		auto path = DjikstraShortestPath(*m_Head->Graph, start, end);
 
 		for (auto& step : path) {
 			m_LeftHorizontalFinePath.push_back(step);
@@ -832,7 +813,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 	{
 		auto start = m_RightHorizontalRoughPath[i];
 		auto end = m_RightHorizontalRoughPath[i + 1];
-		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+		auto path = DjikstraShortestPath(*m_Head->Graph, start, end);
 
 		for (auto& step : path) {
 			m_RightHorizontalFinePath.push_back(step);
@@ -855,7 +836,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 		auto end = world_space_vertices[m_LeftHorizontalFinePath[i + 1]];
 		horizontal_path_lines.push_back({ start, end });
 	}
-	m_CalculatedPathRenderer->AddPersistentLines(horizontal_path_lines);
+	m_CalculatedPathRenderer->SubmitLines(horizontal_path_lines);
 
 	// We dont need to flip these
 	//m_HorizontalFinePath.insert(m_LPARPAFinePath.begin(), landmark_vertex_indices[ManualLandmarkType::LPA]);
@@ -890,6 +871,11 @@ void AtlasLayer::GenerateCoordinateSystem()
 			m_LandmarkVisibility[label] = true;
 		};
 	}
+
+	m_LandmarkRenderer->Clear();
+	for (auto& [label, position] : m_Landmarks) {
+		if (m_LandmarkVisibility[label]) m_LandmarkRenderer->SubmitPoint({ position });
+	};
 }
 
 std::map<NIRS::Landmark, glm::vec3> AtlasLayer::FindReferencePointsAlongPath(
@@ -957,4 +943,67 @@ std::map<NIRS::Landmark, glm::vec3> AtlasLayer::FindReferencePointsAlongPath(
 	}
 
 	return point_label_map;
+}
+
+void AtlasLayer::LandmarkSelector(bool standalone)
+{
+	static bool parse_needed = false;
+	if (ImGui::InputTextWithHint("##ElectrodeInput", "e.g., Cz, Fz, Fp1",
+		m_CoordinateInputBuffer, IM_ARRAYSIZE(m_CoordinateInputBuffer),
+		ImGuiInputTextFlags_EnterReturnsTrue)) {
+		// This is triggered when 'Enter' is pressed
+		parse_needed = true;
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("Parse Electrodes")) {
+		parse_needed = true;
+	}
+
+	if (parse_needed) {
+		// Perform the split and store the result
+		m_SelectedLandmarks = Utils::SplitCooridnateSelector(std::string(m_CoordinateInputBuffer), ',');
+		if (m_SelectedLandmarks.size() > 0) {
+
+			for (auto& [label, visibility] : m_LandmarkVisibility) {
+				visibility = false; // Hide all first
+			}
+
+			for (auto& coord_label : m_SelectedLandmarks) {
+				std::optional<NIRS::Landmark> label = NIRS::StringToLandmark(coord_label);
+				if (label.has_value()) {
+
+					if (m_LandmarkVisibility.find(label.value()) != m_LandmarkVisibility.end()) {
+						m_LandmarkVisibility[label.value()] = true; // Show selected
+					}
+					else {
+						NVIZ_WARN("Coordinate Label Not Found: {0}", coord_label);
+					}
+				}
+			}
+		}
+		else {
+			for (auto& [label, visibility] : m_LandmarkVisibility) {
+				visibility = true; // Show All
+			}
+		}
+		parse_needed = false; // Reset the flag
+
+		m_LandmarkRenderer->Clear();
+		for (auto& [label, position] : m_Landmarks) {
+			if (m_LandmarkVisibility[label]) m_LandmarkRenderer->SubmitPoint({ position });
+		};
+
+	}
+
+	// --- Display the results for verification ---
+	ImGui::Text("Parsed Electrodes (%zu):", m_SelectedLandmarks.size());
+	if (!m_SelectedLandmarks.empty()) {
+		for (size_t i = 0; i < m_SelectedLandmarks.size(); ++i) {
+			ImGui::BulletText("%s", m_SelectedLandmarks[i].c_str());
+		}
+	}
+	else {
+		ImGui::Text("No electrodes parsed yet.");
+	}
 }

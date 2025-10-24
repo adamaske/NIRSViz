@@ -16,20 +16,18 @@ public:
     PointRenderer(ViewID viewTargetID, glm::vec4 color, float size);
     ~PointRenderer();
 
-    void SetupBuffers();
-    void Flush();
+    void Draw();
 
     // Add a single line to the drawing queue
     void SubmitPoint(const Point& point);
-
-    void BeginScene();
-    void EndScene();
+	void SubmitPoints(const std::vector<Point>& points);
+    void Clear();
 
     void SetPointWidth(float size) { m_PointSize = size; }
     
-
 	glm::vec4& GetPointColor() { return m_PointColor; }
 	float& GetPointSize() { return m_PointSize; }
+
 private:
     glm::vec4 m_PointColor = glm::vec4(1.0f);
     float m_PointSize = 5.0f;

@@ -9,7 +9,7 @@
 class ImGuiLayer : public Layer
 {
 public:
-	ImGuiLayer();
+	ImGuiLayer(const EntityID& settingsID);
 	~ImGuiLayer();
 
 	virtual void OnAttach() override;

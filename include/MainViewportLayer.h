@@ -15,7 +15,7 @@ enum CameraMode {
 
 class MainViewportLayer : public Layer {
 public:
-	MainViewportLayer();
+	MainViewportLayer(const EntityID& settingsID);
 	~MainViewportLayer();
 
 

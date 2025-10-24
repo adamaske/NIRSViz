@@ -32,17 +32,28 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	m_Window = CreateRef<Window>(window_spec);
 	m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 
-	Renderer::Init();
+	// --- ECS Setup ---
+	m_Coordinator = CreateRef<Coordinator>();
+	m_Coordinator->registerComponent<ApplicationSettingsComponent>();
+	m_Coordinator->registerComponent<ChannelProjectionData>();
 
+	// --- General Settings ---
+	auto settingsEntity = m_Coordinator->createEntity();
+	m_Coordinator->addComponent(settingsEntity, ApplicationSettingsComponent{false});
+	m_Coordinator->addComponent(settingsEntity, ChannelProjectionData{});
+
+
+	Renderer::Init();
 	ViewportManager::Init();
 
-	m_ImGuiLayer = CreateRef<ImGuiLayer>();
-	PushOverlay(m_ImGuiLayer.get());
-	m_MainViewportLayer = CreateRef<MainViewportLayer>();
-	m_ProbeLayer = CreateRef<ProbeLayer>();
-	m_AtlasLayer = CreateRef<AtlasLayer>();
-	m_PlottingLayer = CreateRef<PlottingLayer>();
+	// Add Layers
+	m_ImGuiLayer		= CreateRef<ImGuiLayer>(settingsEntity);
+	m_MainViewportLayer = CreateRef<MainViewportLayer>(settingsEntity);
+	m_ProbeLayer		= CreateRef<ProbeLayer>(settingsEntity);
+	m_AtlasLayer		= CreateRef<AtlasLayer>(settingsEntity);
+	m_PlottingLayer		= CreateRef<PlottingLayer>(settingsEntity);
 
+	PushOverlay(m_ImGuiLayer.get());
 	PushLayer(m_MainViewportLayer.get());
 	PushLayer(m_ProbeLayer.get());
 	PushLayer(m_AtlasLayer.get());

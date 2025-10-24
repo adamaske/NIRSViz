@@ -18,6 +18,7 @@
 #include "NIRS/Snirf.h"
 
 #include "Core/Input.h"
+#include "Raycast.h"
 
 namespace Utils {
 	std::string OpenSNIRFFileDialog() {
@@ -42,7 +43,7 @@ namespace Utils {
 
 }
 
-ProbeLayer::ProbeLayer() : Layer("ProbeLayer")
+ProbeLayer::ProbeLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
 
@@ -85,29 +86,9 @@ void ProbeLayer::OnUpdate(float dt)
 		UpdateChannelVisuals();
 	}
 
-	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) {
-		m_LineRenderer2D->BeginScene();
-		for (auto& cv : m_ChannelVisuals) {
-			m_LineRenderer2D->SubmitLine(cv.Line2D);
-		}
-		m_LineRenderer2D->EndScene();
-	}
-
-	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) {
-		m_LineRenderer3D->BeginScene();
-		for (auto& cv : m_ChannelVisuals) {
-			m_LineRenderer3D->SubmitLine(cv.Line3D);
-		}
-		m_LineRenderer3D->EndScene();
-	}
-
-	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) {
-		m_ProjLineRenderer3D->BeginScene();
-		for (auto& cv : m_ChannelVisuals) {
-			m_ProjLineRenderer3D->SubmitLine(cv.ProjectionLine3D);
-		}
-		m_ProjLineRenderer3D->EndScene();
-	}
+	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) m_LineRenderer2D->Draw();
+	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) m_LineRenderer3D->Draw(); 
+	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) m_ProjLineRenderer3D->Draw();
 
 	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) { // Currently we dont apply any transform to 2D probes
 		for (const auto& cmd : m_SourceVisuals) {
@@ -140,6 +121,9 @@ void ProbeLayer::OnImGuiRender()
 	ImGui::Begin("Probe Settings");
 	ImGui::TextWrapped("%s", m_SNIRF->IsFileLoaded() ? m_SNIRF->GetFilepath().c_str() : "...");
 
+	if (ImGui::Button("Project To Cortex")) ProjectChannelsToCortex();
+
+	ImGui::SeparatorText("Render Settings");
 	ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
 	ImGui::ColorEdit4("Source Color", &NIRS::SourceColor[0], colorFlags);
 	ImGui::ColorEdit4("Detector Color", &NIRS::DetectorColor[0], colorFlags);
@@ -274,9 +258,17 @@ void ProbeLayer::LoadProbeFile(const std::string& filepath)
 {
 	m_SNIRF->LoadFile(std::filesystem::path(filepath));
 
+	m_Channels = m_SNIRF->GetChannels();
+	m_ChannelMap.clear();
+	for (size_t i = 0; i < m_Channels.size(); i++)
+	{
+		m_ChannelMap[i] = m_Channels[i];
+	}
+
 	// Clear previous data
 	m_SourceVisuals.clear();
 	m_DetectorVisuals.clear();
+
 
 	auto detectors2D = m_SNIRF->GetDetectors2D();
 	auto sources2D = m_SNIRF->GetSources2D();
@@ -401,14 +393,18 @@ void ProbeLayer::UpdateProbeVisuals()
 
 void ProbeLayer::UpdateChannelVisuals()
 {
-	m_ChannelVisuals.clear();
-	for (const auto& channel : m_SNIRF->GetChannels()) {
+	m_LineRenderer2D->Clear();
+	m_LineRenderer3D->Clear();
+	m_ProjLineRenderer3D->Clear();
+
+	m_ChannelVisualsMap.clear();
+	for (const auto& [idx, channel] : m_ChannelMap) {
 
 		int sourceIndex = channel.SourceID - 1;
 		int detectorIndex = channel.DetectorID - 1;
 
-		ChannelVisual cv;
-		cv.Channel = channel;
+		NIRS::ChannelVisualization cv;
+		cv.ChannelID = channel.ID;
 
 		auto start2D = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd2D.Transform[3];
 		auto end2D = m_SourceVisuals[channel.SourceID - 1].RenderCmd2D.Transform[3];
@@ -433,6 +429,79 @@ void ProbeLayer::UpdateChannelVisuals()
 			projEnd3D
 		};
 
-		m_ChannelVisuals.push_back(cv);
+		m_ChannelVisualsMap[idx] = cv;
+
+		m_LineRenderer2D->SubmitLine(cv.Line2D);
+		m_LineRenderer3D->SubmitLine(cv.Line3D);
+		m_ProjLineRenderer3D->SubmitLine(cv.ProjectionLine3D);
 	}
+}
+
+void ProbeLayer::ProjectChannelsToCortex()
+{
+	auto& app = Application::Get();
+	auto coordinator = app.GetECSCoordinator();
+
+	auto cortex = AssetManager::Get<Cortex>("Cortex");
+	if(!cortex){
+		NVIZ_WARN("ProbeLayer: No Cortex asset loaded for projection.");
+		return;
+	}
+
+	auto vertices = cortex->Mesh->GetVertices();
+	auto indices = cortex->Mesh->GetIndices();
+	auto world_transform = cortex->Transform->GetMatrix(); // Get world space coordiantes
+	std::vector<glm::vec3> world_space_vertices(vertices.size());
+	for (size_t i = 0; i < vertices.size(); i++)
+	{
+		glm::mat4 world_pos = glm::translate(world_transform, vertices[i].position);
+		world_space_vertices[i] = world_pos[3];
+	}
+
+	m_ChannelProjectionIntersections.clear();
+
+	for (const auto& [idx, channel] : m_ChannelMap) {
+		const auto& cv = m_ChannelVisualsMap[idx];
+
+		auto line = cv.ProjectionLine3D;
+		const auto& origin = line.Start;
+		const auto& end = line.End;
+		const auto& direction = glm::normalize(end - origin);
+
+		RayHit hit;
+		for (unsigned int i = 0; i < indices.size(); i += 3) {
+
+			auto v0 = world_space_vertices[indices[i]];
+			auto v1 = world_space_vertices[indices[i + 1]];
+			auto v2 = world_space_vertices[indices[i + 2]];
+
+			float t;
+			if (RayIntersectsTriangle(origin, direction, v0, v1, v2, t)) {
+				if (t < hit.t_distance) {
+					hit.t_distance = t;
+					hit.hit_v0 = indices[i];
+					hit.hit_v1 = indices[i + 1];
+					hit.hit_v2 = indices[i + 2];
+				}
+			}
+		}
+		if (hit.t_distance < std::numeric_limits<float>::max()) {
+			// We have a hit
+			glm::vec3 intersection_point = origin + direction * hit.t_distance;
+
+			m_ChannelProjectionIntersections.push_back({ idx, intersection_point });
+		}
+	}
+
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> channelValues;
+	for (auto& [channelID, ip] : m_ChannelProjectionIntersections) {
+		channelValues[channelID] = 1.0; // Dummy value for now
+	}
+
+	// Start Projection
+	coordinator->getComponent<ApplicationSettingsComponent>(m_SettingsEntityID).ProjectChannelsToCortex = true;
+	// Store results in ECS
+	coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelProjectionIntersections = m_ChannelProjectionIntersections;
+	coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelValues = channelValues;
+
 }

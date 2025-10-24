@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Base.h"
 
+#include "Core/ECS.h"
 #include "Core/Window.h"
 #include "Core/LayerStack.h"
 #include "Events/ApplicationEvent.h"
@@ -29,6 +30,20 @@ struct ApplicationSpecification
 	ApplicationCommandLineArgs CommandLineArgs;
 };
 
+struct ChannelProjectionData {
+	std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> ChannelProjectionIntersections;
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> ChannelValues;
+};
+
+struct ApplicationSettingsComponent
+{
+	bool ShowDemoWindows = false;
+
+	// The user has generated a SNIRF file and wants to project to cortex
+	bool ProjectChannelsToCortex = false;
+};
+
+
 class Application {
 public:
 
@@ -55,6 +70,7 @@ public:
 	const ApplicationSpecification& GetSpecification() const { return m_Specification; }
 
 	LayerStack& GetLayerStack() { return m_LayerStack; }
+	Ref<Coordinator> GetECSCoordinator() { return m_Coordinator; }
 private:
 	static Application* s_Instance;
 
@@ -63,6 +79,7 @@ private:
 	bool m_Minimized = false;
 	float m_LastTime = 0.0f;
 
+	Ref<Coordinator> m_Coordinator;
 	Ref<Window> m_Window;
 
 	LayerStack m_LayerStack;

@@ -19,46 +19,8 @@ LineRenderer::LineRenderer(ViewID viewTargetID, glm::vec4 color, float size) : m
 
 LineRenderer::~LineRenderer()
 {
-    // RAII handles destruction of m_VAO/m_Shader
     m_VAO.reset();
 	m_VBO.reset();
-}
-
-void LineRenderer::SetPersistentLines(std::vector<NIRS::Line> lines)
-{
-    m_PersistentLines = true;
-    m_Vertices.clear();
-    for (auto& line : lines) {
-                // Add the start point
-        m_Vertices.push_back({
-            line.Start,
-            glm::vec4(1.0f),
-            });
-        // Add the end point
-        m_Vertices.push_back({
-            line.End,
-            glm::vec4(1.0f),
-			});
-    }
-
-    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
-}
-
-void LineRenderer::AddPersistentLines(std::vector<NIRS::Line> lines)
-{
-    for (auto& line : lines) {
-        // Add the start point
-        m_Vertices.push_back({
-            line.Start,
-            glm::vec4(1.0f),
-            });
-        // Add the end point
-        m_Vertices.push_back({
-            line.End,
-            glm::vec4(1.0f),
-            });
-    }
-    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
 }
 
 void LineRenderer::SetupBuffers()
@@ -75,86 +37,56 @@ void LineRenderer::SetupBuffers()
     m_VBO->SetLayout(layout);    
     m_VAO->AddVertexBuffer(m_VBO);
 
-
-    // Pre-allocate the C++ side storage
     m_Vertices.reserve(Utils::MAX_VERTICES);
-}
-
-void LineRenderer::BeginScene()
-{
-    if (m_PersistentLines)
-        return;
-    m_Vertices.clear(); 
-}
-
-void LineRenderer::EndScene()
-{
-    if (m_PersistentLines) {
-        UniformData lineWidth;
-        lineWidth.Type = UniformDataType::FLOAT1;
-        lineWidth.Name = "u_LineWidth";
-        lineWidth.Data.f1 = m_LineWidth;
-
-        UniformData color;
-        color.Type = UniformDataType::FLOAT4;
-        color.Name = "u_LineColor";
-        color.Data.f4 = m_LineColor;
-
-        RenderCommand cmd;
-        cmd.ShaderPtr = m_Shader.get();
-        cmd.VAOPtr = m_VAO.get();
-        cmd.Transform = glm::mat4(1.0f);
-        cmd.Mode = DRAW_ARRAYS;
-        cmd.ViewTargetID = m_ViewTargetID;
-        cmd.UniformCommands = { color };
-        cmd.APICalls = {
-            RendererAPICall{ [lineWidth = m_LineWidth]() { Renderer::SetLineWidth(lineWidth); } }
-        };
-        Renderer::Submit(cmd);
-        return;
-    }
-    Flush(); 
 }
 
 void LineRenderer::SubmitLine(const NIRS::Line& line)
 {
-    // Check for buffer overflow and flush if needed
-    if (m_Vertices.size() + 2 > Utils::MAX_VERTICES)
-    {
-        NVIZ_WARN("Line Renderer : Vertex overflow, flushing! MAX_VERTICES = ", Utils::MAX_VERTICES);
-        Flush();
-        m_Vertices.clear();
-    }
-
-    // Add the start point
     m_Vertices.push_back({
         line.Start,
         glm::vec4(1.0f),
-        });
+    });
 
-    // Add the end point
     m_Vertices.push_back({
         line.End,
         glm::vec4(1.0f),
-        });
-}
+    });
 
-void LineRenderer::Flush()
-{
-    if (m_Vertices.empty())
-        return;
 
     m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
+}
+
+void LineRenderer::SubmitLines(const std::vector<NIRS::Line>& lines)
+{
+    for (auto& line : lines) {
+        m_Vertices.push_back({
+            line.Start,
+            glm::vec4(1.0f),
+        });
+
+        m_Vertices.push_back({
+            line.End,
+            glm::vec4(1.0f),
+        });
+    }
+
+    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
+}
+
+void LineRenderer::Clear() {
+    m_Vertices.clear();
+}
+void LineRenderer::Draw() {
 
     UniformData lineWidth;
-	lineWidth.Type = UniformDataType::FLOAT1;
-	lineWidth.Name = "u_LineWidth";
-	lineWidth.Data.f1 = m_LineWidth; 
-    
-	UniformData color;
-	color.Type = UniformDataType::FLOAT4;
-	color.Name = "u_LineColor";
-	color.Data.f4 = m_LineColor;
+    lineWidth.Type = UniformDataType::FLOAT1;
+    lineWidth.Name = "u_LineWidth";
+    lineWidth.Data.f1 = m_LineWidth;
+
+    UniformData color;
+    color.Type = UniformDataType::FLOAT4;
+    color.Name = "u_LineColor";
+    color.Data.f4 = m_LineColor;
 
     RenderCommand cmd;
     cmd.ShaderPtr = m_Shader.get();
@@ -166,5 +98,6 @@ void LineRenderer::Flush()
     cmd.APICalls = {
         RendererAPICall{ [lineWidth = m_LineWidth]() { Renderer::SetLineWidth(lineWidth); } }
     };
+
     Renderer::Submit(cmd);
 }

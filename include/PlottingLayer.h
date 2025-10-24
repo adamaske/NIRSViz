@@ -12,7 +12,7 @@
 
 class PlottingLayer : public Layer {
 public:
-	PlottingLayer();
+	PlottingLayer(const EntityID& settingsID);
 	~PlottingLayer();
 
 
@@ -28,9 +28,13 @@ public:
 
 	void RenderMenuBar() override;
 
+
+
 	void EditProcessingStream();
 private:
 	Ref<SNIRF> m_SNIRF;
+	
+	bool m_ProjectToCortex = false;
 
 	float m_DeltaTime = 0.0f;
 	bool m_EditingProcessingStream = false;
