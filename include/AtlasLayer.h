@@ -69,6 +69,12 @@ public:
 									  std::vector<NIRS::Landmark> labels,
 									  std::vector<float> percentages);
 private:
+
+	using VertexPath = std::vector<unsigned int>;
+	using WaypointList = std::vector<Waypoint>;
+	using PointList = std::vector<glm::vec3>;
+	using RayList = std::vector<Ray>;
+
 	ViewID m_EditorViewID = 2; // Passed to renderer to specify this viewport
 	bool m_EditorOpen = false;
 	Ref<OrbitCamera> m_EditorCamera = nullptr;
@@ -92,16 +98,8 @@ private:
 	UniformData m_OpacityUniform;
 
 
-	Ref<PointRenderer> m_WaypointRenderer = nullptr;
-
-	bool m_DrawLandmarks = true;
-	std::map<NIRS::Landmark, glm::vec3> m_Landmarks;
-	std::map<NIRS::Landmark, bool> m_LandmarkVisibility;
-	Ref<PointRenderer> m_LandmarkRenderer = nullptr;
-	char m_CoordinateInputBuffer[256] = "";
-	std::vector<std::string> m_SelectedLandmarks;
-
-	float m_ManualLandmarkSize = 1.2f; 
+	// MANUAL LANDMARKS
+	float m_ManualLandmarkSize = 1.2f;
 	bool m_DrawManualLandmarks = true;
 	Ref<Mesh> m_SphereMesh = nullptr;
 	Ref<PointRenderer> m_ManualLandmarkRenderer = nullptr;
@@ -113,40 +111,49 @@ private:
 		{ ManualLandmarkType::RPA,	    { ManualLandmarkType::RPA,		glm::vec3(9.1, -5.8, 0),	glm::vec4(1.0f, 1.0f, 0.1f, 1.0f) } }
 	};
 
-	// vertex path
-	using VertexPath = std::vector<unsigned int>; // list of vertex indices
-	using WaypointList = std::vector<Waypoint>;
-	WaypointList m_NZToIZ_Waypoints;
-	WaypointList m_LPAtoRPA_Waypoints;
-	bool m_DrawWaypoints = true;
-
-	VertexPath m_NaisonInionRoughPath;
-	VertexPath m_NaisonInionFinePath;
-	Ref<LineRenderer> m_NaisonInionPathRenderer = nullptr;
-	Ref<LineRenderer> m_LPARPALinePathRenderer = nullptr;
-
-	VertexPath m_LPARPARoughPath;
-	VertexPath m_LPARPAFinePath;
-
 	Ref<LineRenderer> m_NaisonInionLineRenderer = nullptr;
 	Ref<LineRenderer> m_LPARPALineRenderer = nullptr;
 
-	bool m_DrawPaths = true;
-	Ref<LineRenderer> m_NaisonInionRaysRenderer = nullptr;
-	Ref<LineRenderer> m_LPARPARaysRenderer = nullptr;
-
-	using RayList = std::vector<Ray>;
-	RayList m_NaisonInionRays;
-	RayList m_LPARPARays;
-
-	using PointList = std::vector<glm::vec3>;
-	PointList m_NaisonInionIntersectionPoints;
-	PointList m_LPARPAIntersectionPoints;
-
-	bool m_DrawRays = true;
+	// Raycasting Settings
+	bool m_DrawRays = false;
 	float m_ThetaStepSize = 10.0f; // degrees
 	float m_ThetaMin = m_ThetaStepSize;
 	float m_ThetaMax = 180.0f - m_ThetaStepSize;
 	float m_RayDistance = 15.0f;
+
+	RayList m_NaisonInionRays; // RAY Rendering
+	RayList m_LPARPARays;
+	Ref<LineRenderer> m_NaisonInionRaysRenderer = nullptr;
+	Ref<LineRenderer> m_LPARPARaysRenderer = nullptr;
+
+	PointList m_NaisonInionIntersectionPoints;
+	PointList m_LPARPAIntersectionPoints;
+
+	// CALCULATED LANDMARKS : TODO : This should be a struct instead
+	std::map<NIRS::Landmark, glm::vec3> m_Landmarks; // Position of each landmark
+	std::map<NIRS::Landmark, bool> m_LandmarkVisibility; // Is it visible?
+	std::map<NIRS::Landmark, unsigned int> m_LandmarkClosestVertexIndexMap; // What is the closest vertex index on the head mesh to this landmark
+
+	bool m_DrawLandmarks = true;
+	Ref<PointRenderer> m_LandmarkRenderer = nullptr;
+	char m_CoordinateInputBuffer[256] = "";
+	std::vector<std::string> m_SelectedLandmarks;
+	
+	// Waypoints / Intersection points
+	bool m_DrawWaypoints = false;
+	Ref<PointRenderer> m_WaypointRenderer = nullptr;
+	WaypointList m_NZToIZ_Waypoints;
+	WaypointList m_LPAtoRPA_Waypoints;
+
+	// Calculated Paths
+	bool m_DrawPaths = true;
+	Ref<LineRenderer> m_CalculatedPathRenderer = nullptr;
+	VertexPath m_NaisonInionRoughPath;
+	VertexPath m_NaisonInionFinePath;
+
+	VertexPath m_LPARPARoughPath;
+	VertexPath m_LPARPAFinePath;
+
+	VertexPath m_HorizontalFinePath;
 
 };

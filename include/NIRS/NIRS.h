@@ -121,7 +121,7 @@ namespace NIRS {
         // 12. TEMPORAL (T, FT, TP)
         // Temporal (The T-labels T3, T4, T5, T6 are generally replaced by T7, T8, P7, P8 
         // in the 10-10 system, but T9/T10 and their neighbors are part of the system)
-        T7, T8, T9, T10,
+        T3, T4, T5, T6, T7, T8, T9, T10,
 
         // Fronto-Temporal (FT)
         FT7, FT8, FT9, FT10,
@@ -176,7 +176,7 @@ namespace NIRS {
         {"Oz", Oz},
 
         // --- FRONTAL POLAR (Fp) ---
-        {"Fp1", Fp1}, {"Fp2", Fp2}, /* ... all 10-5 Fp landmarks ... */
+        {"Fp1", Fp1}, {"Fp2", Fp2}, {"F7", F7}, {"F8", F8}, {"FT7", FT7}, {"FT8", FT8}, /* ... all 10-5 Fp landmarks ... */
 
         // --- ANTERO-FRONTAL (AF) ---
         {"AF1", AF1}, {"AF2", AF2}, {"AF7", AF7}, {"AF8", AF8}, /* ... all 10-5 AF landmarks ... */
@@ -184,13 +184,15 @@ namespace NIRS {
         // --- CENTRAL (C) ---
         {"C1", C1}, {"C2", C2}, {"C3", C3}, {"C4", C4}, {"C5", C5}, {"C6", C6}, /* ... all 10-5 C landmarks ... */
 
-        // ... Continue filling with all ~345 entries from the Landmark enum ...
-        // Note: You must include *all* enum values here for completeness.
+        // --- TEMPORAL (T) ---
+        {"T3", T3}, {"T4", T4}, {"T5", T5},{"T6", T6}, {"T7", T7}, {"T8", T8},
 
-        // --- EXAMPLE TEMPORAL ENTRIES (using the 10-10 T-labels) ---
-        {"T7", T7}, {"T8", T8},
-        {"FT7", FT7}, {"FT8", FT8},
-        // ...
+		// --- PARIETAL (P) ---
+		{"P1", P1}, {"P2", P2}, {"P3", P3}, {"P4", P4}, {"P5", P5}, {"P6", P6}, /* ... all 10-5 P landmarks ... */
+
+        // --- OCCIPITAL (O) ---
+		{"O1", O1}, {"O2", O2}, {"O3", O3}, {"O4", O4}, {"O5", O5}, {"O6", O6}, /* ... all 10-5 O landmarks ... */
+
     };
 
     std::string LandmarkToString(Landmark landmark);

@@ -34,6 +34,7 @@ public:
     ~LineRenderer();
 
     void SetPersistentLines(std::vector<NIRS::Line> lines);
+    void AddPersistentLines(std::vector<NIRS::Line> lines);
     bool m_PersistentLines = false;
     // Add a single line to the drawing queue
     void SubmitLine(const NIRS::Line& line);

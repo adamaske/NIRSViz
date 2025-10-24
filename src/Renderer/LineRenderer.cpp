@@ -44,6 +44,23 @@ void LineRenderer::SetPersistentLines(std::vector<NIRS::Line> lines)
     m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
 }
 
+void LineRenderer::AddPersistentLines(std::vector<NIRS::Line> lines)
+{
+    for (auto& line : lines) {
+        // Add the start point
+        m_Vertices.push_back({
+            line.Start,
+            glm::vec4(1.0f),
+            });
+        // Add the end point
+        m_Vertices.push_back({
+            line.End,
+            glm::vec4(1.0f),
+            });
+    }
+    m_VBO->SetData(m_Vertices.data(), m_Vertices.size() * sizeof(NIRS::LineVertex));
+}
+
 void LineRenderer::SetupBuffers()
 {
     // Create the VAO

@@ -77,10 +77,9 @@ void AtlasLayer::OnAttach()
 	// SETUP COORDINATE SYSTEM GENERATION
 	auto mainID = ViewportManager::GetViewport("MainViewport").ID;
 	m_SphereMesh				= CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
-	m_NaisonInionLineRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
-	m_LPARPALineRenderer		= CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 0.3, 1, 1), 2.0f); 
-	m_NaisonInionPathRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(1.0, 0.2, 0.2, 1), 2.0f);
-	m_LPARPALinePathRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(1.0, 0.2, 0.2, 1), 2.0f);
+	m_CalculatedPathRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(1, 0, 0, 1), 2.0f);
+	m_NaisonInionLineRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
+	m_LPARPALineRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
 
 	m_NaisonInionRaysRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(0, 1, 0, 1), 2.0f);
 	m_LPARPARaysRenderer		= CreateRef<LineRenderer>(mainID, glm::vec4(0, 0, 1, 1), 2.0f);
@@ -126,8 +125,9 @@ void AtlasLayer::OnUpdate(float dt)
 	auto camera = viewport.CameraPtr;
 	m_LightPosUniform.Data.f3 = camera->GetPosition();
 
-	if(m_DrawPaths) m_NaisonInionPathRenderer->EndScene();
-
+	if (m_DrawPaths) {
+		m_CalculatedPathRenderer->EndScene();
+	}
 	if(m_DrawManualLandmarks) {
 		RenderCommand cmd3D_template;
 		cmd3D_template.ShaderPtr = m_FlatColorShader.get();
@@ -321,8 +321,8 @@ void AtlasLayer::OnImGuiRender()
 
 	if (ImGui::CollapsingHeader("Path Settings")) {
 		ImGui::Checkbox("Draw Paths", &m_DrawPaths);
-		ImGui::SliderFloat("Path Width", &m_NaisonInionPathRenderer->m_LineWidth, 1.0f, 10.0f);
-		ImGui::ColorEdit4("Path Color", &m_NaisonInionPathRenderer->m_LineColor[0], 0);
+		ImGui::SliderFloat("Path Width", &m_CalculatedPathRenderer->m_LineWidth, 1.0f, 10.0f);
+		ImGui::ColorEdit4("Path Color", &m_CalculatedPathRenderer->m_LineColor[0], 0);
 	}
 
 	if (ImGui::CollapsingHeader("Coordinates")) {
@@ -643,7 +643,7 @@ void AtlasLayer::GenerateCoordinateSystem()
 		naison_inion_path_lines.push_back({ start, end });
 	}
 
-	m_NaisonInionPathRenderer->SetPersistentLines(naison_inion_path_lines);
+	m_CalculatedPathRenderer->SetPersistentLines(naison_inion_path_lines);
 
 	{
 		using namespace NIRS;
@@ -658,7 +658,238 @@ void AtlasLayer::GenerateCoordinateSystem()
 		};
 	}
 
+	// Step 2 : LPA to RPA, find waypoints, find fine path, find Cz
+#if 1
+	glm::vec3 lpa_pos = world_space_vertices[landmark_vertex_indices[ManualLandmarkType::LPA]];
+	glm::vec3 rpa_pos = world_space_vertices[landmark_vertex_indices[ManualLandmarkType::RPA]];
+#else
+	glm::vec3 naison_pos = m_Landmarks[LandmarkType::NAISON].Position;
+	glm::vec3 inion_pos = m_Landmarks[LandmarkType::INION].Position;
+#endif
 
+	glm::vec3 lpa_rpa_midpoint = glm::vec3((lpa_pos + rpa_pos) / 2.0f);
+	glm::vec3 lpa_rpa_direction = glm::normalize(rpa_pos - lpa_pos);
+	glm::vec3 up_vector = glm::normalize(m_Landmarks[NIRS::Cz] - lpa_rpa_midpoint);
+	glm::vec3 lpa_rpa_rotation_axis = glm::normalize(glm::cross(lpa_rpa_direction, up_vector));
+	glm::vec3 lpa_rpa_new_direction = glm::normalize(glm::cross(lpa_rpa_rotation_axis, -up_vector));
+
+	m_LPARPARays.clear(); // Store the lines for renderings
+	for (float theta = m_ThetaMin; theta < m_ThetaMax; theta += m_ThetaStepSize) {
+		auto rotation_quat = glm::angleAxis(glm::radians(theta), lpa_rpa_rotation_axis);
+		auto ray_direction = rotation_quat * lpa_rpa_new_direction;
+		auto endpoint = lpa_rpa_midpoint + ray_direction * m_RayDistance;
+		m_LPARPARays.push_back(Ray{ lpa_rpa_midpoint, endpoint });
+	}
+
+	// Cast Rays
+	m_LPARPARoughPath.clear();
+	m_LPARPAIntersectionPoints.clear();
+	for (const auto& ray : m_LPARPARays) {
+
+		const auto& origin = ray.Origin;
+		const auto& end = ray.End;
+		const auto& direction = glm::normalize(end - origin);
+
+
+		RayHit hit; // We may intersect several traingles, store the best result
+
+		for (unsigned int i = 0; i < indices.size(); i += 3) {
+
+			auto v0 = world_space_vertices[indices[i]];
+			auto v1 = world_space_vertices[indices[i + 1]];
+			auto v2 = world_space_vertices[indices[i + 2]];
+
+			float t;
+			if (RayIntersectsTriangle(origin, direction, v0, v1, v2, t)) {
+				if (t < hit.t_distance) {
+					hit.t_distance = t;
+					hit.hit_v0 = indices[i];
+					hit.hit_v1 = indices[i + 1];
+					hit.hit_v2 = indices[i + 2];
+				}
+			}
+		}
+
+		if (hit.t_distance < std::numeric_limits<float>::max()) {
+			// We have a hit
+			glm::vec3 intersection_point = origin + direction * hit.t_distance;
+			m_LPARPAIntersectionPoints.push_back(intersection_point);
+
+			// we know that one of the triangle vertices is the closest vertex
+			unsigned int closest_vertex_index = hit.hit_v0;
+			float min_dist_sq = glm::distance2(intersection_point, world_space_vertices[hit.hit_v0]);
+
+			// Check v1
+			float dist_sq_v1 = glm::distance2(intersection_point, world_space_vertices[hit.hit_v1]);
+			if (dist_sq_v1 < min_dist_sq) {
+				min_dist_sq = dist_sq_v1;
+				closest_vertex_index = hit.hit_v1;
+			}
+
+			// Check v2
+			float dist_sq_v2 = glm::distance2(intersection_point, world_space_vertices[hit.hit_v2]);
+			if (dist_sq_v2 < min_dist_sq) {
+				closest_vertex_index = hit.hit_v2;
+			}
+
+			m_LPARPARoughPath.push_back(closest_vertex_index);
+		}
+	}
+
+	// We have a rough path, now we can set finepath
+
+	m_LPARPAFinePath.clear();
+	for (unsigned int i = 0; i < m_LPARPARoughPath.size() - 1; i++)
+	{
+		auto start = m_LPARPARoughPath[i];
+		auto end = m_LPARPARoughPath[i + 1];
+		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+
+		for (auto& step : path) {
+			m_LPARPAFinePath.push_back(step);
+		}
+	}
+	// Invert finepath
+	m_LPARPAFinePath = std::vector<unsigned int>(m_LPARPAFinePath.rbegin(), m_LPARPAFinePath.rend());
+
+	// Insert LPA and RPA
+	m_LPARPAFinePath.insert(m_LPARPAFinePath.begin(), landmark_vertex_indices[ManualLandmarkType::LPA]);
+	m_LPARPAFinePath.push_back(landmark_vertex_indices[ManualLandmarkType::RPA]);
+
+
+	std::vector<NIRS::Line> lpa_rpa_path_lines;
+	for (unsigned int i = 0; i < m_LPARPAFinePath.size() - 1; i++)
+	{
+		auto start = world_space_vertices[m_LPARPAFinePath[i]];
+		auto end = world_space_vertices[m_LPARPAFinePath[i + 1]];
+		lpa_rpa_path_lines.push_back({ start, end });
+	}
+
+	m_CalculatedPathRenderer->AddPersistentLines(lpa_rpa_path_lines);
+
+	{
+		using namespace NIRS;
+
+		std::vector<NIRS::Landmark> labels = { NIRS::LPA, T3, C3, C4, T4, NIRS::RPA };
+		std::vector<float> percentages = { 0.0f, 0.10f, 0.30f, 0.70f, 0.90f, 1.0f };
+
+		// TODO : Have this take in a map instead
+		auto coordinates = FindReferencePointsAlongPath(world_space_vertices, m_LPARPAFinePath, labels, percentages);
+		for (auto& [label, position] : coordinates) {
+			m_Landmarks[label] = position;
+			m_LandmarkVisibility[label] = true;
+		};
+	}
+
+	// Fill in m_LandmarkClosestVertexIndexMap
+	// For every landmark, find the closest vertex index
+	for(auto& [type, landmark] : m_Landmarks) {
+
+		float min_distance = std::numeric_limits<float>::max();
+		for (unsigned int i = 0; i < world_space_vertices.size(); i++)
+		{
+			auto distance = glm::distance(landmark, world_space_vertices[i]);
+			if(distance < min_distance) { // Found closer vertex
+				min_distance = distance;
+				m_LandmarkClosestVertexIndexMap[type] = i;
+			}
+		}
+	}
+
+	// Step 3. 
+	// Now we have The saggital plane : Nz to Iz path
+	// And T3, C3, C4, T4.
+	// Now we can find { "FpZ", "T3", "Oz", "T4"};
+
+	// We may want to split this into two section
+
+	VertexPath m_LeftHorizontalRoughPath = {	m_LandmarkClosestVertexIndexMap[NIRS::Fpz],
+												m_LandmarkClosestVertexIndexMap[NIRS::T3],
+												m_LandmarkClosestVertexIndexMap[NIRS::Oz] 
+	};
+
+
+	VertexPath m_RightHorizontalRoughPath = {	m_LandmarkClosestVertexIndexMap[NIRS::Oz],
+												m_LandmarkClosestVertexIndexMap[NIRS::T4],
+												m_LandmarkClosestVertexIndexMap[NIRS::Fpz] 
+	};
+
+	VertexPath m_LeftHorizontalFinePath;
+	VertexPath m_RightHorizontalFinePath;
+
+	for (unsigned int i = 0; i < m_LeftHorizontalRoughPath.size() - 1; i++)
+	{
+		auto start = m_LeftHorizontalRoughPath[i];
+		auto end = m_LeftHorizontalRoughPath[i + 1];
+		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+
+		for (auto& step : path) {
+			m_LeftHorizontalFinePath.push_back(step);
+		}
+	}
+
+	for (unsigned int i = 0; i < m_RightHorizontalRoughPath.size() - 1; i++)
+	{
+		auto start = m_RightHorizontalRoughPath[i];
+		auto end = m_RightHorizontalRoughPath[i + 1];
+		auto path = DjikstraShortestPath(*m_HeadGraph, start, end);
+
+		for (auto& step : path) {
+			m_RightHorizontalFinePath.push_back(step);
+		}
+	}
+	// Invert finepath
+	//m_LeftHorizontalFinePath = std::vector<unsigned int>(m_LeftHorizontalFinePath.rbegin(), m_LeftHorizontalFinePath.rend());
+	//m_RightHorizontalFinePath = std::vector<unsigned int>(m_RightHorizontalFinePath.rbegin(), m_RightHorizontalFinePath.rend());
+
+	std::vector<NIRS::Line> horizontal_path_lines;
+	for (unsigned int i = 0; i < m_RightHorizontalFinePath.size() - 1; i++)
+	{
+		auto start = world_space_vertices[m_RightHorizontalFinePath[i]];
+		auto end = world_space_vertices[m_RightHorizontalFinePath[i + 1]];
+		horizontal_path_lines.push_back({ start, end });
+	}
+	for (unsigned int i = 0; i < m_LeftHorizontalFinePath.size() - 1; i++)
+	{
+		auto start = world_space_vertices[m_LeftHorizontalFinePath[i]];
+		auto end = world_space_vertices[m_LeftHorizontalFinePath[i + 1]];
+		horizontal_path_lines.push_back({ start, end });
+	}
+	m_CalculatedPathRenderer->AddPersistentLines(horizontal_path_lines);
+
+	// We dont need to flip these
+	//m_HorizontalFinePath.insert(m_LPARPAFinePath.begin(), landmark_vertex_indices[ManualLandmarkType::LPA]);
+	//m_HorizontalFinePath.push_back(landmark_vertex_indices[ManualLandmarkType::RPA]);
+
+	
+	{ // Left Hemisphere
+		using namespace NIRS;
+
+		//std::vector<NIRS::Landmark> labels = { Fp1, F7, T5, O1, O2, T6, F8, Fp2 };
+		//std::vector<float> percentages = { 0.05, 0.15, 0.35, 0.45, 0.55, 0.65, 0.85, 0.95 };
+
+		std::vector<NIRS::Landmark> labels = { Fp1, F7, T5, O1};
+		std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
+
+		auto coordinates = FindReferencePointsAlongPath(world_space_vertices, m_LeftHorizontalFinePath, labels, percentages);
+		for (auto& [label, position] : coordinates) {
+			m_Landmarks[label] = position;
+			m_LandmarkVisibility[label] = true;
+		};
+	}
+
+	{ // Right Hemisphere
+		using namespace NIRS;
+
+		std::vector<NIRS::Landmark> labels = { O2, T6, F8, Fp2 };
+		std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
+
+		auto coordinates = FindReferencePointsAlongPath(world_space_vertices, m_RightHorizontalFinePath, labels, percentages);
+		for (auto& [label, position] : coordinates) {
+			m_Landmarks[label] = position;
+			m_LandmarkVisibility[label] = true;
+		};
+	}
 }
 
 std::map<NIRS::Landmark, glm::vec3> AtlasLayer::FindReferencePointsAlongPath(
