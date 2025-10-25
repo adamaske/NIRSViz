@@ -14,6 +14,8 @@
 #include "NIRS/NIRS.h"
 #include "Raycast.h"
 
+#include "Events/EventBus.h"
+
 namespace Utils {
 	std::string LandmarkTypeToString(ManualLandmarkType type) {
 		switch (type) {

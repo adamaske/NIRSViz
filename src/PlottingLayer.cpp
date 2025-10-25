@@ -46,7 +46,23 @@ void PlottingLayer::OnImGuiRender()
 	auto channels = m_SNIRF->GetChannels();
 	size_t n = channels.size();
 	auto t = m_SNIRF->GetTime();
-
+	static bool show = true;
+	ImGui::Checkbox("Show Tags", &show);
+	if (ImPlot::BeginPlot("##Tags")) {
+		ImPlot::SetupAxis(ImAxis_X2);
+		ImPlot::SetupAxis(ImAxis_Y2);
+		if (show) {
+			ImPlot::TagX(0.25, ImVec4(1, 1, 0, 1));
+			ImPlot::TagY(0.75, ImVec4(1, 1, 0, 1));
+			static double drag_tag = 0.25;
+			ImPlot::DragLineY(0, &drag_tag, ImVec4(1, 0, 0, 1), 1, ImPlotDragToolFlags_NoFit);
+			ImPlot::TagY(drag_tag, ImVec4(1, 0, 0, 1), "Drag");
+			ImPlot::SetAxes(ImAxis_X2, ImAxis_Y2);
+			ImPlot::TagX(0.5, ImVec4(0, 1, 1, 1), "%s", "MyTag");
+			ImPlot::TagY(0.5, ImVec4(0, 1, 1, 1), "Tag: %d", 42);
+		}
+		ImPlot::EndPlot();
+	}
 	// User input
 	// For example 1, 2, 3, 4, shows these specific channels
 	// Or they can do 1-16, 32-45, ... .Then only these are displayd

@@ -1,0 +1,11 @@
+#pragma once
+
+#include "Core/Base.h"
+
+
+// EventBus is a singleton class that manages event subscriptions and publishing.
+// Here we define the structs which represent different commands/events in the application.
+
+struct GenerateCoordinateSystemCommand {
+	// No additional data needed for this command
+};

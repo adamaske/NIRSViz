@@ -129,6 +129,7 @@ bool Application::OnWindowClose(WindowCloseEvent& e)
 
 bool Application::OnWindowResize(WindowResizeEvent& e)
 {
+	NVIZ_INFO("Window Resize Event: {}x{}", e.GetWidth(), e.GetHeight());
 	if (e.GetWidth() == 0 || e.GetHeight() == 0)
 	{
 		m_Minimized = true;

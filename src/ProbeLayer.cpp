@@ -19,6 +19,7 @@
 
 #include "Core/Input.h"
 #include "Raycast.h"
+#include "Events/EventBus.h"
 
 namespace Utils {
 	std::string OpenSNIRFFileDialog() {
@@ -71,6 +72,7 @@ void ProbeLayer::OnAttach()
 
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
 	//LoadProbeFile("C:/nirs/hd_fnirs/raw_data/right hemisphere/passive/sub01_run01.snirf");
+
 }
 
 void ProbeLayer::OnDetach()
