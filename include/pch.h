@@ -1,5 +1,7 @@
 #pragma once
 
+#include "glad/glad.h"
+
 #include <iostream>
 #include <memory>
 #include <utility>

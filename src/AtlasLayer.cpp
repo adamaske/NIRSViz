@@ -50,6 +50,7 @@ namespace Utils {
 		}
 		return tokens;
 	}
+
 }
 
 
@@ -74,6 +75,15 @@ void AtlasLayer::OnAttach()
 	m_EditorCamera =		CreateRef<OrbitCamera>();
 	ViewportManager::RegisterViewport({ "Atlas Editor", m_EditorViewID, m_EditorCamera, m_EditorFramebuffer });
 
+	// SETUP RENDERING 
+	m_PhongShader = CreateRef<Shader>(
+		"C:/dev/NIRSViz/Assets/Shaders/Phong.vert",
+		"C:/dev/NIRSViz/Assets/Shaders/Phong.frag");
+
+	m_FlatColorShader = CreateRef<Shader>(
+		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
+		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
+
 	LoadHead("C:/dev/NIRSViz/Assets/Models/head_model_2.obj");
 	LoadCortex("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
 
@@ -91,18 +101,7 @@ void AtlasLayer::OnAttach()
 	m_WaypointRenderer			= CreateRef<PointRenderer>(mainID, glm::vec4(1, 0, 0.3, 1), 0.8);
 	m_LandmarkRenderer		= CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
 
-
-
-	// SETUP RENDERING 
-	m_PhongShader = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/Phong.vert",
-		"C:/dev/NIRSViz/Assets/Shaders/Phong.frag");
-
-	m_FlatColorShader = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
-		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
-
-
+	// SETUP UNFIROMS
 	m_LightPosUniform.Type = UniformDataType::FLOAT3;
 	m_LightPosUniform.Name = "u_LightPos";
 
@@ -120,66 +119,25 @@ void AtlasLayer::OnDetach()
 
 void AtlasLayer::OnUpdate(float dt)
 {
-
-
+	// Update light position uniform
 	auto viewport = ViewportManager::GetViewport("MainViewport");
 	auto camera = viewport.CameraPtr;
 	m_LightPosUniform.Data.f3 = camera->GetPosition();
 
-	DrawCortex();
-	DrawHead();
-
+	// Submit render commands
 	if (m_DrawWaypoints) m_WaypointRenderer->Draw();
 	if (m_DrawPaths) m_CalculatedPathRenderer->Draw();
 	if (m_DrawLandmarks) m_LandmarkRenderer->Draw();
-
-
-	if(m_DrawManualLandmarks) {
-		RenderCommand cmd3D_template;
-		cmd3D_template.ShaderPtr = m_FlatColorShader.get();
-		cmd3D_template.VAOPtr = m_SphereMesh->GetVAO().get();
-		cmd3D_template.ViewTargetID = 1; // Main
-		cmd3D_template.Mode = DRAW_ELEMENTS;
-
-		UniformData flatColor;
-		flatColor.Type = UniformDataType::FLOAT4;
-		flatColor.Name = "u_Color";
-
-		for (auto& [type, landmark] : m_ManualLandmarks) {
-
-			cmd3D_template.Transform = glm::mat4(1.0f);
-			cmd3D_template.Transform = glm::translate(cmd3D_template.Transform, landmark.Position);
-			cmd3D_template.Transform = glm::scale(cmd3D_template.Transform, glm::vec3(m_ManualLandmarkSize));
-
-			flatColor.Data.f4 = landmark.Color;
-			cmd3D_template.UniformCommands = { flatColor };
-
-			Renderer::Submit(cmd3D_template);
-		}
-
-		m_NaisonInionLineRenderer->Clear();
-		m_LPARPALineRenderer->Clear();
-		
-		m_NaisonInionLineRenderer->SubmitLine({
-			m_ManualLandmarks[ManualLandmarkType::NAISON].Position,
-			m_ManualLandmarks[ManualLandmarkType::INION].Position
-		});
-		m_LPARPALineRenderer->SubmitLine({
-			m_ManualLandmarks[ManualLandmarkType::LPA].Position,
-			m_ManualLandmarks[ManualLandmarkType::RPA].Position
-		});
-		
-		m_NaisonInionLineRenderer->Draw();
-		m_LPARPALineRenderer->Draw();
-	}
+	if (m_DrawManualLandmarks) DrawManualLandmarks();
 
 	if (m_DrawRays) {
 		m_NaisonInionRaysRenderer->Draw();
 		m_LPARPARaysRenderer->Draw();
 	}
-
-
-
+	
+	// Render order here is improtant
+	DrawCortex();
+	DrawHead();
 }
 
 void AtlasLayer::OnRender()
@@ -325,7 +283,6 @@ void AtlasLayer::RenderCortexSettings() {
 	ImGui::Checkbox("Draw Brain Anatomy", &m_Cortex->Draw);
 }
 
-
 void AtlasLayer::RenderEditor() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 
@@ -422,6 +379,8 @@ void AtlasLayer::DrawHead()
 	Renderer::Submit(cmd);
 }
 
+
+
 void AtlasLayer::DrawCortex()
 {
 	if (!m_Cortex) return;
@@ -429,20 +388,6 @@ void AtlasLayer::DrawCortex()
 
 	auto& app = Application::Get();
 	auto coordinator = app.GetECSCoordinator();
-	if (coordinator->getComponent<ApplicationSettingsComponent>(m_SettingsEntityID).ProjectChannelsToCortex) {
-		// This way we know that we need to capture the intersection points which is calculated
-		//
-		//
-		auto intersections = coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelProjectionIntersections;
-		auto values = coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelValues;
-
-		// How do we pass these to the shader?
-
-		// The value[ID] corresponds to intersections[ID] 
-
-		// We need to pass each value and intersection point to the shader
-		// How?
-	}
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_PhongShader.get();
@@ -455,6 +400,46 @@ void AtlasLayer::DrawCortex()
 	m_OpacityUniform.Data.f1 = 1.0f;
 	cmd.UniformCommands = { m_LightPosUniform, m_ObjectColorUniform, m_OpacityUniform };
 	Renderer::Submit(cmd);
+}
+
+void AtlasLayer::DrawManualLandmarks()
+{
+	RenderCommand cmd3D_template;
+	cmd3D_template.ShaderPtr = m_FlatColorShader.get();
+	cmd3D_template.VAOPtr = m_SphereMesh->GetVAO().get();
+	cmd3D_template.ViewTargetID = 1; // Main
+	cmd3D_template.Mode = DRAW_ELEMENTS;
+
+	UniformData flatColor;
+	flatColor.Type = UniformDataType::FLOAT4;
+	flatColor.Name = "u_Color";
+
+	for (auto& [type, landmark] : m_ManualLandmarks) {
+
+		cmd3D_template.Transform = glm::mat4(1.0f);
+		cmd3D_template.Transform = glm::translate(cmd3D_template.Transform, landmark.Position);
+		cmd3D_template.Transform = glm::scale(cmd3D_template.Transform, glm::vec3(m_ManualLandmarkSize));
+
+		flatColor.Data.f4 = landmark.Color;
+		cmd3D_template.UniformCommands = { flatColor };
+
+		Renderer::Submit(cmd3D_template);
+	}
+
+	m_NaisonInionLineRenderer->Clear();
+	m_LPARPALineRenderer->Clear();
+
+	m_NaisonInionLineRenderer->SubmitLine({
+		m_ManualLandmarks[ManualLandmarkType::NAISON].Position,
+		m_ManualLandmarks[ManualLandmarkType::INION].Position
+		});
+	m_LPARPALineRenderer->SubmitLine({
+		m_ManualLandmarks[ManualLandmarkType::LPA].Position,
+		m_ManualLandmarks[ManualLandmarkType::RPA].Position
+		});
+
+	m_NaisonInionLineRenderer->Draw();
+	m_LPARPALineRenderer->Draw();
 }
 
 

@@ -19,7 +19,9 @@
 
 #include "Core/Input.h"
 #include "Raycast.h"
+
 #include "Events/EventBus.h"
+
 
 namespace Utils {
 	std::string OpenSNIRFFileDialog() {
@@ -60,9 +62,7 @@ void ProbeLayer::OnAttach()
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
 
-
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
-
 	m_LineRenderer2D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(1.0f), 2.0f);
 	m_LineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 2.0f);
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.0f, 0.8f, 0.0f, 1.0f), 2.0f);
@@ -71,8 +71,6 @@ void ProbeLayer::OnAttach()
 	AssetManager::Register<SNIRF>("SNIRF", m_SNIRF);
 
 	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
-	//LoadProbeFile("C:/nirs/hd_fnirs/raw_data/right hemisphere/passive/sub01_run01.snirf");
-
 }
 
 void ProbeLayer::OnDetach()
@@ -495,15 +493,65 @@ void ProbeLayer::ProjectChannelsToCortex()
 		}
 	}
 
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> channelValues;
 	for (auto& [channelID, ip] : m_ChannelProjectionIntersections) {
-		channelValues[channelID] = 1.0; // Dummy value for now
+		m_ChannelValues[channelID] = 1.0; // Dummy value for now
 	}
 
-	// Start Projection
-	coordinator->getComponent<ApplicationSettingsComponent>(m_SettingsEntityID).ProjectChannelsToCortex = true;
-	// Store results in ECS
-	coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelProjectionIntersections = m_ChannelProjectionIntersections;
-	coordinator->getComponent<ChannelProjectionData>(m_SettingsEntityID).ChannelValues = channelValues;
-
+	UpdateHitDataTexture();
 }
+
+void ProbeLayer::InitHitDataTexture()
+{
+	glGenTextures(1, &m_HitDataTextureID);
+	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
+
+	// Set texture parameters
+	// GL_NEAREST for fetching exact hit data, no interpolation needed
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+
+	// Allocate storage for MAX_HITS (each hit is a vec4, so RGBA32F is good)
+	// We'll store hitPosition.xyz in RGB and strength in A
+	// Radius will be passed as a separate uniform for simplicity, or in a second texture.
+	// For MAX_HITS, you need MAX_HITS * 4 floats for RGBA data
+	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, MAX_HITS, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+	glBindTexture(GL_TEXTURE_1D, 0); // Unbind
+}
+
+void ProbeLayer::UpdateHitDataTexture()
+{
+	if (m_HitDataTextureID == 0) {
+		InitHitDataTexture(); // Ensure texture is initialized
+	}
+	std::vector<glm::vec4> textureData(MAX_HITS, glm::vec4(0.0f));
+
+	for (int i = 0; i < m_ChannelProjectionIntersections.size(); i++) {
+		auto& [channelID, intersectionPoint] = m_ChannelProjectionIntersections[i];
+		textureData[i].x = intersectionPoint.x;
+		textureData[i].y = intersectionPoint.y;
+		textureData[i].z = intersectionPoint.z;
+		textureData[i].w = 0.5f;
+	}
+
+	// Bind the texture and update its data
+	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
+	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, MAX_HITS, GL_RGBA, GL_FLOAT, textureData.data());
+	glBindTexture(GL_TEXTURE_1D, 0);
+
+	// Overwrite ProjectionData 
+	NIRS::ProjectionData data;
+	data.HitDataTextureID = m_HitDataTextureID;
+	data.NumHits = static_cast<uint32_t>(m_ChannelProjectionIntersections.size());
+	data.ChannelProjectionIntersections = m_ChannelProjectionIntersections;
+	data.ChannelValues = m_ChannelValues;
+
+	// We need to rather store this in a struct
+	AssetManager::Register<NIRS::ProjectionData>("ProjectionData", 
+												CreateRef<NIRS::ProjectionData>(data));
+
+	// Start projection
+	EventBus::Instance().Publish<ToggleProjectHemodynamicsToCortexCommand>({ true });
+}
+

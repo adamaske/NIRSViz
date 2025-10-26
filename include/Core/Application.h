@@ -11,6 +11,7 @@
 #include "AtlasLayer.h"
 #include "PlottingLayer.h"
 #include "MainViewportLayer.h"
+#include "ProjectionLayer.h"
 
 struct ApplicationCommandLineArgs
 {
@@ -28,11 +29,6 @@ struct ApplicationSpecification
 	std::string Name = "NIRS Viz";
 	std::string WorkingDirectory;
 	ApplicationCommandLineArgs CommandLineArgs;
-};
-
-struct ChannelProjectionData {
-	std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> ChannelProjectionIntersections;
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> ChannelValues;
 };
 
 struct ApplicationSettingsComponent
@@ -88,4 +84,5 @@ private:
 	Ref<ProbeLayer> m_ProbeLayer;
 	Ref<AtlasLayer> m_AtlasLayer;
 	Ref<PlottingLayer> m_PlottingLayer;
+	Ref<ProjectionLayer> m_ProjectionLayer;
 };

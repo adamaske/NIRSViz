@@ -18,3 +18,8 @@ struct HeadAnatomyLoadedCommand {
 struct CortexAnatomyLoadedCommand {
 
 };
+
+struct ToggleProjectHemodynamicsToCortexCommand {
+	bool Enabled = true;
+
+};

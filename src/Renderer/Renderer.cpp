@@ -82,6 +82,7 @@ void Renderer::ExecuteQueue()
 		shader->SetUniformMat4f("u_ProjectionMatrix", m_CurrentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
 
+		bool disableTextureBinding = false;
 		for (const auto& uniform : command.UniformCommands) {
 			switch (uniform.Type) {
 			case UniformDataType::FLOAT1:
@@ -105,6 +106,15 @@ void Renderer::ExecuteQueue()
 			case UniformDataType::BOOL1:
 				shader->SetUniform1i(uniform.Name, uniform.Data.b1);
 				break;
+			case UniformDataType::SAMPLER1D:
+			case UniformDataType::SAMPLER2D:
+				shader->SetUniform1i(uniform.Name, uniform.Data.i1);
+
+				glActiveTexture(GL_TEXTURE0 + uniform.Data.i1); 
+				glBindTexture(GL_TEXTURE_1D, uniform.Data.i1);
+				disableTextureBinding = true;
+				break;
+
 			}
 		}
 
@@ -123,7 +133,10 @@ void Renderer::ExecuteQueue()
 			break;
 		}
 		
-
+		if (disableTextureBinding) {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_1D, 0);
+		}
 	}
 	m_CurrentBoundFBO->Unbind();
 }

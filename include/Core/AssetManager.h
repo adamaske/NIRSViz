@@ -25,7 +25,7 @@ public:
         auto it = container.Container.find(name);
         if (it == container.Container.end()) {
             // Handle error: Asset not found
-            NVIZ_WARN("AssetManager: Asset '" + name + "' not found for type.");
+            NVIZ_ERROR("AssetManager: Asset '" + name + "' not found for type.");
             return nullptr;
         }
 

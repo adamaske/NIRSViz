@@ -23,6 +23,7 @@ struct ProbeVisual {
 	RenderCommand RenderCmd2D;
 };
 
+
 class ProbeLayer : public Layer {
 public:
 	ProbeLayer(const EntityID& settingsID);
@@ -47,7 +48,10 @@ public:
 	void UpdateChannelVisuals();
 
 	void ProjectChannelsToCortex();
+	void InitHitDataTexture();
+	void UpdateHitDataTexture();
 private:
+
 	bool m_DrawProbes2D = false;
 	bool m_DrawChannels2D = false;
 	
@@ -68,6 +72,7 @@ private:
 
 	// Uses a vector because its not sure every channel actually hits the cortex.
 	std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> m_ChannelProjectionIntersections; // Channel index to intersection point on cortex
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> m_ChannelValues;
 
 	Ref<LineRenderer> m_LineRenderer2D = nullptr;
 	Ref<LineRenderer> m_LineRenderer3D = nullptr;
@@ -86,4 +91,5 @@ private:
 	glm::vec3 m_Probe2DScale = glm::vec3(1.0f, 1.0f, 1.0f);
 	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
+	uint32_t m_HitDataTextureID = 0;
 };

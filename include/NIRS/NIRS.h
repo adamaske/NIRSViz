@@ -6,8 +6,11 @@
 #include <string>
 #include <unordered_map>
 #include <algorithm> // For std::transform (optional, but good for case insensitivity)
+#include <map>
 
 namespace NIRS {
+
+    
 
     // --- Defintions ---
     static glm::vec4 SourceColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -75,6 +78,23 @@ namespace NIRS {
         Line Line3D;
         Line ProjectionLine3D;
 		glm::vec3 IntersectionPoint3D; // Intersection point on cortex
+    };
+
+	// --- Projection ---
+    struct ProjectionData {
+        uint32_t HitDataTextureID;
+        uint32_t NumHits;
+
+        std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> ChannelProjectionIntersections;
+        std::map<NIRS::ChannelID, NIRS::ChannelValue> ChannelValues;
+    };
+
+    struct ProjectionSettings {
+        float StrengthMin = -1.0f;
+        float StrengthMax = 1.0f;
+        float FalloffPower = 0.5f;
+        float Radius = 1.6f;
+        float DecayPower = 7.0f;
     };
 
 

@@ -21,7 +21,7 @@ enum DrawMode {
 };
 
 enum class UniformDataType {
-	FLOAT1, FLOAT3, FLOAT2, FLOAT4, MAT4, INT1, BOOL1
+	FLOAT1, FLOAT3, FLOAT2, FLOAT4, MAT4, INT1, BOOL1, SAMPLER1D, SAMPLER2D
 };
 
 struct UniformData {

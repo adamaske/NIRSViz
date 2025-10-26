@@ -31,5 +31,7 @@ constexpr Ref<T> CreateRef(Args&& ... args)
 #define ALTAS_VIEWPORT 2
 #define PROBE_EDITOR 3
 
+#define MAX_HITS 256
+
 #include "Core/Log.h"
 #include "Core/Assert.h"

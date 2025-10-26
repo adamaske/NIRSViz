@@ -89,6 +89,8 @@ public:
 
 	void DrawCortex();
 
+	void DrawManualLandmarks();
+
 	void GenerateCoordinateSystem();
 
 	std::map<NIRS::Landmark, glm::vec3> FindReferencePointsAlongPath(std::vector<glm::vec3> world_space_vertices,
@@ -97,18 +99,21 @@ public:
 									  std::vector<float> percentages);
 
 	void LandmarkSelector(bool standalone);
-private:
-	// Shareable
-	Ref<Head> m_Head = nullptr;
-	Ref<Cortex> m_Cortex = nullptr;
 
+private:
 	using VertexPath = std::vector<unsigned int>;
 	using WaypointList = std::vector<Waypoint>;
 	using PointList = std::vector<glm::vec3>;
 	using RayList = std::vector<Ray>;
 
+	// Shareable
+	Ref<Head> m_Head = nullptr;
+	Ref<Cortex> m_Cortex = nullptr;
+
+
 	ViewID m_EditorViewID = 2; // Passed to renderer to specify this viewport
 	bool m_EditorOpen = false;
+
 	Ref<OrbitCamera> m_EditorCamera = nullptr;
 	Ref<Framebuffer> m_EditorFramebuffer = nullptr;
 
@@ -119,10 +124,8 @@ private:
 	UniformData m_ObjectColorUniform;
 	UniformData m_OpacityUniform;
 
-
-	// MANUAL LANDMARKS
 	float m_ManualLandmarkSize = 1.2f;
-	bool m_DrawManualLandmarks = true;
+	bool m_DrawManualLandmarks = false;
 	Ref<Mesh> m_SphereMesh = nullptr;
 	Ref<PointRenderer> m_ManualLandmarkRenderer = nullptr;
 	std::map<ManualLandmarkType, ManualLandmark> m_ManualLandmarks = // one of each, naison is green, inion is red, lpa is blue, rpa is yellow

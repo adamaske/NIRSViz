@@ -35,12 +35,9 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	// --- ECS Setup ---
 	m_Coordinator = CreateRef<Coordinator>();
 	m_Coordinator->registerComponent<ApplicationSettingsComponent>();
-	m_Coordinator->registerComponent<ChannelProjectionData>();
-
 	// --- General Settings ---
 	auto settingsEntity = m_Coordinator->createEntity();
 	m_Coordinator->addComponent(settingsEntity, ApplicationSettingsComponent{false});
-	m_Coordinator->addComponent(settingsEntity, ChannelProjectionData{});
 
 
 	Renderer::Init();
@@ -48,14 +45,17 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 
 	// Add Layers
 	m_ImGuiLayer		= CreateRef<ImGuiLayer>(settingsEntity);
+	PushOverlay(m_ImGuiLayer.get());
+
 	m_MainViewportLayer = CreateRef<MainViewportLayer>(settingsEntity);
 	m_ProbeLayer		= CreateRef<ProbeLayer>(settingsEntity);
 	m_AtlasLayer		= CreateRef<AtlasLayer>(settingsEntity);
 	m_PlottingLayer		= CreateRef<PlottingLayer>(settingsEntity);
+	m_ProjectionLayer	= CreateRef<ProjectionLayer>(settingsEntity);
 
-	PushOverlay(m_ImGuiLayer.get());
 	PushLayer(m_MainViewportLayer.get());
 	PushLayer(m_ProbeLayer.get());
+	PushLayer(m_ProjectionLayer.get());
 	PushLayer(m_AtlasLayer.get());
 	PushLayer(m_PlottingLayer.get());
 }
