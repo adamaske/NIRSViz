@@ -22,30 +22,6 @@
 
 #include "Events/EventBus.h"
 
-
-namespace Utils {
-	std::string OpenSNIRFFileDialog() {
-		char filePath[MAX_PATH] = "";
-
-		OPENFILENAMEA ofn;
-		ZeroMemory(&ofn, sizeof(ofn));
-		ofn.lStructSize = sizeof(ofn);
-		ofn.hwndOwner = NULL;
-		ofn.lpstrFile = filePath;
-		ofn.nMaxFile = sizeof(filePath);
-		ofn.lpstrFilter = "SNIRF Files (*.snirf)\0*.snirf\0All Files (*.*)\0*.*\0";
-		ofn.nFilterIndex = 1;
-		ofn.lpstrInitialDir = NULL;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-		if (GetOpenFileNameA(&ofn)) {
-			return std::string(filePath);
-		}
-		return {};
-	}
-	
-}
-
 ProbeLayer::ProbeLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
@@ -64,13 +40,18 @@ void ProbeLayer::OnAttach()
 
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
 	m_LineRenderer2D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(1.0f), 2.0f);
-	m_LineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), 2.0f);
-	m_ProjLineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.0f, 0.8f, 0.0f, 1.0f), 2.0f);
+	m_LineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
+	m_ProjLineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
 
-	m_SNIRF = CreateRef<SNIRF>();
-	AssetManager::Register<SNIRF>("SNIRF", m_SNIRF);
+	EventBus::Instance().Subscribe<SNIRFFileLoadedEvent>([this](const SNIRFFileLoadedEvent& e) {
 
-	LoadProbeFile("C:/dev/NIRSViz/Assets/NIRS/example.snirf");
+		this->LoadSNIRF();
+		
+	});
+
+	EventBus::Instance().Subscribe< UpdateProjectionDataChannelValuesCommand>([this](const UpdateProjectionDataChannelValuesCommand& e) {
+		this->UpdateHitDataTexture();
+	});
 }
 
 void ProbeLayer::OnDetach()
@@ -121,16 +102,19 @@ void ProbeLayer::OnImGuiRender()
 	ImGui::Begin("Probe Settings");
 	ImGui::TextWrapped("%s", m_SNIRF->IsFileLoaded() ? m_SNIRF->GetFilepath().c_str() : "...");
 
-	if (ImGui::Button("Project To Cortex")) ProjectChannelsToCortex();
+	if (ImGui::Button("Project To Cortex")) {
+		ProjectChannelsToCortex();
 
+		EventBus::Instance().Publish<ToggleProjectHemodynamicsToCortexCommand>({ true });
+	}
 	ImGui::SeparatorText("Render Settings");
 	ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
 	ImGui::ColorEdit4("Source Color", &NIRS::SourceColor[0], colorFlags);
 	ImGui::ColorEdit4("Detector Color", &NIRS::DetectorColor[0], colorFlags);
 
-	ImGui::ColorEdit4("2D Channel Color", &m_LineRenderer2D->m_LineColor[0], colorFlags);
+	//ImGui::ColorEdit4("2D Channel Color", &m_LineRenderer2D->m_LineColor[0], colorFlags);
 
-	Render2DProbeTransformControls(false);
+	//Render2DProbeTransformControls(false);
 	Render3DProbeTransformControls(false);
 
 	ImGui::End();
@@ -143,15 +127,8 @@ void ProbeLayer::OnEvent(Event& event)
 
 void ProbeLayer::RenderMenuBar()
 {
-
 	if (ImGui::BeginMenu("Probe"))
 	{
-		if (ImGui::MenuItem("Load Probe (.snirf)")) {
-			std::string newFile = Utils::OpenSNIRFFileDialog();
-			if (!newFile.empty()) {
-				LoadProbeFile(newFile);
-			}
-		}
 
 		if (ImGui::MenuItem("Edit Probe")) {
 			// Open Editor Panel
@@ -215,7 +192,10 @@ void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 	}
 	if (showContent)
 	{
-		ImGui::Checkbox("Draw Probes", &m_DrawProbes3D); 
+		if (ImGui::Checkbox("Draw Probes", &m_DrawProbes3D)) {
+			m_DrawChannels3D = m_DrawProbes3D;
+			m_DrawChannelProjections3D = m_DrawProbes3D;
+		}
 		ImGui::DragFloat("Spread Factor", &m_Probe3DSpreadFactor,
 			0.01f, 0.0f, 5.0f, "%.2f"
 		);
@@ -254,29 +234,32 @@ void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 	if (standalone) ImGui::End();
 }
 
-void ProbeLayer::LoadProbeFile(const std::string& filepath)
+void ProbeLayer::LoadSNIRF()
 {
-	m_SNIRF->LoadFile(std::filesystem::path(filepath));
+	m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
 
 	m_Channels = m_SNIRF->GetChannels();
 	m_ChannelMap.clear();
-	for (size_t i = 0; i < m_Channels.size(); i++)
-	{
-		m_ChannelMap[m_Channels[i].ID] = m_Channels[i];
+	m_ChannelProjectionIntersections.clear(); // Init it
+
+	for (size_t i = 0; i < m_Channels.size(); ++i) {
+		m_ChannelMap[i] = m_Channels[i];
+		m_ChannelProjectionIntersections[i] = glm::vec3(0.0f);
 	}
 
-	auto sources2D = m_SNIRF->GetSources2D();
-	auto sources3D = m_SNIRF->GetSources3D();
 
-	auto detectors2D = m_SNIRF->GetDetectors2D();
-	auto detectors3D = m_SNIRF->GetDetectors3D();
+	CreateProbeVisuals<NIRS::Probe2D, NIRS::Probe3D>(
+		m_SNIRF->GetSources2D(),
+		m_SNIRF->GetSources3D(),
+		m_SourceVisuals);
 
-	CreateProbeVisuals(sources2D, sources3D, m_SourceVisuals);
-	CreateProbeVisuals(detectors2D, detectors3D, m_DetectorVisuals);
+	CreateProbeVisuals<NIRS::Probe2D, NIRS::Probe3D>(
+		m_SNIRF->GetDetectors2D(),
+		m_SNIRF->GetDetectors3D(),
+		m_DetectorVisuals);
 
 	UpdateProbeVisuals();
 	UpdateChannelVisuals();
-
 }
 
 // In ProbeLayer.cpp (private helper function)
@@ -300,6 +283,7 @@ glm::mat4 ProbeLayer::CalculateProbeRotationMatrix(const glm::vec3& worldPos) co
 
 	return localRotation;
 }
+
 void ProbeLayer::UpdateProbeVisual(ProbeVisual& pv,
 	const RenderCommand& cmd2D_template,
 	const RenderCommand& cmd3D_template,
@@ -427,8 +411,8 @@ void ProbeLayer::ProjectChannelsToCortex()
 		glm::mat4 world_pos = glm::translate(world_transform, vertices[i].position);
 		world_space_vertices[i] = world_pos[3];
 	}
-
-	m_ChannelProjectionIntersections.clear();
+	// It is already intialized to 0, therefore we dont need to clear it
+	//m_ChannelProjectionIntersections.clear(); 
 
 	for (const auto& [idx, channel] : m_ChannelMap) {
 		const auto& cv = m_ChannelVisualsMap[idx];
@@ -459,12 +443,8 @@ void ProbeLayer::ProjectChannelsToCortex()
 			// We have a hit
 			glm::vec3 intersection_point = origin + direction * hit.t_distance;
 
-			m_ChannelProjectionIntersections.push_back({ idx, intersection_point });
+			m_ChannelProjectionIntersections[idx] = intersection_point;
 		}
-	}
-
-	for (auto& [channelID, ip] : m_ChannelProjectionIntersections) {
-		m_ChannelValues[channelID] = 1.0; // Dummy value for now
 	}
 
 	UpdateHitDataTexture();
@@ -495,33 +475,31 @@ void ProbeLayer::UpdateHitDataTexture()
 	if (m_HitDataTextureID == 0) {
 		InitHitDataTexture(); // Ensure texture is initialized
 	}
+	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
+
+	projData->HitDataTextureID = m_HitDataTextureID;
+	projData->NumHits = static_cast<uint32_t>(m_ChannelProjectionIntersections.size());
+	projData->ChannelProjectionIntersections = m_ChannelProjectionIntersections;
+
 	std::vector<glm::vec4> textureData(MAX_HITS, glm::vec4(0.0f));
 
-	for (int i = 0; i < m_ChannelProjectionIntersections.size(); i++) {
-		auto& [channelID, intersectionPoint] = m_ChannelProjectionIntersections[i];
-		textureData[i].x = intersectionPoint.x;
-		textureData[i].y = intersectionPoint.y;
-		textureData[i].z = intersectionPoint.z;
-		textureData[i].w = 0.5f;
+	// Iterate through map
+	int idx = 0;
+	for(auto& [ID, channel] : m_ChannelMap){
+
+		auto intersectionPoint = m_ChannelProjectionIntersections[ID];
+		textureData[idx].x = intersectionPoint.x;
+		textureData[idx].y = intersectionPoint.y;
+		textureData[idx].z = intersectionPoint.z;
+
+		textureData[idx].w = channel.Wavelength == NIRS::WavelengthType::HBO ? projData->ChannelValues[ID] : 0;
+
+		idx++;
 	}
 
 	// Bind the texture and update its data
 	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
 	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, MAX_HITS, GL_RGBA, GL_FLOAT, textureData.data());
 	glBindTexture(GL_TEXTURE_1D, 0);
-
-	// Overwrite ProjectionData 
-	NIRS::ProjectionData data;
-	data.HitDataTextureID = m_HitDataTextureID;
-	data.NumHits = static_cast<uint32_t>(m_ChannelProjectionIntersections.size());
-	data.ChannelProjectionIntersections = m_ChannelProjectionIntersections;
-	data.ChannelValues = m_ChannelValues;
-
-	// We need to rather store this in a struct
-	AssetManager::Register<NIRS::ProjectionData>("ProjectionData", 
-												CreateRef<NIRS::ProjectionData>(data));
-
-	// Start projection
-	EventBus::Instance().Publish<ToggleProjectHemodynamicsToCortexCommand>({ true });
 }
 

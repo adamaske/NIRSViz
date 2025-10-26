@@ -28,3 +28,6 @@
 [submodule "vendor/HighFive"]
 	path = vendor/HighFive
 	url = https://github.com/BlueBrain/HighFive.git
+[submodule "vendor/DSPFilters"]
+	path = vendor/DSPFilters
+	url = https://github.com/vinniefalco/DSPFilters.git

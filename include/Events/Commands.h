@@ -11,15 +11,26 @@ struct CoordinateSystemGenerated {
 	// No additional data needed for this command
 };
 
-struct HeadAnatomyLoadedCommand {
+struct SNIRFFileLoadedEvent {
+};
+
+struct HeadAnatomyLoadedEvent {
 
 };
 
-struct CortexAnatomyLoadedCommand {
+struct CortexAnatomyLoadedEvent {
 
 };
 
 struct ToggleProjectHemodynamicsToCortexCommand {
 	bool Enabled = true;
+
+};
+
+struct ExitApplicationCommand {
+	// No additional data needed for this event
+};
+
+struct UpdateProjectionDataChannelValuesCommand {
 
 };

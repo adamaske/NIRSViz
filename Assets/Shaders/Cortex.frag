@@ -28,25 +28,44 @@ uniform float u_StrengthMax; // New maximum strength threshold
 
 vec3 colormap(float rawStrength, float minVal, float maxVal) {
     // 1. Clamp the raw strength to the user-defined range
+    // Assumes minVal is negative and maxVal is positive (e.g., -0.05 to 0.05)
     float strength = clamp(rawStrength, minVal, maxVal);
+
+    // Define the colors
+    vec3 coldColor = vec3(0.0, 0.0, 1.0); // Blue (for minVal/most negative)
+    vec3 centerColor = vec3(0.5, 0.5, 0.5); // Gray (for 0.0)
+    vec3 warmColor = vec3(1.0, 0.0, 0.0); // Red (for maxVal/most positive)
     
-    // 2. Normalize the strength to the [0.0, 1.0] range
-    // This scales the value between minVal (0.0) and maxVal (1.0)
-    float normalizedStrength = (strength - minVal) / (maxVal - minVal);
-    
-    // 3. Map the normalized value to the color spectrum (Blue -> Green -> Red)
-    vec3 lowColor = vec3(0.0, 0.0, 1.0); // Blue (at normalizedStrength = 0.0)
-    vec3 midColor = vec3(0.0, 1.0, 0.0); // Green (at normalizedStrength = 0.5)
-    vec3 highColor = vec3(1.0, 0.0, 0.0); // Red (at normalizedStrength = 1.0)
-    
-    if (normalizedStrength < 0.5) {
-        // Interpolate between Blue (0.0) and Green (0.5)
-        // normalizedStrength * 2.0 scales the [0.0, 0.5] range to [0.0, 1.0]
-        return mix(lowColor, midColor, normalizedStrength * 2.0);
+    // --- Step 2: Determine if the value is negative or positive ---
+
+    if (strength < 0.0) {
+        // Cold side (Negative): Interpolate between Blue (minVal) and Gray (0.0)
+        
+        // a. Normalize the negative range [minVal, 0.0] to [0.0, 1.0].
+        // The denominator is -minVal (or abs(minVal)), as minVal is negative.
+        // If minVal = -0.05, and strength = -0.025:
+        // normalized = (-0.025 - (-0.05)) / (-(-0.05)) = 0.025 / 0.05 = 0.5
+        float normalizedNeg = (strength - minVal) / (-minVal);
+
+        // b. Use mix to interpolate: normalizedNeg=0.0 gives Blue (coldColor); 
+        //    normalizedNeg=1.0 gives Gray (centerColor).
+        return mix(coldColor, centerColor, normalizedNeg);
+        
+    } else if (strength > 0.0) {
+        // Warm side (Positive): Interpolate between Gray (0.0) and Red (maxVal)
+        
+        // a. Normalize the positive range [0.0, maxVal] to [0.0, 1.0].
+        // If maxVal = 0.05, and strength = 0.025:
+        // normalized = 0.025 / 0.05 = 0.5
+        float normalizedPos = strength / maxVal;
+
+        // b. Use mix to interpolate: normalizedPos=0.0 gives Gray (centerColor); 
+        //    normalizedPos=1.0 gives Red (warmColor).
+        return mix(centerColor, warmColor, normalizedPos);
+        
     } else {
-        // Interpolate between Green (0.5) and Red (1.0)
-        // (normalizedStrength - 0.5) * 2.0 scales the [0.5, 1.0] range to [0.0, 1.0]
-        return mix(midColor, highColor, (normalizedStrength - 0.5) * 2.0);
+        // Exactly 0.0: Center color
+        return centerColor;
     }
 }
 
@@ -89,7 +108,7 @@ void main() {
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * u_LightColor;
     
-    float specularStrength = 0.5; // Increased for a better look
+    float specularStrength = 0.9; // Increased for a better look
     vec3 viewDir = normalize(u_ViewPosition - v_WorldPosition); // Calculate view direction
     vec3 reflectDir = reflect(-lightDir, norm); 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);

@@ -1,10 +1,12 @@
 #include "pch.h"
 #include "NIRS/Snirf.h"
+#include "NIRS/Processing.h"
 
 #include <HighFive/H5File.hpp>
 #include <highfive/H5DataSet.hpp>
 #include <highfive/H5DataSpace.hpp>
 #include <highfive/H5Easy.hpp>
+
 
 using namespace HighFive;
 using namespace NIRS;
@@ -128,7 +130,6 @@ SNIRF::SNIRF()
 
 SNIRF::SNIRF(const std::filesystem::path& filepath)
 {
-	m_ChannelDataRegistry = ChannelDataRegistry();
 	LoadFile(filepath);
 }
 
@@ -137,6 +138,7 @@ SNIRF::SNIRF(const std::filesystem::path& filepath)
 void SNIRF::Print()
 {
     NVIZ_INFO("SNIRF File       : {}", m_Filepath.string());
+	NVIZ_INFO("Sample Rate : {} Hz", m_SamplingRate);
     NVIZ_INFO("     Sources     : {}", m_Sources2D.size());
     NVIZ_INFO("     Detectors   : {}", m_Detectors2D.size());
 
@@ -391,12 +393,14 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         }
 
 
-        std::vector<double> channel_data_vec;
         auto channel_row = m_ChannelData.row(i - 1);
-        channel_data_vec.resize(m_ChannelData.cols());
+        std::vector<double> channel_data_vec(channel_row.size());
         std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
 
-		channel.DataIndex = m_ChannelDataRegistry.SubmitChannelData(channel_data_vec);
+        std::vector<double> processed;
+        PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
+
+		channel.DataIndex = m_ChannelDataRegistry.SubmitChannelData(processed);
 
 		m_Channels.push_back(channel);
         if (i == 1) {

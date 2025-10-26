@@ -38,4 +38,9 @@ private:
 
 	float m_DeltaTime = 0.0f;
 	bool m_EditingProcessingStream = false;
+
+	unsigned int m_TimeIndex = 0;
+
+	double m_TagSliderValue = 0.0f; 
+
 };

@@ -43,7 +43,8 @@ public:
 	void Render2DProbeTransformControls(bool standalone);
 	void Render3DProbeTransformControls(bool standalone);
 
-	void LoadProbeFile(const std::string& filepath);
+	void LoadSNIRF();
+
 	glm::mat4 CalculateProbeRotationMatrix(const glm::vec3& worldPos) const;
 	void UpdateProbeVisual(ProbeVisual& pv, const RenderCommand& cmd2D_template, const RenderCommand& cmd3D_template, UniformData& flatColor, const glm::mat4& base3DTransform);
 	void UpdateProbeVisuals();
@@ -52,6 +53,7 @@ public:
 	void ProjectChannelsToCortex();
 	void InitHitDataTexture();
 	void UpdateHitDataTexture();
+
 private:
 
 	bool m_DrawProbes2D = false;
@@ -73,8 +75,7 @@ private:
 	std::map<NIRS::ChannelID, NIRS::ChannelVisualization> m_ChannelVisualsMap;
 
 	// Uses a vector because its not sure every channel actually hits the cortex.
-	std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> m_ChannelProjectionIntersections; // Channel index to intersection point on cortex
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> m_ChannelValues;
+	std::map<NIRS::ChannelID, glm::vec3> m_ChannelProjectionIntersections; // Channel index to intersection point on cortex
 
 	Ref<LineRenderer> m_LineRenderer2D = nullptr;
 	Ref<LineRenderer> m_LineRenderer3D = nullptr;

@@ -1,11 +1,11 @@
 #include "pch.h"
 
 #include "Core/Application.h"
+#include "Core/AssetManager.h"
+#include "Events/EventBus.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportManager.h"
 
-#include "ProbeLayer.h"
-#include "Core/AssetManager.h"
 
 Application* Application::s_Instance = nullptr;
 Application::Application(const ApplicationSpecification& spec) : m_Specification(spec)
@@ -39,25 +39,32 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	auto settingsEntity = m_Coordinator->createEntity();
 	m_Coordinator->addComponent(settingsEntity, ApplicationSettingsComponent{false});
 
+	EventBus::Instance().Subscribe<ExitApplicationCommand>([this](const ExitApplicationCommand& cmd) {
+		this->Close();
+		});
 
 	Renderer::Init();
 	ViewportManager::Init();
 
 	// Add Layers
 	m_ImGuiLayer		= CreateRef<ImGuiLayer>(settingsEntity);
-	PushOverlay(m_ImGuiLayer.get());
 
 	m_MainViewportLayer = CreateRef<MainViewportLayer>(settingsEntity);
 	m_ProbeLayer		= CreateRef<ProbeLayer>(settingsEntity);
 	m_AtlasLayer		= CreateRef<AtlasLayer>(settingsEntity);
 	m_PlottingLayer		= CreateRef<PlottingLayer>(settingsEntity);
 	m_ProjectionLayer	= CreateRef<ProjectionLayer>(settingsEntity);
+	m_FileLayer			= CreateRef<FileLayer>(settingsEntity);
 
+	PushOverlay(m_ImGuiLayer.get());
+	PushLayer(m_FileLayer.get());
 	PushLayer(m_MainViewportLayer.get());
 	PushLayer(m_ProbeLayer.get());
-	PushLayer(m_ProjectionLayer.get());
 	PushLayer(m_AtlasLayer.get());
 	PushLayer(m_PlottingLayer.get());
+	PushLayer(m_ProjectionLayer.get());
+
+	m_FileLayer->PostInit(); // TODO : Solve this
 }
 
 Application::~Application()
@@ -129,7 +136,6 @@ bool Application::OnWindowClose(WindowCloseEvent& e)
 
 bool Application::OnWindowResize(WindowResizeEvent& e)
 {
-	NVIZ_INFO("Window Resize Event: {}x{}", e.GetWidth(), e.GetHeight());
 	if (e.GetWidth() == 0 || e.GetHeight() == 0)
 	{
 		m_Minimized = true;

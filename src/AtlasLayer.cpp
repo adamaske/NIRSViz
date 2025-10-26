@@ -84,22 +84,22 @@ void AtlasLayer::OnAttach()
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
 
-	LoadHead("C:/dev/NIRSViz/Assets/Models/head_model_2.obj");
-	LoadCortex("C:/dev/NIRSViz/Assets/Models/cortex_model.obj");
+	m_SphereMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+
 
 	// SETUP COORDINATE SYSTEM GENERATION
 	auto mainID = ViewportManager::GetViewport("MainViewport").ID;
-	m_SphereMesh				= CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+
 	m_CalculatedPathRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(1, 0, 0, 1), 2.0f);
-	m_NaisonInionLineRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
-	m_LPARPALineRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
+	m_NaisonInionLineRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
+	m_LPARPALineRenderer		= CreateRef<LineRenderer>(mainID, glm::vec4(0.3, 1, 0.3, 1), 2.0f);
 
 	m_NaisonInionRaysRenderer	= CreateRef<LineRenderer>(mainID, glm::vec4(0, 1, 0, 1), 2.0f);
 	m_LPARPARaysRenderer		= CreateRef<LineRenderer>(mainID, glm::vec4(0, 0, 1, 1), 2.0f);
-
 	m_ManualLandmarkRenderer	= CreateRef<PointRenderer>(mainID, glm::vec4(0.3, 0, 1, 1), 0.8);
+
 	m_WaypointRenderer			= CreateRef<PointRenderer>(mainID, glm::vec4(1, 0, 0.3, 1), 0.8);
-	m_LandmarkRenderer		= CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
+	m_LandmarkRenderer			= CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
 
 	// SETUP UNFIROMS
 	m_LightPosUniform.Type = UniformDataType::FLOAT3;
@@ -111,6 +111,14 @@ void AtlasLayer::OnAttach()
 
 	m_OpacityUniform.Type = UniformDataType::FLOAT1;
 	m_OpacityUniform.Name = "u_Opacity";
+
+	EventBus::Instance().Subscribe<HeadAnatomyLoadedEvent>([this](const HeadAnatomyLoadedEvent& e) {
+		m_Head = AssetManager::Get<Head>("Head");
+	});
+
+	EventBus::Instance().Subscribe<CortexAnatomyLoadedEvent>([this](const CortexAnatomyLoadedEvent& e) {
+		m_Cortex = AssetManager::Get<Cortex>("Cortex");
+	});
 }
 
 void AtlasLayer::OnDetach()
@@ -218,44 +226,7 @@ void AtlasLayer::RenderMenuBar()
 {
 	if (ImGui::BeginMenu("Atlas"))
 	{
-		if (ImGui::MenuItem("Load Head Anatomy")) {
-
-			char filePath[MAX_PATH] = "";
-
-			OPENFILENAMEA ofn;
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = filePath;
-			ofn.nMaxFile = sizeof(filePath);
-			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
-			ofn.nFilterIndex = 1;
-			ofn.lpstrInitialDir = NULL;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-			if (GetOpenFileNameA(&ofn)) {
-				LoadHead(std::string(filePath));
-			}
-		}
-
-		if (ImGui::MenuItem("Load Cortex Anatomy")) {
-			char filePath[MAX_PATH] = "";
-
-			OPENFILENAMEA ofn;
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = filePath;
-			ofn.nMaxFile = sizeof(filePath);
-			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
-			ofn.nFilterIndex = 1;
-			ofn.lpstrInitialDir = NULL;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-			if (GetOpenFileNameA(&ofn)) {
-				LoadCortex(std::string(filePath));
-			}
-		}
+		
 
 		if(ImGui::MenuItem("Configure Alignment")) {
 			// Open a panel with controls to configure
@@ -332,34 +303,6 @@ void AtlasLayer::RenderEditorViewport() {
 	}
 	uint32_t texture_id = m_EditorFramebuffer->GetColorAttachmentRendererID();
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
-}
-
-Head AtlasLayer::LoadHead(const std::string& mesh_filepath)
-{
-	Head head;
-
-	head.Mesh = CreateRef<Mesh>(mesh_filepath);
-	head.Transform = CreateRef<Transform>();
-	head.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(head.Mesh.get(), glm::mat4(1.0f)));
-
-	head.MeshFilepath = mesh_filepath;
-
-	m_Head = CreateRef<Head>(head);
-	AssetManager::Register<Head>("Head", m_Head);
-	return head;
-}
-
-Cortex AtlasLayer::LoadCortex(const std::string& mesh_filepath)
-{
-	Cortex cortex;
-	cortex.Mesh = CreateRef<Mesh>(mesh_filepath);
-	cortex.Transform = CreateRef<Transform>();
-	cortex.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(cortex.Mesh.get(), glm::mat4(1.0f)));
-	cortex.MeshFilepath = mesh_filepath;
-
-	m_Cortex = CreateRef<Cortex>(cortex);
-	AssetManager::Register<Cortex>("Cortex", m_Cortex);
-	return cortex;
 }
 
 void AtlasLayer::DrawHead()

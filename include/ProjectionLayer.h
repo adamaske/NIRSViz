@@ -4,6 +4,8 @@
 #include "NIRS/NIRS.h"
 #include "Renderer/Shader.h"
 
+class Cortex;
+
 class ProjectionLayer : public Layer {
 public:
 	ProjectionLayer(const EntityID& settingsID);
@@ -32,4 +34,5 @@ private:
 	NIRS::ProjectionSettings m_ProjectionSettings;
 	Ref<Shader> m_ProjectionShader = nullptr;
 
+	Ref<Cortex> m_Cortex = nullptr;
 };

@@ -13,8 +13,8 @@ namespace NIRS {
     
 
     // --- Defintions ---
-    static glm::vec4 SourceColor = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
-    static glm::vec4 DetectorColor = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+    static glm::vec4 SourceColor = glm::vec4(1.0f, 0.2f, 0.2f, 1.0f);
+    static glm::vec4 DetectorColor = glm::vec4(0.2f, 0.2f, 1.0f, 1.0f);
 
     using ProbeID = uint32_t;
 	using ChannelID = uint32_t;
@@ -85,13 +85,13 @@ namespace NIRS {
         uint32_t HitDataTextureID;
         uint32_t NumHits;
 
-        std::vector<std::tuple<NIRS::ChannelID, glm::vec3>> ChannelProjectionIntersections;
+        std::map<NIRS::ChannelID, glm::vec3> ChannelProjectionIntersections;
         std::map<NIRS::ChannelID, NIRS::ChannelValue> ChannelValues;
     };
 
     struct ProjectionSettings {
-        float StrengthMin = -1.0f;
-        float StrengthMax = 1.0f;
+        float StrengthMin = -0.0005f;
+        float StrengthMax = 0.0005f;
         float FalloffPower = 0.5f;
         float Radius = 1.6f;
         float DecayPower = 7.0f;

@@ -33,7 +33,6 @@ Window::Window(const WindowSpecification& spec)
 	m_Window = glfwCreateWindow((int)m_Data.width, (int)m_Data.height, m_Data.title.c_str(), nullptr, nullptr);
 	++s_GLFWWindowCount;
 
-
 	m_Context = CreateScope<GraphicsContext>(m_Window);
 	m_Context->Init();
 

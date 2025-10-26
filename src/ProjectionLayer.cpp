@@ -60,18 +60,26 @@ ProjectionLayer::ProjectionLayer(const EntityID& settingsID) : Layer(settingsID)
 ProjectionLayer::~ProjectionLayer() {}
 
 void ProjectionLayer::OnAttach(){
+	m_IsProjecting = false;
 
 	m_ProjectionShader = CreateRef<Shader>(
 		"C:/dev/NIRSViz/Assets/Shaders/Cortex.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/Cortex.frag");
 
-	m_IsProjecting = false;
+	NIRS::ProjectionData emptyData;
+	AssetManager::Register<NIRS::ProjectionData>("ProjectionData", CreateRef<NIRS::ProjectionData>(emptyData));
+
 	EventBus::Instance().Subscribe<ToggleProjectHemodynamicsToCortexCommand>([this](const ToggleProjectHemodynamicsToCortexCommand& event) {
-		m_IsProjecting = event.Enabled; 
-		auto cortex = AssetManager::Get<Cortex>("Cortex");
-		cortex->Draw = !m_IsProjecting;
 		auto head = AssetManager::Get<Head>("Head");
-		head->Draw = !m_IsProjecting;
+		auto cortex = AssetManager::Get<Cortex>("Cortex");
+
+		m_IsProjecting = event.Enabled;
+		head->Draw = !event.Enabled;
+		cortex->Draw = !event.Enabled;
+	});
+
+	EventBus::Instance().Subscribe<CortexAnatomyLoadedEvent>([this](const CortexAnatomyLoadedEvent& event) {
+		m_Cortex = AssetManager::Get<Cortex>("Cortex");
 	});
 }
 
@@ -81,8 +89,7 @@ void ProjectionLayer::OnDetach(){
 void ProjectionLayer::OnUpdate(float dt){
 	if (!m_IsProjecting) return;
 
-	auto cortex = AssetManager::Get<Cortex>("Cortex");
-	if (!cortex) {
+	if (!m_Cortex) {
 		NVIZ_ERROR("ProjectionLayer: No Cortex asset loaded for projection.");
 		return;
 	}
@@ -105,9 +112,9 @@ void ProjectionLayer::OnUpdate(float dt){
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_ProjectionShader.get();
-	cmd.VAOPtr = cortex->Mesh->GetVAO().get();
+	cmd.VAOPtr = m_Cortex->Mesh->GetVAO().get();
 	cmd.ViewTargetID = MAIN_VIEWPORT;
-	cmd.Transform = cortex->Transform->GetMatrix();
+	cmd.Transform = m_Cortex->Transform->GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	cmd.UniformCommands = { lightPos, objectColor };
@@ -135,7 +142,7 @@ void ProjectionLayer::OnImGuiRender(){
 	}
 
 	ImGui::Text("Projection Settings:");
-	ImGui::DragFloat2("Strength Range", &m_ProjectionSettings.StrengthMin, 0.1f, -10.0f, 10.0f);
+	ImGui::DragFloat2("Strength Range", &m_ProjectionSettings.StrengthMin, 0.0001f, -1.0f, 1.0f);
 	ImGui::DragFloat("Falloff Power", &m_ProjectionSettings.FalloffPower, 0.1f, 0.1f, 10.0f);
 	ImGui::DragFloat("Radius", &m_ProjectionSettings.Radius, 0.1f, 0.1f, 10.0f);
 	ImGui::DragFloat("Decay Power", &m_ProjectionSettings.DecayPower, 0.1f, 0.1f, 20.0f);

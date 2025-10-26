@@ -83,8 +83,6 @@ public:
 	void RenderAlignmentSettings();
 	void RenderEditorViewport();
 
-	Head LoadHead(const std::string& mesh_filepath);
-	Cortex LoadCortex(const std::string& mesh_filepath);
 	void DrawHead();
 
 	void DrawCortex();

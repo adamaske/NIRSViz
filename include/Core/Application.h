@@ -12,6 +12,7 @@
 #include "PlottingLayer.h"
 #include "MainViewportLayer.h"
 #include "ProjectionLayer.h"
+#include "FileLayer.h"
 
 struct ApplicationCommandLineArgs
 {
@@ -81,6 +82,7 @@ private:
 	LayerStack m_LayerStack;
 	Ref<ImGuiLayer> m_ImGuiLayer;
 	Ref<MainViewportLayer> m_MainViewportLayer;
+	Ref<FileLayer> m_FileLayer;
 	Ref<ProbeLayer> m_ProbeLayer;
 	Ref<AtlasLayer> m_AtlasLayer;
 	Ref<PlottingLayer> m_PlottingLayer;

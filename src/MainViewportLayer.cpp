@@ -129,6 +129,7 @@ void MainViewportLayer::RenderCameraSettings(bool standalone) {
 
 	GetActiveCamera()->OnImGuiRender(false);
 
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	if (standalone) ImGui::End();
 }
 
@@ -158,6 +159,9 @@ void MainViewportLayer::RenderMainViewport() {
 			m_Framebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
 		}
 	}
+
+	ViewportManager::GetViewport("MainViewport").CameraPtr->SetViewportSize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+
 	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
 
