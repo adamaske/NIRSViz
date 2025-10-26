@@ -44,6 +44,8 @@ public:
 	void Render3DProbeTransformControls(bool standalone);
 
 	void LoadProbeFile(const std::string& filepath);
+	glm::mat4 CalculateProbeRotationMatrix(const glm::vec3& worldPos) const;
+	void UpdateProbeVisual(ProbeVisual& pv, const RenderCommand& cmd2D_template, const RenderCommand& cmd3D_template, UniformData& flatColor, const glm::mat4& base3DTransform);
 	void UpdateProbeVisuals();
 	void UpdateChannelVisuals();
 
@@ -82,7 +84,7 @@ private:
 	glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, -1.45f, -1.5f);
 	glm::vec3	m_Probe3DRotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 	float		m_Probe3DRotationAngle = 180.0f;
-	float		m_Probe3DSpreadFactor = 0.11f;
+	float		m_Probe3DSpreadFactor = 0.13f;
 	float		m_Probe3DMeshScale = 0.8f;
 	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -92,4 +94,25 @@ private:
 	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	uint32_t m_HitDataTextureID = 0;
+
+	// In ProbeLayer.h (or private section of .cpp)
+	template <typename T2D, typename T3D>
+	void CreateProbeVisuals(const std::vector<T2D>& probes2D,
+		const std::vector<T3D>& probes3D,
+		std::vector<ProbeVisual>& visuals)
+	{
+		// Clear the destination vector first, as done in original code
+		visuals.clear();
+		size_t numProbes = probes2D.size();
+		NVIZ_ASSERT(numProbes == probes3D.size(), "Mismatch in number of 2D and 3D probes");
+
+		for (size_t i = 0; i < numProbes; i++)
+		{
+			ProbeVisual pv;
+			pv.Probe2D = probes2D[i];
+			pv.Probe3D = probes3D[i];
+			visuals.push_back(pv);
+		}
+	}
+
 };
