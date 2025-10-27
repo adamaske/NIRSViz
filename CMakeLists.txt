@@ -20,7 +20,6 @@ if(MSVC)
     SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup" )
 endif()
 add_subdirectory( vendor/glfw )
-add_subdirectory( vendor/DSPFilters/shared/DSPFilters)
 
 set(IMGUI_SOURCES
     ${VENDOR_DIR}/imgui/imgui.cpp   
@@ -77,7 +76,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${VENDOR_DIR}/implot
     ${VENDOR_DIR}/HighFive/include
     ${VENDOR_DIR}/Eigen/include 
-    ${VENDOR_DIR}/DSPFilters/shared/DSPFilters/include
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -87,5 +85,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog 
     HDF5::HDF5
     nfd
-    DSPFilters
 )

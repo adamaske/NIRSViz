@@ -108,19 +108,60 @@ void main() {
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * u_LightColor;
     
-    float specularStrength = 0.9; // Increased for a better look
+    float specularStrength = 1.0; // Increased for a better look
     vec3 viewDir = normalize(u_ViewPosition - v_WorldPosition); // Calculate view direction
     vec3 reflectDir = reflect(-lightDir, norm); 
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * u_LightColor;
     
-    
     vec3 light_influence = ambient + diffuse + specular;
-    vec3 lit_base_color = light_influence * u_ObjectColor; 
-    vec3 final_color = lit_base_color + accumulatedRayColor;
-   
-    final_color = min(final_color, vec3(1.5)); 
+
+    // --- Core Fix ---
+    // 1. Get the 'raw' intensity of the color map contribution
+    float rayColorIntensity = length(accumulatedRayColor);
+    
+    // 2. Determine how much the color map should influence the final color.
+    // Use the raw object color as a fallback.
+    vec3 baseColor = u_ObjectColor;
+
+    // 3. Modulate the base color using the accumulated ray color
+    // Use a mix to smoothly blend between the original u_ObjectColor and the ray color.
+    // accumulatedRayColor already contains its own 'alpha' through the use of 'alpha' in the loop.
+    // Normalize accumulatedRayColor to avoid oversaturation when using it as a direct color.
+    
+    // Calculate a mixing factor (e.g., based on the color intensity)
+    // You might need to experiment with a constant multiplier (e.g., 1.0 or 2.0)
+    // to control how quickly the colormap takes over.
+    float mixFactor = min(rayColorIntensity, 1.0); 
+
+    // Mix the original object color with the accumulated ray color.
+    // The accumulatedRayColor is currently *already* multiplied by 'alpha' from the falloff.
+    // To use it as the new object color, we should normalize the accumulated Ray Color by its effective "coverage"
+    // to get a clean color value for modulation.
+    
+    // A simpler, more direct approach for modulation:
+    vec3 modulatedObjectColor = mix(u_ObjectColor, accumulatedRayColor, mixFactor);
+
+    // 4. Apply the lighting model to the modulated color.
+    // Only the diffuse and ambient components should be affected by the object's color.
+    // Specular light should remain white (or u_LightColor) for a white highlight.
+    vec3 lit_diffuse_ambient = (ambient + diffuse) * modulatedObjectColor;
+    vec3 lit_specular = specular; // Specular is added on top
+    
+    vec3 final_color = lit_diffuse_ambient + lit_specular;
+    
+    // Optional: Re-clamp to prevent overly bright pixels, use a higher value for HDR effect
+    final_color = min(final_color, vec3(1.0)); // Clamp to 1.0, or higher like 1.5 if you want
+                                                 // your colors to 'pop' and allow for a little
+                                                 // of the previous oversaturation effect.
 
     FragColor = vec4(final_color, u_Opacity);
+   //vec3 light_influence = ambient + diffuse + specular;
+   //vec3 lit_base_color = light_influence * u_ObjectColor; 
+   //vec3 final_color = lit_base_color + accumulatedRayColor;
+   //
+   //final_color = min(final_color, vec3(1.5)); 
+   //
+   //FragColor = vec4(final_color, u_Opacity);
 }
    

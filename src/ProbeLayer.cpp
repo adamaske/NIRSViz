@@ -488,10 +488,18 @@ void ProbeLayer::UpdateHitDataTexture()
 	for(auto& [ID, channel] : m_ChannelMap){
 
 		auto intersectionPoint = m_ChannelProjectionIntersections[ID];
+
+
 		textureData[idx].x = intersectionPoint.x;
 		textureData[idx].y = intersectionPoint.y;
 		textureData[idx].z = intersectionPoint.z;
 
+		if (channel.Wavelength == NIRS::WavelengthType::HBR) {
+
+			textureData[idx].x = 0;
+			textureData[idx].y = 0;
+			textureData[idx].z = 0;
+		}
 		textureData[idx].w = channel.Wavelength == NIRS::WavelengthType::HBO ? projData->ChannelValues[ID] : 0;
 
 		idx++;

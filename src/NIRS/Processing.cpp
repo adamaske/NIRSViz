@@ -1,10 +1,5 @@
 #include "pch.h"
 #include "NIRS/Processing.h"
-#include "DspFilters/Common.h"
-#include "DspFilters/Filter.h"
-#include "DspFilters/Butterworth.h"
-#include "DspFilters/Types.h"
-#include "DspFilters/Dsp.h"
 
 
 

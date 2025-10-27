@@ -322,7 +322,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 		m_Time.resize(time_data.size());
         for (size_t i = 0; i < time_data.size(); i++)
         {
-            m_Time[i] = time_data[i] * 10;
+            m_Time[i] = time_data[i] ;
         }
         float total_duration = time_data.back() - time_data.front();
         size_t num_intervals = time_data.size() - 1;
@@ -400,7 +400,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         std::vector<double> processed;
         PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
 
-		channel.DataIndex = m_ChannelDataRegistry.SubmitChannelData(processed);
+		channel.DataIndex = m_ChannelDataRegistry.SubmitChannelData(channel_data_vec);
 
 		m_Channels.push_back(channel);
         if (i == 1) {

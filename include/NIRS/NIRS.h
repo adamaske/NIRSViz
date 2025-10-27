@@ -90,8 +90,8 @@ namespace NIRS {
     };
 
     struct ProjectionSettings {
-        float StrengthMin = -0.0005f;
-        float StrengthMax = 0.0005f;
+        float StrengthMin = -2.0005f;
+        float StrengthMax = 2.0005f;
         float FalloffPower = 0.5f;
         float Radius = 1.6f;
         float DecayPower = 7.0f;
