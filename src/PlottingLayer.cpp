@@ -58,7 +58,7 @@ void PlottingLayer::OnImGuiRender()
 
 	std::vector<double> timeInSeconds(time.size());
 	for (size_t i = 0; i < time.size(); ++i) {
-		timeInSeconds[i] = time[i] / 10.0;
+		timeInSeconds[i] = time[i];// / 10.0;
 	}
 	auto& plotTime = timeInSeconds;
 
@@ -124,7 +124,7 @@ void PlottingLayer::OnImGuiRender()
 				// We need to update the texture
 				auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
 				projData->ChannelValues = channelValues;
-				EventBus::Instance().Instance().Publish<UpdateProjectionDataChannelValuesCommand>({ });
+				EventBus::Instance().Instance().Publish<OnChannelValuesUpdated>({ });
 				
 			}
 

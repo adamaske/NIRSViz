@@ -22,15 +22,18 @@ struct CortexAnatomyLoadedEvent {
 
 };
 
-struct ToggleProjectHemodynamicsToCortexCommand {
+struct OnProjectHemodynamicsToCortex {
 	bool Enabled = true;
-
 };
 
 struct ExitApplicationCommand {
 	// No additional data needed for this event
 };
 
-struct UpdateProjectionDataChannelValuesCommand {
+struct OnChannelIntersectionsUpdated {
 
+};
+
+struct OnChannelValuesUpdated {
+	
 };

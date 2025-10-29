@@ -319,11 +319,10 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
     {
         std::vector<double> time_data(time.getDimensions()[0]);
         time.read(time_data);
-		m_Time.resize(time_data.size());
-        for (size_t i = 0; i < time_data.size(); i++)
-        {
-            m_Time[i] = time_data[i] ;
-        }
+
+        m_Time.resize(time_data.size());
+		std::copy(time_data.begin(), time_data.end(), m_Time.begin());
+
         float total_duration = time_data.back() - time_data.front();
         size_t num_intervals = time_data.size() - 1;
         float avg_dt = total_duration / num_intervals;

@@ -9,6 +9,8 @@ in vec3 LightPos;
 out vec4 FragColor;
 
 // --- Uniforms from C++ ---
+uniform vec3 u_ViewPosition;      // NEW: Camera/View Position (needed for Specular in World Space)
+uniform vec3 u_LightPos;          // Renamed to match Phong convention (was LightPos input)
 uniform vec3 u_LightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 u_ObjectColor = vec3(0.8, 0.8, 0.8);
 uniform float u_Opacity = 1.0; 
@@ -20,8 +22,6 @@ const int MAX_HITS_IN_TEXTURE = 256; // Must match C++ MAX_HITS
 uniform float u_FalloffPower;
 uniform float u_DecayPower;
 uniform float u_GlobalHitRadius; 
-uniform vec3 u_ViewPosition;      // NEW: Camera/View Position (needed for Specular in World Space)
-uniform vec3 u_LightPos;          // Renamed to match Phong convention (was LightPos input)
 
 uniform float u_StrengthMin; // New minimum strength threshold
 uniform float u_StrengthMax; // New maximum strength threshold
@@ -156,12 +156,5 @@ void main() {
                                                  // of the previous oversaturation effect.
 
     FragColor = vec4(final_color, u_Opacity);
-   //vec3 light_influence = ambient + diffuse + specular;
-   //vec3 lit_base_color = light_influence * u_ObjectColor; 
-   //vec3 final_color = lit_base_color + accumulatedRayColor;
-   //
-   //final_color = min(final_color, vec3(1.5)); 
-   //
-   //FragColor = vec4(final_color, u_Opacity);
 }
    

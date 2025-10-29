@@ -75,7 +75,7 @@ void FileLayer::RenderMenuBar()
 
 void FileLayer::PostInit()
 {
-	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/example.snirf";
+	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
 	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
 	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
 

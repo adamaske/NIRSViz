@@ -8,6 +8,7 @@ in vec3 LightPos;   // extra in variable, since we need the light position in vi
 uniform vec3 u_LightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 u_ObjectColor = vec3(0.9, 0.35, 0.25);
 uniform float u_Opacity = 1.0; 
+
 void main()
 {
     // ambient

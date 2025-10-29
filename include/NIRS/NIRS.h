@@ -97,7 +97,6 @@ namespace NIRS {
         float DecayPower = 7.0f;
     };
 
-
     enum Landmark {
         // ----------------------------------------------------------------------
         // 1. ANATOMICAL LANDMARKS (Not strictly electrodes, but used for reference)

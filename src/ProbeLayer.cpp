@@ -49,7 +49,7 @@ void ProbeLayer::OnAttach()
 		
 	});
 
-	EventBus::Instance().Subscribe< UpdateProjectionDataChannelValuesCommand>([this](const UpdateProjectionDataChannelValuesCommand& e) {
+	EventBus::Instance().Subscribe<OnChannelValuesUpdated>([this](const OnChannelValuesUpdated& e) {
 		this->UpdateHitDataTexture();
 	});
 }
@@ -105,7 +105,8 @@ void ProbeLayer::OnImGuiRender()
 	if (ImGui::Button("Project To Cortex")) {
 		ProjectChannelsToCortex();
 
-		EventBus::Instance().Publish<ToggleProjectHemodynamicsToCortexCommand>({ true });
+		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
+		EventBus::Instance().Publish<OnProjectHemodynamicsToCortex>({ true });
 	}
 	ImGui::SeparatorText("Render Settings");
 	ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;

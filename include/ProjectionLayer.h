@@ -4,7 +4,26 @@
 #include "NIRS/NIRS.h"
 #include "Renderer/Shader.h"
 
+#include "Renderer/VertexBuffer.h"
+#include "Renderer/IndexBuffer.h"
+#include "Renderer/BufferLayout.h"
+#include "Renderer/VertexArray.h"
+#include "Vertex.h"
+
+#include "Renderer/Renderer.h"
 class Cortex;
+
+struct ProjectionVertex{
+	glm::vec3 Position;
+	glm::vec3 Normal;
+	glm::vec2 TexCoord;
+	float ActivityLevel;
+};
+
+enum ProjectionMode {
+	VERTEX_BASED = 0,
+	WORLD_SPACE_BASED = 1
+};
 
 class ProjectionLayer : public Layer {
 public:
@@ -26,13 +45,40 @@ public:
 	void StartProjection();
 	void EndProjection();
 
+	void RenderWorldSpaceMode();
+
 private:
 	EntityID settingsID;
 
 	bool m_IsProjecting = false;
 
-	NIRS::ProjectionSettings m_ProjectionSettings;
+	NIRS::ProjectionSettings m_WorldSpaceProjectionSettings;
 	Ref<Shader> m_ProjectionShader = nullptr;
 
 	Ref<Cortex> m_Cortex = nullptr;
+
+	ProjectionMode m_ProjectionMode = VERTEX_BASED;
+
+	// --- VERTEX_BASED MODE ---
+
+	NIRS::ProjectionSettings m_VertexBasedProjectionSettings;
+
+	Ref<Shader> m_VertexProjectionShader = nullptr;
+
+	Ref<VertexArray> m_VertexModeVAO;
+	Ref<VertexBuffer> m_VertexModeVBO;
+	Ref<IndexBuffer> m_VertexModeIBO;
+
+	std::vector<ProjectionVertex> m_VertexModeProjectionVertices;
+	// index to ProjectionVertex, indices of influenced vertices
+	std::map<NIRS::ChannelID, std::vector<int>> m_VerticesInfluencedByChannel; // For each channel, which vertices does it influence
+
+	std::vector<Vertex> m_VertexModeVertices;
+	std::vector<unsigned int> m_VertexModeIndices;
+	RenderCommand m_VertexModeRenderCmd;
+
+	void SetupVertexBasedProjection();
+	void UpdateVerticiesInfluencedByChannel();
+	void UpdateVertexBasedProjection();
+	void RenderVertexMode();
 };
