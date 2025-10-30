@@ -20,7 +20,36 @@ FileLayer::~FileLayer()
 
 void FileLayer::OnAttach()
 {
-	
+	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
+	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
+	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
+
+	// HEAD ANATOMY
+	Head head;
+	head.Mesh = CreateRef<Mesh>(headFilepath);
+	head.Transform = CreateRef<Transform>();
+	head.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(head.Mesh.get(), glm::mat4(1.0f)));
+
+	head.MeshFilepath = headFilepath;
+
+	AssetManager::Register<Head>("Head", CreateRef<Head>(head));
+	EventBus::Instance().Publish<HeadAnatomyLoadedEvent>({ });
+
+	// CORTEX ANATOMY
+	Cortex cortex;
+	cortex.Mesh = CreateRef<Mesh>(cortexFilepath);
+	cortex.Transform = CreateRef<Transform>();
+	cortex.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(cortex.Mesh.get(), glm::mat4(1.0f)));
+	cortex.MeshFilepath = cortexFilepath;
+
+	AssetManager::Register<Cortex>("Cortex", CreateRef<Cortex>(cortex));
+	EventBus::Instance().Publish<CortexAnatomyLoadedEvent>({});
+
+
+	// SNIRF
+	Ref<SNIRF> snirf = CreateRef<SNIRF>(snirfFilepath);
+	AssetManager::Register<SNIRF>("SNIRF", snirf);
+	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
 void FileLayer::OnDetach()
@@ -75,36 +104,7 @@ void FileLayer::RenderMenuBar()
 
 void FileLayer::PostInit()
 {
-	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
-	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
-	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
-
-	// HEAD ANATOMY
-	Head head;
-	head.Mesh = CreateRef<Mesh>(headFilepath);
-	head.Transform = CreateRef<Transform>();
-	head.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(head.Mesh.get(), glm::mat4(1.0f)));
-
-	head.MeshFilepath = headFilepath;
-
-	AssetManager::Register<Head>("Head", CreateRef<Head>(head));
-	EventBus::Instance().Publish<HeadAnatomyLoadedEvent>({ });
-
-	// CORTEX ANATOMY
-	Cortex cortex;
-	cortex.Mesh = CreateRef<Mesh>(cortexFilepath);
-	cortex.Transform = CreateRef<Transform>();
-	cortex.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(cortex.Mesh.get(), glm::mat4(1.0f)));
-	cortex.MeshFilepath = cortexFilepath;
-
-	AssetManager::Register<Cortex>("Cortex", CreateRef<Cortex>(cortex));
-	EventBus::Instance().Publish<CortexAnatomyLoadedEvent>({});
-
-
-	// SNIRF
-	Ref<SNIRF> snirf = CreateRef<SNIRF>(snirfFilepath);
-	AssetManager::Register<SNIRF>("SNIRF", snirf);
-	EventBus::Instance().Publish<SNIRFFileLoadedEvent>({});
+	
 
 }
 
@@ -131,7 +131,7 @@ void FileLayer::LoadSNIRFFile()
 	auto snirf = AssetManager::Get<SNIRF>("SNIRF");
 	snirf->LoadFile(std::string(filePath));
 
-	EventBus::Instance().Publish<SNIRFFileLoadedEvent>({});
+	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
 void FileLayer::LoadHeadAnatomy()

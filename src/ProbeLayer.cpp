@@ -43,7 +43,7 @@ void ProbeLayer::OnAttach()
 	m_LineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
 
-	EventBus::Instance().Subscribe<SNIRFFileLoadedEvent>([this](const SNIRFFileLoadedEvent& e) {
+	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
 
 		this->LoadSNIRF();
 		

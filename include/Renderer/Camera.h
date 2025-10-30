@@ -33,6 +33,8 @@ public:
 		m_ViewportHeight = height;
 		if (!m_FixedAspectRatio)
 			m_AspectRatio = width / height;
+		UpdateViewMatrix();
+		UpdateProjectionMatrix();
 	}
 
 	glm::vec3& GetPosition() { return m_Position; };

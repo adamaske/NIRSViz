@@ -34,7 +34,6 @@ public:
 private:
 	Ref<SNIRF> m_SNIRF;
 	
-	bool m_ProjectToCortex = false;
 
 	float m_DeltaTime = 0.0f;
 	bool m_EditingProcessingStream = false;

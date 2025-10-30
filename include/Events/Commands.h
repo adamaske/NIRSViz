@@ -11,7 +11,7 @@ struct CoordinateSystemGenerated {
 	// No additional data needed for this command
 };
 
-struct SNIRFFileLoadedEvent {
+struct OnSNIRFLoaded {
 };
 
 struct HeadAnatomyLoadedEvent {

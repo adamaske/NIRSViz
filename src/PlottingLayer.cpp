@@ -18,7 +18,7 @@ PlottingLayer::~PlottingLayer()
 
 void PlottingLayer::OnAttach()
 {
-	EventBus::Instance().Subscribe<SNIRFFileLoadedEvent>([this](const SNIRFFileLoadedEvent& e) {
+	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
 		m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
 	});
 }
@@ -44,11 +44,6 @@ void PlottingLayer::OnImGuiRender()
 	
 	ImGui::Begin("Plotting");
 	ImGui::Text("Loaded SNIRF file : %s", m_SNIRF->GetFilepath().c_str());
-	
-
-	// LETS THE OTHER SYSTEM KNOW THAT WE WANT TO RENDER ACTIVITY
-	if (ImGui::Checkbox("Project to Cortex", &m_ProjectToCortex)) {
-	}
 
 	auto channels = m_SNIRF->GetChannels();
 	size_t channel_num = channels.size();

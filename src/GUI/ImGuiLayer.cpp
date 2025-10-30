@@ -34,8 +34,8 @@ void ImGuiLayer::OnAttach()
 	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
 	float fontSize = 18.0f;// *2.0f;
-	io.Fonts->AddFontFromFileTTF("C:/dev/NIRS-Viz/data/fonts/opensans/OpenSans-Bold.ttf", fontSize);
-	io.FontDefault = io.Fonts->AddFontFromFileTTF("C:/dev/NIRS-Viz/data/fonts/opensans/OpenSans-Regular.ttf", fontSize);
+	io.Fonts->AddFontFromFileTTF("C:/dev/NIRSViz/Assets/Fonts/opensans/OpenSans-Bold.ttf", fontSize);
+	io.FontDefault = io.Fonts->AddFontFromFileTTF("C:/dev/NIRSViz/Assets/Fonts/opensans/OpenSans-Regular.ttf", fontSize);
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
