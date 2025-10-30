@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Base.h"
-#include "Renderer/VertexArray.h"
-#include "Renderer/Framebuffer.h"
-#include "Renderer/Camera.h"
-#include "Renderer/Shader.h"
+#include "Renderer/Buffer/VertexArray.h"
+#include "Renderer/Buffer/Framebuffer.h"
+#include "Renderer/Camera/Camera.h"
+#include "Renderer/Renderable/Shader.h"
 
 using ViewID = uint32_t;
 

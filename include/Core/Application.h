@@ -2,17 +2,17 @@
 #include "Core/Base.h"
 
 #include "Core/ECS.h"
-#include "Core/Window.h"
+#include "Core/Window/Window.h"
 #include "Core/LayerStack.h"
 #include "Events/ApplicationEvent.h"
 
 #include "GUI/ImGuiLayer.h"
-#include "ProbeLayer.h"
-#include "AtlasLayer.h"
-#include "PlottingLayer.h"
-#include "MainViewportLayer.h"
-#include "ProjectionLayer.h"
-#include "FileLayer.h"
+#include "App/Layer/ProbeLayer.h"
+#include "App/Layer/AtlasLayer.h"
+#include "App/Layer/PlottingLayer.h"
+#include "App/Layer/MainViewportLayer.h"
+#include "App/Layer/ProjectionLayer.h"
+#include "App/Layer/FileLayer.h"
 
 struct ApplicationCommandLineArgs
 {

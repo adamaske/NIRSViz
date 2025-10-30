@@ -3,8 +3,8 @@
 #include "Core/Base.h"
 
 #include "Renderer/Renderer.h"
-#include "Renderer/Camera.h"
-#include "Renderer/Framebuffer.h"
+#include "Renderer/Camera/Camera.h"
+#include "Renderer/Buffer/Framebuffer.h"
 
 
 struct Viewport {
