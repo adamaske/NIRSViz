@@ -1,7 +1,8 @@
 #pragma once
 
 
-struct GLFWwindow;
+#include <GLFW/glfw3.h>
+
 class GraphicsContext
 {
 public:

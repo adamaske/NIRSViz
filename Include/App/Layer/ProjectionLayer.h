@@ -27,6 +27,10 @@ enum ProjectionMode {
 	WORLD_SPACE_BASED = 1
 };
 
+enum ProjectionWavelength {
+	HBO = 0,
+	HBR = 1,
+};
 
 class ProjectionLayer : public Layer {
 public:
@@ -79,6 +83,7 @@ private:
 	std::vector<unsigned int> m_VertexModeIndices;
 	RenderCommand m_VertexModeRenderCmd;
 
+	ProjectionWavelength m_ProjectionWavelength = HBO;
 
 	void SetupVertexBasedProjection();
 	void UpdateVerticiesInfluencedByChannel();

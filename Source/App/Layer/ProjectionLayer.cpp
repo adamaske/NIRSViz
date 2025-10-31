@@ -127,7 +127,14 @@ void ProjectionLayer::OnImGuiRender(){
 	ImGui::Begin("ProjectionSettings");
 	// Projection Settigns
 	// ProjectionModeToString
-	
+	if(ImGui::RadioButton("HBO", m_ProjectionWavelength == HBO)){
+		m_ProjectionWavelength = HBO;
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("HBR", m_ProjectionWavelength == HBR)) {
+		m_ProjectionWavelength = HBR;
+	}
+	ImGui::Separator();
 
 	const char* currentProjectionMode = (m_ProjectionMode == VERTEX_BASED) ? "Vertex" : "World Space";
 	if (ImGui::BeginCombo("Projection Mode", currentProjectionMode)) {
@@ -290,7 +297,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 
 	// We need to identifity each vertex 's activity level
 	auto intersection_points = projectionData->ChannelProjectionIntersections;
-	auto channel_values = projectionData->ChannelValues;
+	auto channel_values = m_ProjectionWavelength == HBO ? projectionData->HBOChannelValues : projectionData->HBRChannelValues;
 
 	for (auto& [ID, pos] : projectionData->ChannelProjectionIntersections) {
 		

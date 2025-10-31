@@ -97,6 +97,11 @@ void ChannelSelectorLayer::OnImGuiRender()
 		}
 		EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
 	}
+	ImGui::SameLine();
+	if(ImGui::Button("Select None")) {
+		m_SelectedChannels.clear();
+		EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
+	}
 
 	auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
 	auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();

@@ -87,7 +87,9 @@ namespace NIRS {
         uint32_t NumHits;
 
         std::map<NIRS::ChannelID, glm::vec3> ChannelProjectionIntersections;
-        std::map<NIRS::ChannelID, NIRS::ChannelValue> ChannelValues;
+
+        std::map<NIRS::ChannelID, NIRS::ChannelValue> HBOChannelValues;
+        std::map<NIRS::ChannelID, NIRS::ChannelValue> HBRChannelValues;
     };
 
     struct ProjectionSettings {

@@ -45,25 +45,21 @@ void PlottingLayer::OnImGuiRender()
 {
 	if (m_EditingProcessingStream) EditProcessingStream();
 
-	
 	ImGui::Begin("Plotting");
 	ImGui::Text("Loaded SNIRF file : %s", m_SNIRF->GetFilepath().c_str());
 
 	ImGui::Separator(); 
-	ImGui::Text("Plotting & Projection: ");
+	ImGui::Text("Wavelength : ");
 	if(ImGui::RadioButton("HbO", m_PlottingWavelength == HBO_ONLY)) {
 		m_PlottingWavelength = HBO_ONLY; 
-		m_ProjectedWavelength = HBO;
 	}
 	ImGui::SameLine();
 	if (ImGui::RadioButton("HbR", m_PlottingWavelength == HBR_ONLY)) {
 		m_PlottingWavelength = HBR_ONLY;
-		m_ProjectedWavelength = HBR;
 	}
 	ImGui::SameLine();
 	if (ImGui::RadioButton("HbO & HbR", m_PlottingWavelength == HBO_AND_HBR)) {
 		m_PlottingWavelength = HBO_AND_HBR;
-		m_ProjectedWavelength = HBO;
 		
 	}
 	ImGui::Separator();
@@ -91,9 +87,28 @@ void PlottingLayer::OnImGuiRender()
 	ImGui::Checkbox("Show Tags", &showTags);
 
 	if (ImPlot::BeginPlot("##Tags")) {
+		ImPlot::SetupAxis(ImAxis_X1);
+		ImPlot::SetupAxis(ImAxis_Y1);
 		ImPlot::SetupAxis(ImAxis_X2);
 		ImPlot::SetupAxis(ImAxis_Y2);
-		
+
+		// Apply calculated limits when channels are first selected or changed
+		if (m_NeedAxisFit && !m_SelectedChannels.empty()) {
+			ImPlot::SetupAxisLimits(ImAxis_X1, m_PlotXMin, m_PlotXMax, ImPlotCond_Always);
+			ImPlot::SetupAxisLimits(ImAxis_Y1, m_PlotYMin, m_PlotYMax, ImPlotCond_Always);
+
+			ImPlot::SetupAxisLimits(ImAxis_X2, m_PlotXMin, m_PlotXMax, ImPlotCond_Always); 
+			ImPlot::SetupAxisLimits(ImAxis_Y2, 0.0, 1.0, ImPlotCond_Always); // Set Y2 axis limits too
+
+			m_NeedAxisFit = false; // Reset flag
+		}
+		else if (!m_SelectedChannels.empty()) {
+			// Always ensure X2 and Y2 have limits even when not fitting
+			ImPlot::SetupAxisLimits(ImAxis_X2, m_PlotXMin, m_PlotXMax, ImPlotCond_Once);
+			ImPlot::SetupAxisLimits(ImAxis_Y2, 0.0, 1.0, ImPlotCond_Once);
+		}
+
+
 		for(auto& channelID : m_SelectedChannels) {
 			if (channelMap.find(channelID) == channelMap.end()) {
 				NVIZ_ERROR("Channel ID {} not found in channel map.", channelID);
@@ -128,30 +143,24 @@ void PlottingLayer::OnImGuiRender()
 			}
 		}
 
-		if (showTags) {
-			// Define the position of the tag on the X2 axis
-			
-			ImPlot::SetAxes(ImAxis_X2, ImAxis_Y2);
+		ImPlot::SetAxis(ImAxis_X2);
 
-			ImPlot::DragLineX(0, &m_TagSliderValue, ImVec4(1, 0.2, 0.2, 1), 1, ImPlotDragToolFlags_NoFit);
-			ImPlot::TagX(m_TagSliderValue, ImVec4(1, 0.2, 0.2, 1), "%s", "Time");
-			// --- Conversion Logic ---
-			ImVec2 pixelCoords = ImPlot::PlotToPixels(m_TagSliderValue, 0.0, ImAxis_X2, ImAxis_Y2);
-			ImPlotPoint plotCoordsX1 = ImPlot::PixelsToPlot(pixelCoords, ImAxis_X1, ImAxis_Y1);
+		ImPlot::DragLineX(0, &m_TagSliderValue, ImVec4(1, 0.2, 0.2, 1), 1, ImPlotDragToolFlags_NoFit);
+		ImPlot::TagX(m_TagSliderValue, ImVec4(1, 0.2, 0.2, 1), "%s", "Time");
+		// --- Conversion Logic ---
+		ImVec2 pixelCoords = ImPlot::PlotToPixels(m_TagSliderValue, 0.0, ImAxis_X2, ImAxis_Y2);
+		ImPlotPoint plotCoordsX1 = ImPlot::PixelsToPlot(pixelCoords, ImAxis_X1, ImAxis_Y1);
 
-			double tagX1TimeValue = plotCoordsX1.x;
-			//ImGui::SetCursorScreenPos(pixelCoords); 
+		double tagX1TimeValue = plotCoordsX1.x;
+		//ImGui::SetCursorScreenPos(pixelCoords); 
 
-			auto timeIndex = static_cast<size_t>(std::round(tagX1TimeValue  * fs));
+		auto timeIndex = static_cast<size_t>(std::round(tagX1TimeValue * fs));
 
-			if (timeIndex != m_TimeIndex) { // A change was made
-				SetChannelValuesAtTimeIndex(timeIndex);
-
-			}
-
-			m_TimeIndex = timeIndex;
+		if (timeIndex != m_TimeIndex) { // A change was made
+			SetChannelValuesAtTimeIndex(timeIndex);
 		}
 
+		m_TimeIndex = timeIndex;
 
 		ImPlot::EndPlot();
 	}
@@ -197,6 +206,64 @@ void PlottingLayer::RenderMenuBar()
 void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& selectedIDs)
 {
 	m_SelectedChannels = selectedIDs;
+
+	if (selectedIDs.empty()) {
+		return;
+	}
+
+	// Get necessary data
+	auto time = m_SNIRF->GetTime();
+	auto channelMap = m_SNIRF->GetChannelMap();
+	auto channelRegistry = m_SNIRF->GetChannelDataRegistry();
+
+	if (time.empty()) {
+		return;
+	}
+
+	// Calculate data range across all selected channels
+	double minY = std::numeric_limits<double>::max();
+	double maxY = std::numeric_limits<double>::lowest();
+
+	for (auto& channelID : selectedIDs) {
+		if (channelMap.find(channelID) == channelMap.end()) {
+			continue;
+		}
+
+		auto& channel = channelMap[channelID];
+
+		// Check HbO data if needed
+		if (m_PlottingWavelength == HBO_ONLY || m_PlottingWavelength == HBO_AND_HBR) {
+			auto hboData = channelRegistry->GetChannelData(channel.HBODataIndex);
+			if (!hboData.empty()) {
+				auto [minIt, maxIt] = std::minmax_element(hboData.begin(), hboData.end());
+				minY = std::min(minY, *minIt);
+				maxY = std::max(maxY, *maxIt);
+			}
+		}
+
+		// Check HbR data if needed
+		if (m_PlottingWavelength == HBR_ONLY || m_PlottingWavelength == HBO_AND_HBR) {
+			auto hbrData = channelRegistry->GetChannelData(channel.HBRDataIndex);
+			if (!hbrData.empty()) {
+				auto [minIt, maxIt] = std::minmax_element(hbrData.begin(), hbrData.end());
+				minY = std::min(minY, *minIt);
+				maxY = std::max(maxY, *maxIt);
+			}
+		}
+	}
+
+	// Store the calculated limits for use in plotting
+	m_PlotXMin = 0;
+	m_PlotXMax = 115;
+
+	// Add some padding to Y axis (5% on each side)
+	double yRange = maxY - minY;
+	double padding = yRange * 0.05;
+	m_PlotYMin = minY - padding;
+	m_PlotYMax = maxY + padding;
+
+	// Flag that we need to fit the axes
+	m_NeedAxisFit = true;
 }
 
 void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
@@ -207,28 +274,29 @@ void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
 	size_t timeIndex = static_cast<size_t>(index);
 
 
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> channelValues; // Your map to store results
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> hboValues; // Your map to store results
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> hbrValues; // Your map to store results
 
 	for (auto& [ID, channel] : channelMap) {
-		channelValues[ID] = 0.0; // Initialize all to 0.0
+		hboValues[ID] = 0.0;
+		hbrValues[ID] = 0.0;
 	}
 
 	for (auto& ID : m_SelectedChannels) {
-		auto dataIndex = m_ProjectedWavelength == HBO ? channelMap[ID].HBODataIndex : channelMap[ID].HBRDataIndex;
+		
+		std::vector<double> hbo = channelRegistry->GetChannelData(channelMap[ID].HBODataIndex);
+		std::vector<double> hbr = channelRegistry->GetChannelData(channelMap[ID].HBRDataIndex);
 
-		std::vector<double> x = channelRegistry->GetChannelData(dataIndex);
-
-		if (timeIndex >= 0 && timeIndex < x.size()) { // Within bounds
-			channelValues[ID] = x[timeIndex];
+		if (timeIndex >= 0 && timeIndex < hbo.size()) { // Within bounds
+			hboValues[ID] = hbo[timeIndex];
+			hbrValues[ID] = hbr[timeIndex];
 		}
 	}
 
-	if (timeIndex != m_TimeIndex) {
-		// We need to update the texture
-		auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
-		projData->ChannelValues = channelValues;
-		EventBus::Instance().Instance().Publish<OnChannelValuesUpdated>({ });
+	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
+	projData->HBOChannelValues = hboValues;
+	projData->HBRChannelValues = hbrValues;
 
-	}
+	EventBus::Instance().Instance().Publish<OnChannelValuesUpdated>({ hboValues, hbrValues });
 }
 

@@ -11,10 +11,6 @@
 
 #include "NIRS/Snirf.h"
 
-enum ProjectionWavelength {
-	HBO = 0,
-	HBR = 1,
-}; 
 enum PlottingWavelength {
 	HBO_ONLY = 0,
 	HBR_ONLY = 1,
@@ -54,7 +50,13 @@ private:
 	unsigned int m_TimeIndex = 0;
 
 	double m_TagSliderValue = 0.0f; 
-	ProjectionWavelength m_ProjectedWavelength = HBO; // You can only project either HbO or HbR at one time
+
+	double m_PlotXMin = 0;
+	double m_PlotXMax = 0;
+	double m_PlotYMin = 0;
+	double m_PlotYMax = 0;
+	bool m_NeedAxisFit = false;
+
 	PlottingWavelength m_PlottingWavelength = HBO_ONLY; // Plotting however can show both at the same time. 
 	std::vector<NIRS::ChannelID> m_SelectedChannels;
 };

@@ -483,7 +483,6 @@ void ProbeLayer::UpdateHitDataTexture()
 
 	std::vector<glm::vec4> textureData(MAX_HITS, glm::vec4(0.0f));
 
-	// Iterate through map
 	int idx = 0;
 	for(auto& [ID, channel] : m_ChannelMap){
 
@@ -494,7 +493,7 @@ void ProbeLayer::UpdateHitDataTexture()
 		textureData[idx].y = intersectionPoint.y;
 		textureData[idx].z = intersectionPoint.z;
 
-		textureData[idx].w = projData->ChannelValues[ID];
+		textureData[idx].w = 0;// projData->ChannelValues[ID];
 
 		idx++;
 	}

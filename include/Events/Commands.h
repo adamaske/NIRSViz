@@ -40,8 +40,13 @@ struct OnChannelIntersectionsUpdated {
 
 };
 
+namespace NIRS {
+	using ChannelID = uint32_t;
+	using ChannelValue = double;
+}
 struct OnChannelValuesUpdated {
-	
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> HBOValues;
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> HBRValues;
 };
 
 struct OnChannelsSelected {

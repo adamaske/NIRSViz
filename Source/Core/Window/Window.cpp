@@ -6,6 +6,7 @@
 #include "Events/MouseEvent.h"
 #include "Events/KeyEvent.h"
 
+#include <GLFW/glfw3.h>
 
 static uint8_t s_GLFWWindowCount = 0;
 

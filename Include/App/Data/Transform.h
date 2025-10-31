@@ -26,9 +26,9 @@ public:
             * glm::scale(glm::mat4(1.0f), m_Scale);
     }
 
-	glm::vec3 GetPosition() const { return m_Position; }
-	glm::quat GetRotation() const { return m_Rotation; }
-	glm::vec3 GetScale() const { return m_Scale; }
+	glm::vec3& GetPosition() { return m_Position; }
+	glm::quat& GetRotation() { return m_Rotation; }
+	glm::vec3& GetScale() { return m_Scale; }
 
     void SetPosition(glm::vec3 position) {
         m_Position = position;

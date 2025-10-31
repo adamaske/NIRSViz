@@ -114,12 +114,10 @@ void AtlasLayer::OnAttach()
 
 	EventBus::Instance().Subscribe<HeadAnatomyLoadedEvent>([this](const HeadAnatomyLoadedEvent& e) {
 		m_Head = AssetManager::Get<Head>("Head");
-		m_Head->Transform->Rotate(180.0f, glm::vec3(0, 1, 0)); // Adjust for coordinate system difference
 	});
 
 	EventBus::Instance().Subscribe<CortexAnatomyLoadedEvent>([this](const CortexAnatomyLoadedEvent& e) {
 		m_Cortex = AssetManager::Get<Cortex>("Cortex");
-		m_Cortex->Transform->Rotate(180.0f, glm::vec3(0, 1, 0)); // Adjust for coordinate system difference
 	});
 }
 
@@ -248,7 +246,7 @@ void AtlasLayer::RenderMenuBar()
 void AtlasLayer::RenderHeadSettings() {
 
 	ImGui::Checkbox("Draw Head Anatomy", &m_Head->Draw);
-	if (ImGui::CollapsingHeader("Cortex Transform Settings")) {
+	if (ImGui::CollapsingHeader("Head Anatomy Settings")) {
 		ImGui::SliderFloat("Head Opacity", &m_Head->Opacity, 0.0f, 1.0f);
 		ImGui::Text("Position");
 		ImGui::Text("Rotation");
@@ -256,14 +254,35 @@ void AtlasLayer::RenderHeadSettings() {
 	}
 
 }
+
+namespace Utils {
+
+	static glm::vec3 CortexRotationAxis = { 0,1,0 };
+	static float CortexRotationAngleStep = 10;
+	static glm::vec3 HeadRotationAxis = { 0,1,0 };
+	static float HeadRotationAngleStep = 10;
+}
+
 void AtlasLayer::RenderCortexSettings() {
 
 	ImGui::Checkbox("Draw Brain Anatomy", &m_Cortex->Draw);
 	
 	if(ImGui::CollapsingHeader("Cortex Transform Settings")) {
-		ImGui::Text("Position");
-		ImGui::Text("Rotation");
-		ImGui::Text("Scale");
+		ImGui::DragFloat3("Position", &m_Cortex->Transform->GetPosition()[0], 0.1f, -100.0f, 100.0f);
+		
+		ImGui::DragFloat3("Rotation Axis", &Utils::CortexRotationAxis[0], 0.1f, -180.0f, 180.0f);
+		ImGui::SliderFloat("Rotation Step Angle", &Utils::CortexRotationAngleStep, 1.0f, 45.0f);
+		ImGui::Text("Rotate: ");
+		ImGui::SameLine();
+		if (ImGui::Button("+")) {
+			m_Cortex->Transform->Rotate(Utils::CortexRotationAngleStep, Utils::CortexRotationAxis);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("-")){
+			m_Cortex->Transform->Rotate(-Utils::CortexRotationAngleStep, Utils::CortexRotationAxis);
+		}
+
+		ImGui::DragFloat3("Scale", &m_Cortex->Transform->GetScale()[0], 0.1f, 0.1f, 10.0f);
 	}
 
 }
@@ -328,6 +347,7 @@ void AtlasLayer::DrawHead()
 	cmd.ShaderPtr = m_PhongShader.get();
 	cmd.VAOPtr = m_Head->Mesh->GetVAO().get();
 	cmd.ViewTargetID = MAIN_VIEWPORT;
+	auto transform = m_Head->Transform;
 	cmd.Transform = m_Head->Transform->GetMatrix();;
 	cmd.Mode = DRAW_ELEMENTS;
 	m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
