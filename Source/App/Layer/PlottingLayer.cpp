@@ -21,6 +21,10 @@ void PlottingLayer::OnAttach()
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
 		m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
 	});
+	EventBus::Instance().Subscribe<OnChannelsSelected>([this](const OnChannelsSelected& e) {
+		this->HandleSelectedChannels(e.selectedIDs);
+	});
+
 }
 
 void PlottingLayer::OnDetach()
@@ -45,23 +49,38 @@ void PlottingLayer::OnImGuiRender()
 	ImGui::Begin("Plotting");
 	ImGui::Text("Loaded SNIRF file : %s", m_SNIRF->GetFilepath().c_str());
 
-	auto channels = m_SNIRF->GetChannels();
-	size_t channel_num = channels.size();
-
+	ImGui::Separator(); 
+	ImGui::Text("Plotting & Projection: ");
+	if(ImGui::RadioButton("HbO", m_PlottingWavelength == HBO_ONLY)) {
+		m_PlottingWavelength = HBO_ONLY; 
+		m_ProjectedWavelength = HBO;
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("HbR", m_PlottingWavelength == HBR_ONLY)) {
+		m_PlottingWavelength = HBR_ONLY;
+		m_ProjectedWavelength = HBR;
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("HbO & HbR", m_PlottingWavelength == HBO_AND_HBR)) {
+		m_PlottingWavelength = HBO_AND_HBR;
+		m_ProjectedWavelength = HBO;
+		
+	}
+	ImGui::Separator();
+	
 	auto fs = m_SNIRF->GetSamplingRate();
 	auto time = m_SNIRF->GetTime();
 
-	std::vector<double> timeInSeconds(time.size());
-	for (size_t i = 0; i < time.size(); ++i) {
-		timeInSeconds[i] = time[i];// / 10.0;
-	}
-	auto& plotTime = timeInSeconds;
+	auto channelMap = m_SNIRF->GetChannelMap();
+	auto channelRegistry = m_SNIRF->GetChannelDataRegistry();
+
+	size_t channel_num = m_SelectedChannels.size();
 
 	ImGui::Separator();
 	ImGui::Text("Tag Value: %.4f", m_TagSliderValue);
-	if (m_TimeIndex < plotTime.size() && m_TimeIndex >= 0) {
+	if (m_TimeIndex < time.size() && m_TimeIndex >= 0) {
 		ImGui::Text("Time Index : %zu", m_TimeIndex);
-		ImGui::Text("Actual Time : %.4f s", plotTime[m_TimeIndex]);
+		ImGui::Text("Actual Time : %.4f s", time[m_TimeIndex]);
 	}
 	else {
 		ImGui::Text("Time Index : N/A");
@@ -75,16 +94,40 @@ void PlottingLayer::OnImGuiRender()
 		ImPlot::SetupAxis(ImAxis_X2);
 		ImPlot::SetupAxis(ImAxis_Y2);
 		
-		// Plot Each Channel
-		for (int i = 0; i < channel_num; i++)
-		{	
-			std::vector<double> x = ChannelDataRegistry::Get().GetChannelData(channels[i].DataIndex);
-			std::string label = "Channel " + std::to_string(i + 1);
+		for(auto& channelID : m_SelectedChannels) {
+			if (channelMap.find(channelID) == channelMap.end()) {
+				NVIZ_ERROR("Channel ID {} not found in channel map.", channelID);
+				continue;
+			}
+			auto& channel = channelMap[channelID];
 
-			// The time goes from 0 to 132 seconds at fs
-			ImPlot::PlotLine(label.c_str(), plotTime.data(), x.data(), plotTime.size());
+			std::string label; 
+			std::vector<double> data;
+			switch (m_PlottingWavelength) {
+				case(HBO_ONLY):
+					label = "Channel " + std::to_string(channelID) + " - HbO";
+					data = channelRegistry->GetChannelData(channel.HBODataIndex);
+					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+					break;
+
+				case(HBR_ONLY):
+					label = "Channel " + std::to_string(channelID) + " - HbR";
+					data = channelRegistry->GetChannelData(channel.HBRDataIndex);
+					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+					break;
+
+				case(HBO_AND_HBR):
+					label = "Channel " + std::to_string(channelID) + " - HbO";
+					data = channelRegistry->GetChannelData(channel.HBODataIndex);
+					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+
+					label = "Channel " + std::to_string(channelID) + " - HbR";
+					data = channelRegistry->GetChannelData(channel.HBRDataIndex);
+					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+					break;
+			}
 		}
-		//
+
 		if (showTags) {
 			// Define the position of the tag on the X2 axis
 			
@@ -101,31 +144,13 @@ void PlottingLayer::OnImGuiRender()
 
 			auto timeIndex = static_cast<size_t>(std::round(tagX1TimeValue  * fs));
 
-			
+			if (timeIndex != m_TimeIndex) { // A change was made
+				SetChannelValuesAtTimeIndex(timeIndex);
 
-			std::map<NIRS::ChannelID, NIRS::ChannelValue> channelValues; // Your map to store results
-			for (int i = 0; i < channel_num; i++) {
-				// Get the data vector for the current channel
-				std::vector<double> x = ChannelDataRegistry::Get().GetChannelData(channels[i].DataIndex);
-				if (timeIndex >= 0 && timeIndex < x.size()) { // Within bounds
-					channelValues[channels[i].ID] = x[timeIndex];
-				}
-				else {
-					channelValues[channels[i].ID] = 0.0; // Out of bounds, set to 0 or handle as needed
-				}
-			}
-
-			if (timeIndex != m_TimeIndex) {
-				// We need to update the texture
-				auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
-				projData->ChannelValues = channelValues;
-				EventBus::Instance().Instance().Publish<OnChannelValuesUpdated>({ });
-				
 			}
 
 			m_TimeIndex = timeIndex;
 		}
-
 
 
 		ImPlot::EndPlot();
@@ -168,3 +193,42 @@ void PlottingLayer::RenderMenuBar()
 		ImGui::EndMenu();
 	}
 }
+
+void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& selectedIDs)
+{
+	m_SelectedChannels = selectedIDs;
+}
+
+void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
+{
+	auto channelMap = m_SNIRF->GetChannelMap();
+	auto channelRegistry = m_SNIRF->GetChannelDataRegistry();
+
+	size_t timeIndex = static_cast<size_t>(index);
+
+
+	std::map<NIRS::ChannelID, NIRS::ChannelValue> channelValues; // Your map to store results
+
+	for (auto& [ID, channel] : channelMap) {
+		channelValues[ID] = 0.0; // Initialize all to 0.0
+	}
+
+	for (auto& ID : m_SelectedChannels) {
+		auto dataIndex = m_ProjectedWavelength == HBO ? channelMap[ID].HBODataIndex : channelMap[ID].HBRDataIndex;
+
+		std::vector<double> x = channelRegistry->GetChannelData(dataIndex);
+
+		if (timeIndex >= 0 && timeIndex < x.size()) { // Within bounds
+			channelValues[ID] = x[timeIndex];
+		}
+	}
+
+	if (timeIndex != m_TimeIndex) {
+		// We need to update the texture
+		auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
+		projData->ChannelValues = channelValues;
+		EventBus::Instance().Instance().Publish<OnChannelValuesUpdated>({ });
+
+	}
+}
+

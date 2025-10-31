@@ -28,3 +28,6 @@
 [submodule "vendor/HighFive"]
 	path = vendor/HighFive
 	url = https://github.com/BlueBrain/HighFive.git
+[submodule "Vendor/stb"]
+	path = Vendor/stb
+	url = https://github.com/nothings/stb.git

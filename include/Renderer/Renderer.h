@@ -4,7 +4,7 @@
 #include "Renderer/Buffer/Framebuffer.h"
 #include "Renderer/Camera/Camera.h"
 #include "Renderer/Renderable/Shader.h"
-
+#include "Renderer/Renderable/Texture.h"
 using ViewID = uint32_t;
 
 struct RenderView {
@@ -38,6 +38,11 @@ struct UniformData {
 		bool b1;
 	} Data;
 };
+struct TextureBinding
+{
+	Texture* TexturePtr = nullptr;
+	uint32_t Slot = 0; // The texture unit slot to bind to (GL_TEXTURE0 + Slot)
+};
 
 // Renderer:: has a bunch of static functions for API calls
 struct RendererAPICall {
@@ -53,6 +58,7 @@ struct RenderCommand {
 	ViewID ViewTargetID = 0;
 	DrawMode Mode = DRAW_ELEMENTS;
 
+	std::vector<TextureBinding> TextureBindings = {};
 	std::vector<UniformData> UniformCommands = {};
 	std::vector<RendererAPICall> APICalls = {};
 };

@@ -13,6 +13,7 @@
 #include "App/Layer/MainViewportLayer.h"
 #include "App/Layer/ProjectionLayer.h"
 #include "App/Layer/FileLayer.h"
+#include "App/Layer/ChannelSelectorLayer.h"
 
 struct ApplicationCommandLineArgs
 {
@@ -87,4 +88,5 @@ private:
 	Ref<AtlasLayer> m_AtlasLayer;
 	Ref<PlottingLayer> m_PlottingLayer;
 	Ref<ProjectionLayer> m_ProjectionLayer;
+	Ref<ChannelSelectorLayer> m_ChannelSelectorLayer;
 };

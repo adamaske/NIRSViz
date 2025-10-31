@@ -68,8 +68,9 @@ namespace NIRS {
 
         ProbeID SourceID; // This is 1-indexed index
         ProbeID DetectorID;
-        WavelengthType Wavelength;
-        ChannelDataID DataIndex; // Index into the channel data registry
+
+		ChannelDataID HBODataIndex;
+		ChannelDataID HBRDataIndex;
     };
 
     struct ChannelVisualization {

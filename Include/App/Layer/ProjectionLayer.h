@@ -27,6 +27,7 @@ enum ProjectionMode {
 	WORLD_SPACE_BASED = 1
 };
 
+
 class ProjectionLayer : public Layer {
 public:
 	ProjectionLayer(const EntityID& settingsID);
@@ -62,7 +63,6 @@ private:
 	ProjectionMode m_ProjectionMode = VERTEX_BASED;
 
 	// --- VERTEX_BASED MODE ---
-
 	NIRS::ProjectionSettings m_VertexBasedProjectionSettings;
 
 	Ref<Shader> m_VertexProjectionShader = nullptr;
@@ -78,6 +78,7 @@ private:
 	std::vector<Vertex> m_VertexModeVertices;
 	std::vector<unsigned int> m_VertexModeIndices;
 	RenderCommand m_VertexModeRenderCmd;
+
 
 	void SetupVertexBasedProjection();
 	void UpdateVerticiesInfluencedByChannel();

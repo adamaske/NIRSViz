@@ -118,6 +118,7 @@ Window::Window(const WindowSpecification& spec)
 
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.EventCallback(event);
+
 		});
 
 	glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)

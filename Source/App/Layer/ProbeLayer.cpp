@@ -240,11 +240,10 @@ void ProbeLayer::LoadSNIRF()
 	m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
 
 	m_Channels = m_SNIRF->GetChannels();
-	m_ChannelMap.clear();
+	m_ChannelMap = m_SNIRF->GetChannelMap();
 	m_ChannelProjectionIntersections.clear(); // Init it
 
 	for (size_t i = 0; i < m_Channels.size(); ++i) {
-		m_ChannelMap[i] = m_Channels[i];
 		m_ChannelProjectionIntersections[i] = glm::vec3(0.0f);
 	}
 
@@ -495,13 +494,7 @@ void ProbeLayer::UpdateHitDataTexture()
 		textureData[idx].y = intersectionPoint.y;
 		textureData[idx].z = intersectionPoint.z;
 
-		if (channel.Wavelength == NIRS::WavelengthType::HBR) {
-
-			textureData[idx].x = 0;
-			textureData[idx].y = 0;
-			textureData[idx].z = 0;
-		}
-		textureData[idx].w = channel.Wavelength == NIRS::WavelengthType::HBO ? projData->ChannelValues[ID] : 0;
+		textureData[idx].w = projData->ChannelValues[ID];
 
 		idx++;
 	}

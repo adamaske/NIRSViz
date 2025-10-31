@@ -11,6 +11,16 @@
 
 #include "NIRS/Snirf.h"
 
+enum ProjectionWavelength {
+	HBO = 0,
+	HBR = 1,
+}; 
+enum PlottingWavelength {
+	HBO_ONLY = 0,
+	HBR_ONLY = 1,
+	HBO_AND_HBR = 2,
+};
+
 class PlottingLayer : public Layer {
 public:
 	PlottingLayer(const EntityID& settingsID);
@@ -29,7 +39,9 @@ public:
 
 	void RenderMenuBar() override;
 
+	void HandleSelectedChannels(const std::vector<NIRS::ChannelID>& selectedIDs);
 
+	void SetChannelValuesAtTimeIndex(int index);
 
 	void EditProcessingStream();
 private:
@@ -42,5 +54,7 @@ private:
 	unsigned int m_TimeIndex = 0;
 
 	double m_TagSliderValue = 0.0f; 
-
+	ProjectionWavelength m_ProjectedWavelength = HBO; // You can only project either HbO or HbR at one time
+	PlottingWavelength m_PlottingWavelength = HBO_ONLY; // Plotting however can show both at the same time. 
+	std::vector<NIRS::ChannelID> m_SelectedChannels;
 };

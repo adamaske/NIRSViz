@@ -127,6 +127,8 @@ void ProjectionLayer::OnImGuiRender(){
 	ImGui::Begin("ProjectionSettings");
 	// Projection Settigns
 	// ProjectionModeToString
+	
+
 	const char* currentProjectionMode = (m_ProjectionMode == VERTEX_BASED) ? "Vertex" : "World Space";
 	if (ImGui::BeginCombo("Projection Mode", currentProjectionMode)) {
 
@@ -296,6 +298,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 
 		for(int i = 0; i < influencedVertices.size(); i++) {
 			int vertexIndex = influencedVertices[i];
+
 			auto& vertex = m_VertexModeProjectionVertices[vertexIndex];
 			float distance = glm::distance(pos, vertex.Position);
 			if (distance <= settings.Radius) {

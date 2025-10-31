@@ -14,8 +14,6 @@ class ChannelDataRegistry {
 	using ChannelData = std::vector<double>;
 public:
 	ChannelDataRegistry() {
-		NVIZ_ASSERT(!s_Instance, "ChannelDataRegistry instance already exists!");
-		s_Instance = this;
 	};
 
 	int SubmitChannelData(const ChannelData& data) {
@@ -48,9 +46,6 @@ public:
 		m_LookupMap.clear();
 	}
 
-	static ChannelDataRegistry& Get() {
-		return *s_Instance;
-	}
 private:
 	std::vector<ChannelData> m_DataStorage;
 
@@ -96,7 +91,11 @@ public:
 
 
 	//std::vector<NIRS::Landmark> GetLandmarks() { return m_ManualLandmarks; };
+	std::map<NIRS::ProbeID, NIRS::Probe2D> GetSource2DMap() { return m_Source2DMap; };
+	std::map<NIRS::ProbeID, NIRS::Probe2D> GetDetector2DMap() { return m_Detector2DMap; };
 
+	std::map<NIRS::ProbeID, NIRS::Probe3D> GetSource3DMap() { return m_Source3DMap; };
+	std::map<NIRS::ProbeID, NIRS::Probe3D> GetDetector3DMap() { return m_Detector3DMap; };
 
 	std::vector<NIRS::Probe2D> GetSources2D() { return m_Sources2D; };
 	std::vector<NIRS::Probe3D> GetSources3D() { return m_Sources3D; };
@@ -110,6 +109,7 @@ public:
 	NIRS::Probe2D GetSource2D(int index) { return m_Sources2D[index]; };
 	NIRS::Probe3D GetSource3D(int index) { return m_Sources3D[index]; };
 
+	std::map<NIRS::ChannelID, NIRS::Channel> GetChannelMap() { return m_ChannelMap; };
 	std::vector<NIRS::Channel> GetChannels() { return m_Channels; };
 
 	std::vector<int> GetWavelengths() { return m_Wavelengths; };
@@ -119,6 +119,8 @@ public:
 
 	double GetSamplingRate() { return m_SamplingRate; };
 	std::vector<double> GetTime() { return m_Time; };
+
+	Ref<ChannelDataRegistry> GetChannelDataRegistry() { return m_ChannelDataRegistry; }
 private:
 	std::filesystem::path m_Filepath = std::filesystem::path("");
 
@@ -131,14 +133,21 @@ private:
 	double m_DurationSeconds = 0.0;
 	std::vector<double> m_Time = {};
 
+	std::map<NIRS::ProbeID, NIRS::Probe2D> m_Source2DMap = {};
+	std::map<NIRS::ProbeID, NIRS::Probe2D> m_Detector2DMap = {};
+	std::map<NIRS::ProbeID, NIRS::Probe3D> m_Source3DMap = {};
+	std::map<NIRS::ProbeID, NIRS::Probe3D> m_Detector3DMap = {};
+
 	std::vector<NIRS::Probe2D> m_Sources2D	 = {};
 	std::vector<NIRS::Probe2D> m_Detectors2D = {};
 	std::vector<NIRS::Probe3D> m_Sources3D	 = {};
 	std::vector<NIRS::Probe3D> m_Detectors3D = {};
 	//std::vector<NIRS::Landmark> m_Landmarks	 = {};
+	
+	std::map<NIRS::ChannelID, NIRS::Channel> m_ChannelMap = {};
 	std::vector<NIRS::Channel> m_Channels	 = {};
 	std::vector<int> m_Wavelengths			 = {};
 
-	ChannelDataRegistry m_ChannelDataRegistry;
+	Ref<ChannelDataRegistry> m_ChannelDataRegistry = nullptr;
 
 };

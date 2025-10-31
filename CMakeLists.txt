@@ -75,7 +75,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${VENDOR_DIR}/imgui 
     ${VENDOR_DIR}/implot
     ${VENDOR_DIR}/HighFive/include
-    ${VENDOR_DIR}/Eigen/include 
+    ${VENDOR_DIR}/Eigen/include
+    ${VENDOR_DIR}/stb
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

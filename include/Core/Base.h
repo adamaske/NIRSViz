@@ -30,6 +30,7 @@ constexpr Ref<T> CreateRef(Args&& ... args)
 #define MAIN_VIEWPORT 1
 #define ALTAS_VIEWPORT 2
 #define PROBE_EDITOR 3
+#define CHANNEL_SELECTOR 4
 
 #define MAX_HITS 256
 

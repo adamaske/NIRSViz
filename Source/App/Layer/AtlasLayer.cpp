@@ -114,10 +114,12 @@ void AtlasLayer::OnAttach()
 
 	EventBus::Instance().Subscribe<HeadAnatomyLoadedEvent>([this](const HeadAnatomyLoadedEvent& e) {
 		m_Head = AssetManager::Get<Head>("Head");
+		m_Head->Transform->Rotate(180.0f, glm::vec3(0, 1, 0)); // Adjust for coordinate system difference
 	});
 
 	EventBus::Instance().Subscribe<CortexAnatomyLoadedEvent>([this](const CortexAnatomyLoadedEvent& e) {
 		m_Cortex = AssetManager::Get<Cortex>("Cortex");
+		m_Cortex->Transform->Rotate(180.0f, glm::vec3(0, 1, 0)); // Adjust for coordinate system difference
 	});
 }
 
@@ -246,12 +248,24 @@ void AtlasLayer::RenderMenuBar()
 void AtlasLayer::RenderHeadSettings() {
 
 	ImGui::Checkbox("Draw Head Anatomy", &m_Head->Draw);
-	ImGui::SliderFloat("Head Opacity", &m_Head->Opacity, 0.0f, 1.0f);
+	if (ImGui::CollapsingHeader("Cortex Transform Settings")) {
+		ImGui::SliderFloat("Head Opacity", &m_Head->Opacity, 0.0f, 1.0f);
+		ImGui::Text("Position");
+		ImGui::Text("Rotation");
+		ImGui::Text("Scale");
+	}
 
 }
 void AtlasLayer::RenderCortexSettings() {
 
 	ImGui::Checkbox("Draw Brain Anatomy", &m_Cortex->Draw);
+	
+	if(ImGui::CollapsingHeader("Cortex Transform Settings")) {
+		ImGui::Text("Position");
+		ImGui::Text("Rotation");
+		ImGui::Text("Scale");
+	}
+
 }
 
 void AtlasLayer::RenderEditor() {
@@ -314,7 +328,7 @@ void AtlasLayer::DrawHead()
 	cmd.ShaderPtr = m_PhongShader.get();
 	cmd.VAOPtr = m_Head->Mesh->GetVAO().get();
 	cmd.ViewTargetID = MAIN_VIEWPORT;
-	cmd.Transform = glm::mat4(1.0f);
+	cmd.Transform = m_Head->Transform->GetMatrix();;
 	cmd.Mode = DRAW_ELEMENTS;
 	m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
 	m_OpacityUniform.Data.f1 = m_Head->Opacity;
@@ -336,7 +350,7 @@ void AtlasLayer::DrawCortex()
 	cmd.ShaderPtr = m_PhongShader.get();
 	cmd.VAOPtr = m_Cortex->Mesh->GetVAO().get();
 	cmd.ViewTargetID = MAIN_VIEWPORT;
-	cmd.Transform = glm::mat4(1.0f);
+	cmd.Transform = m_Cortex->Transform->GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	m_ObjectColorUniform.Data.f4 = { 0.8f, 0.3f, 0.3f, 1.0f };

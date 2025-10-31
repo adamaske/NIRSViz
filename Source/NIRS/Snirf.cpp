@@ -122,14 +122,14 @@ namespace Utils {
     }
 }
 
-ChannelDataRegistry* ChannelDataRegistry::s_Instance = nullptr;
-
 SNIRF::SNIRF()
 {
+	m_ChannelDataRegistry = CreateRef<ChannelDataRegistry>();
 }
 
 SNIRF::SNIRF(const std::filesystem::path& filepath)
 {
+    m_ChannelDataRegistry = CreateRef<ChannelDataRegistry>();
 	LoadFile(filepath);
 }
 
@@ -161,14 +161,20 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
         NVIZ_ERROR("File does not exist: {0}", filepath.string().c_str());
         return;
 	}
+    m_Source2DMap.clear();
+    m_Detector2DMap.clear();
+    m_Source3DMap.clear();
+    m_Detector3DMap.clear();
     m_Sources2D.clear();
     m_Detectors2D.clear();
     m_Sources3D.clear();
     m_Detectors3D.clear();
     //m_Landmarks.clear();
+    m_ChannelMap.clear();
     m_Channels.clear();
     m_Wavelengths.clear();
     m_ChannelData.resize(0, 0);
+    m_ChannelDataRegistry->Clear();
 
     m_Filepath = filepath;
     File file(filepath.string(), File::ReadOnly); //Utils::ParseHDF5(filepath.string());
@@ -205,6 +211,12 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
 
     using Map_RM = Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
+    NIRS::ProbeID source2D = 0;
+    NIRS::ProbeID source3D = 0;
+
+    NIRS::ProbeID detector2D = 0;
+    NIRS::ProbeID detector3D = 0;
+
     auto detectorPos2D = probe.getDataSet("detectorPos2D");
     {
         auto dims = detectorPos2D.getDimensions();
@@ -219,7 +231,9 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double x = row_vector(0);
             double y = row_vector(1);
 
-            m_Detectors2D.push_back({ glm::vec2(x, y), DETECTOR });
+            m_Detectors2D.push_back({ glm::vec2(x, y), DETECTOR, detector2D });
+			m_Detector2DMap[detector2D] = { glm::vec2(x, y), DETECTOR, detector2D };
+            detector2D++;
         }
     }
     auto detectorPos3D = probe.getDataSet("detectorPos3D"); 
@@ -237,7 +251,9 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double y = row_vector(1);
             double z = row_vector(2);
 
-            m_Detectors3D.push_back({ glm::vec3(x, z, y), DETECTOR });
+            m_Detectors3D.push_back({ glm::vec3(x, z, y), DETECTOR, detector3D });
+			m_Detector3DMap[detector3D] = { glm::vec3(x, z, y), DETECTOR, detector3D };
+            detector3D++;
         }
     }
 
@@ -251,11 +267,13 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
         for (int i = 0; i < detectors.rows(); i++) {
             auto row_vector = detectors.row(i);
 
-            // Process the data for the i-th detector
+            // Process the data for the i-th detectorc
             double x = row_vector(0);
             double y = row_vector(1);
 
-            m_Sources2D.push_back({ glm::vec2(x, y), SOURCE });
+            m_Sources2D.push_back({ glm::vec2(x, y), SOURCE, source2D });
+			m_Source2DMap[source2D] = { glm::vec2(x, y), SOURCE, source2D };
+            source2D++;
         }
     }
     auto sourcePos3D = probe.getDataSet("sourcePos3D"); 
@@ -273,7 +291,9 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             double y = row_vector(1);
             double z = row_vector(2);
 
-            m_Sources3D.push_back({ glm::vec3(x, z, y), SOURCE });
+            m_Sources3D.push_back({ glm::vec3(x, z, y), SOURCE, source3D });
+			m_Source3DMap[source3D] = { glm::vec3(x, z, y), SOURCE, source3D };
+            source3D++;
         }
     }
 
@@ -343,10 +363,18 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         m_ChannelData = Map_RM(nd_array.data(), dims[0], dims[1]).transpose();
 	}
 
+    // --- CREATES CHANNELS ---
+
+	// The first half is hbr, the second half is hbo
+    NVIZ_ASSERT((m_ChannelData.rows() % 2) == 0, "CHANNEL NUM MUST BE EVEN, NOT ODD");
+
 	std::string base_name = "measurementList";
-    for (size_t i = 1; i < m_ChannelData.rows() + 1; i++)
+    for (size_t i = 0; i < m_ChannelData.rows() / 2; i++)
     {
-		auto name = base_name + std::to_string(i);
+        int hbr_index = i;
+		int hbo_index = hbr_index + (m_ChannelData.rows() / 2);
+
+		auto name = base_name + std::to_string(i+1);
 
 		auto measurementList = data1.getGroup(name);
 
@@ -367,51 +395,45 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         measurementList.getDataSet("wavelengthIndex").read(wavelengthIndex);
         
 		NIRS::Channel channel;
-		channel.ID = i; // Hopefully this is fine? We shouldnt actually care about this ID, its just for us to identify channels internally
-		channel.SourceID = sourceIndex;
+		channel.ID = i; // As long as its unique this should be fine
+		channel.SourceID = sourceIndex; // These are 1-indexed, TODO : Fix 
 		channel.DetectorID = detectorIndex;
+       
+        { // Load HBR
+            auto channel_row = m_ChannelData.row(hbr_index);
+            std::vector<double> channel_data_vec(channel_row.size());
+            std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
+
+            std::vector<double> processed;
+            PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
+
+            channel.HBRDataIndex = m_ChannelDataRegistry->SubmitChannelData(channel_data_vec);
+        };
         
-        if (dataTypeIndex == -1) {
-            // Parse dataTypeLabel
-            if(dataTypeLabel == "HbO") {
-                channel.Wavelength = NIRS::WavelengthType::HBO;
-            }
-            else if (dataTypeLabel == "HbR") {
-                channel.Wavelength = NIRS::WavelengthType::HBR;
-            }
-            else if (dataTypeLabel == "HbT") {
-                channel.Wavelength = NIRS::WavelengthType::HBT;
-            }
-            else {
-                NVIZ_ERROR("Unknown dataTypeLabel: {0}", dataTypeLabel);
-                channel.Wavelength = NIRS::WavelengthType::HBR; // Default to something
-			}
-        }
-        else {
-            channel.Wavelength = NIRS::WavelengthType(wavelengthIndex - 1);
-        }
+        { // Load HBO
+            auto channel_row = m_ChannelData.row(hbo_index);
+            std::vector<double> channel_data_vec(channel_row.size());
+            std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
 
+            std::vector<double> processed;
+            PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
 
-        auto channel_row = m_ChannelData.row(i - 1);
-        std::vector<double> channel_data_vec(channel_row.size());
-        std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
-
-        std::vector<double> processed;
-        PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
-
-		channel.DataIndex = m_ChannelDataRegistry.SubmitChannelData(channel_data_vec);
+            channel.HBODataIndex = m_ChannelDataRegistry->SubmitChannelData(channel_data_vec);
+        };
 
 		m_Channels.push_back(channel);
+        m_ChannelMap[channel.ID] = channel;
+
         if (i == 1) {
             NVIZ_INFO("Measurement List : {0}", name);
-            NVIZ_INFO("    dataType        : {0}", dataType);
-            NVIZ_INFO("    dataTypeIndex   : {0}", dataTypeIndex);
-            NVIZ_INFO("    dataTypeLabel   : {0}", dataTypeLabel); // Either raw-DC, or conc or something else
-            NVIZ_INFO("Channel : ");
-            NVIZ_INFO("    Source ID     : {0}", channel.SourceID);
-            NVIZ_INFO("    Detector ID   : {0}", channel.DetectorID);
-            NVIZ_INFO("    Wavelength    : {0}", NIRS::WavelengthTypeToString(channel.Wavelength));
-            NVIZ_INFO("    Data          : {0}", channel.DataIndex);
+            NVIZ_INFO("    dataType         : {0}", dataType);
+            NVIZ_INFO("    dataTypeIndex    : {0}", dataTypeIndex);
+            NVIZ_INFO("    dataTypeLabel    : {0}", dataTypeLabel); // Either raw-DC, or conc or something else
+            NVIZ_INFO("    Channel          : ");
+            NVIZ_INFO("    Source ID        : {0}", channel.SourceID);
+            NVIZ_INFO("    Detector ID      : {0}", channel.DetectorID);
+            NVIZ_INFO("    HBO Data Index   : {0}", channel.HBODataIndex);
+            NVIZ_INFO("    HBR Data Index   : {0}", channel.HBRDataIndex);
         }
     }
 }

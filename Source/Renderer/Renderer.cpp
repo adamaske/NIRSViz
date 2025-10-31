@@ -82,6 +82,12 @@ void Renderer::ExecuteQueue()
 		shader->SetUniformMat4f("u_ProjectionMatrix", m_CurrentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
 
+		for (const auto& binding : command.TextureBindings)
+		{
+			// Assumes Texture::Bind calls glActiveTexture and glBindTexture
+			binding.TexturePtr->Bind(binding.Slot);
+		}
+
 		bool disableTextureBinding = false;
 		for (const auto& uniform : command.UniformCommands) {
 			switch (uniform.Type) {
@@ -110,8 +116,6 @@ void Renderer::ExecuteQueue()
 			case UniformDataType::SAMPLER2D:
 				shader->SetUniform1i(uniform.Name, uniform.Data.i1);
 
-				glActiveTexture(GL_TEXTURE0 + uniform.Data.i1); 
-				glBindTexture(GL_TEXTURE_1D, uniform.Data.i1);
 				disableTextureBinding = true;
 				break;
 
