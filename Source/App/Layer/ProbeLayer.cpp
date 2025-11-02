@@ -105,8 +105,6 @@ void ProbeLayer::OnImGuiRender()
 	if (ImGui::Button("Project To Cortex")) {
 		ProjectChannelsToCortex();
 
-		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
-		EventBus::Instance().Publish<OnProjectHemodynamicsToCortex>({ true });
 	}
 	ImGui::SeparatorText("Render Settings");
 	ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
@@ -393,18 +391,15 @@ void ProbeLayer::UpdateChannelVisuals()
 
 void ProbeLayer::ProjectChannelsToCortex()
 {
-	auto& app = Application::Get();
-	auto coordinator = app.GetECSCoordinator();
-
-	auto cortex = AssetManager::Get<Cortex>("Cortex");
+	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	if(!cortex){
 		NVIZ_WARN("ProbeLayer: No Cortex asset loaded for projection.");
 		return;
 	}
 
-	auto vertices = cortex->Mesh->GetVertices();
-	auto indices = cortex->Mesh->GetIndices();
-	auto world_transform = cortex->Transform->GetMatrix(); // Get world space coordiantes
+	auto vertices = cortex->GetMesh()->GetVertices();
+	auto indices = cortex->GetMesh()->GetIndices();
+	auto world_transform = cortex->GetTransform()->GetMatrix(); // Get world space coordiantes
 	std::vector<glm::vec3> world_space_vertices(vertices.size());
 	for (size_t i = 0; i < vertices.size(); i++)
 	{
@@ -448,6 +443,10 @@ void ProbeLayer::ProjectChannelsToCortex()
 	}
 
 	UpdateHitDataTexture();
+
+
+	EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
+	EventBus::Instance().Publish<OnProjectHemodynamicsToCortex>({ true });
 }
 
 void ProbeLayer::InitHitDataTexture()

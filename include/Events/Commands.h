@@ -14,11 +14,11 @@ struct ExitApplicationCommand {
 struct OnSNIRFLoaded {
 };
 
-struct HeadAnatomyLoadedEvent {
+struct OnHeadAnatomyLoaded {
 
 };
 
-struct CortexAnatomyLoadedEvent {
+struct OnCortexAnatomyLoaded {
 
 };
 
@@ -29,7 +29,7 @@ struct OnProjectHemodynamicsToCortex {
 };
 
 // --- ATLAS ---
-struct CoordinateSystemGenerated {
+struct OnCoordinateSystemGenerated {
 
 	// No additional data needed for this command
 };

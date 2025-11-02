@@ -9,17 +9,14 @@
 #include <map>
 
 namespace NIRS {
-
-    
-
     // --- Defintions ---
-    static glm::vec4 SourceColor = glm::vec4(1.0f, 0.2f, 0.2f, 1.0f);
-    static glm::vec4 DetectorColor = glm::vec4(0.2f, 0.2f, 1.0f, 1.0f);
-
     using ProbeID = uint32_t;
 	using ChannelID = uint32_t;
     using ChannelDataID = uint32_t;
     using ChannelValue = double;
+
+    static glm::vec4 SourceColor = glm::vec4(1.0f, 0.2f, 0.2f, 1.0f);
+    static glm::vec4 DetectorColor = glm::vec4(0.2f, 0.2f, 1.0f, 1.0f);
 
     struct Line {
         glm::vec3 Start;

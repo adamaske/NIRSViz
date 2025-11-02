@@ -13,7 +13,9 @@
 
 #include "NIRS/NIRS.h"
 
-class Cortex;
+namespace NIRS {
+	class Cortex;
+}
 
 struct ProjectionVertex{
 	glm::vec3 Position;
@@ -62,7 +64,7 @@ private:
 	NIRS::ProjectionSettings m_WorldSpaceProjectionSettings;
 	Ref<Shader> m_ProjectionShader = nullptr;
 
-	Ref<Cortex> m_Cortex = nullptr;
+	NIRS::Cortex* m_Cortex = nullptr;
 
 	ProjectionMode m_ProjectionMode = VERTEX_BASED;
 

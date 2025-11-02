@@ -10,6 +10,8 @@
 
 #include "App/Layer/AtlasLayer.h" // TOOD : Move Head and Crotex structs to own header
 
+#include "NIRS/Anatomy/AnatomyManager.h"
+
 FileLayer::FileLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
@@ -20,36 +22,6 @@ FileLayer::~FileLayer()
 
 void FileLayer::OnAttach()
 {
-	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
-	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
-	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
-
-	// HEAD ANATOMY
-	Head head;
-	head.Mesh = CreateRef<Mesh>(headFilepath);
-	head.Transform = CreateRef<Transform>();
-	head.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(head.Mesh.get(), glm::mat4(1.0f)));
-
-	head.MeshFilepath = headFilepath;
-
-	AssetManager::Register<Head>("Head", CreateRef<Head>(head));
-	EventBus::Instance().Publish<HeadAnatomyLoadedEvent>({ });
-
-	// CORTEX ANATOMY
-	Cortex cortex;
-	cortex.Mesh = CreateRef<Mesh>(cortexFilepath);
-	cortex.Transform = CreateRef<Transform>();
-	cortex.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(cortex.Mesh.get(), glm::mat4(1.0f)));
-	cortex.MeshFilepath = cortexFilepath;
-
-	AssetManager::Register<Cortex>("Cortex", CreateRef<Cortex>(cortex));
-	EventBus::Instance().Publish<CortexAnatomyLoadedEvent>({});
-
-
-	// SNIRF
-	Ref<SNIRF> snirf = CreateRef<SNIRF>(snirfFilepath);
-	AssetManager::Register<SNIRF>("SNIRF", snirf);
-	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
 void FileLayer::OnDetach()
@@ -77,26 +49,12 @@ void FileLayer::RenderMenuBar()
 {
 	if (ImGui::BeginMenu("File")) {
 
+		if(ImGui::MenuItem("Open fNIRS file")) LoadSNIRFFile();
 
+		if (ImGui::MenuItem("Open Head Anatomy")) LoadHeadAnatomy();
+		if (ImGui::MenuItem("Open Cortex Anatomy")) LoadCortexAnatomy();
 
-		if(ImGui::MenuItem("Open fNIRS file")) {
-			// On Load SNIRF File
-			LoadSNIRFFile();
-		}
-		if (ImGui::MenuItem("Open Head Anatomy")) {
-			// On Load SNIRF File
-			LoadHeadAnatomy();
-		}
-		if (ImGui::MenuItem("Open Cortex Anatomy")) {
-			// On Load SNIRF File
-			LoadCortexAnatomy();
-		}
-
-		if (ImGui::MenuItem("Exit")) {
-
-			// On Exit
-			EventBus::Instance().Publish<ExitApplicationCommand>({});
-		}
+		if (ImGui::MenuItem("Exit")) EventBus::Instance().Publish<ExitApplicationCommand>({});
 
 		ImGui::EndMenu();
 	}
@@ -104,8 +62,16 @@ void FileLayer::RenderMenuBar()
 
 void FileLayer::PostInit()
 {
-	
 
+	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
+	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
+	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
+
+	NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
+	NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
+
+	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(snirfFilepath)));
+	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
 void FileLayer::LoadSNIRFFile()
@@ -136,7 +102,6 @@ void FileLayer::LoadSNIRFFile()
 
 void FileLayer::LoadHeadAnatomy()
 {
-
 	char filePath[MAX_PATH] = "";
 
 	OPENFILENAMEA ofn;
@@ -152,21 +117,11 @@ void FileLayer::LoadHeadAnatomy()
 
 	if (!GetOpenFileNameA(&ofn)) return;
 
-	Head head;
-
-	head.Mesh = CreateRef<Mesh>(std::string(filePath));
-	head.Transform = CreateRef<Transform>();
-	head.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(head.Mesh.get(), glm::mat4(1.0f)));
-
-	head.MeshFilepath = std::string(filePath);
-
-	AssetManager::Register<Head>("Head", CreateRef<Head>(head));
-	EventBus::Instance().Publish<HeadAnatomyLoadedEvent>({ });
+	NIRS::AnatomyManager::Instance().LoadHead(std::string(filePath));
 }
 
 void FileLayer::LoadCortexAnatomy()
 {
-
 	char filePath[MAX_PATH] = "";
 
 	OPENFILENAMEA ofn;
@@ -182,12 +137,5 @@ void FileLayer::LoadCortexAnatomy()
 
 	if (!GetOpenFileNameA(&ofn)) return;
 
-	Cortex cortex;
-	cortex.Mesh = CreateRef<Mesh>(std::string(filePath));
-	cortex.Transform = CreateRef<Transform>();
-	cortex.Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(cortex.Mesh.get(), glm::mat4(1.0f)));
-	cortex.MeshFilepath = std::string(filePath);
-
-	AssetManager::Register<Cortex>("Cortex", CreateRef<Cortex>(cortex));
-	EventBus::Instance().Publish<CortexAnatomyLoadedEvent>({});
+	NIRS::AnatomyManager::Instance().LoadCortex(std::string(filePath));
 }

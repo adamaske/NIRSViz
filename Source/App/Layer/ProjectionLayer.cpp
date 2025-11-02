@@ -9,6 +9,7 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportManager.h"
 
+#include "NIRS/Anatomy/AnatomyManager.h"
 
 namespace Utils {
 
@@ -73,16 +74,17 @@ void ProjectionLayer::OnAttach(){
 	AssetManager::Register<NIRS::ProjectionData>("ProjectionData", CreateRef<NIRS::ProjectionData>());
 
 	EventBus::Instance().Subscribe<OnProjectHemodynamicsToCortex>([this](const OnProjectHemodynamicsToCortex& event) {
-		auto head = AssetManager::Get<Head>("Head");
-		auto cortex = AssetManager::Get<Cortex>("Cortex");
+		auto head = NIRS::AnatomyManager::Instance().GetHead();
+		auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 
 		m_IsProjecting = event.Enabled;
-		head->Draw = !event.Enabled;
-		cortex->Draw = !event.Enabled;
+
+		head->SetVisible(!event.Enabled);
+		cortex->SetVisible(!event.Enabled);
 	});
 
-	EventBus::Instance().Subscribe<CortexAnatomyLoadedEvent>([this](const CortexAnatomyLoadedEvent& event) {
-		m_Cortex = AssetManager::Get<Cortex>("Cortex");
+	EventBus::Instance().Subscribe<OnCortexAnatomyLoaded>([this](const OnCortexAnatomyLoaded& event) {
+		m_Cortex = NIRS::AnatomyManager::Instance().GetCortex();
 
 		SetupVertexBasedProjection(); // Ready the mesh for vertex-based projection
 	});
@@ -210,9 +212,9 @@ void ProjectionLayer::RenderWorldSpaceMode()
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_ProjectionShader.get();
-	cmd.VAOPtr = m_Cortex->Mesh->GetVAO().get();
+	cmd.VAOPtr = m_Cortex->GetMesh()->GetVAO().get();
 	cmd.ViewTargetID = MAIN_VIEWPORT;
-	cmd.Transform = m_Cortex->Transform->GetMatrix();
+	cmd.Transform = m_Cortex->GetTransform()->GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	cmd.UniformCommands = { lightPos, objectColor };
@@ -230,8 +232,8 @@ void ProjectionLayer::RenderWorldSpaceMode()
 void ProjectionLayer::SetupVertexBasedProjection()
 { 
 	// A new Cortex mesh is loaded, we need to setup the buffers for vertex-based projection
-	auto vertices = m_Cortex->Mesh->GetVertices();
-	auto indices = m_Cortex->Mesh->GetIndices();
+	auto vertices = m_Cortex->GetMesh()->GetVertices();
+	auto indices = m_Cortex->GetMesh()->GetIndices();
 
 	// Create projection vertices 
 	m_VertexModeProjectionVertices.resize(vertices.size());
@@ -323,7 +325,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.ViewTargetID = MAIN_VIEWPORT;
-	m_VertexModeRenderCmd.Transform = m_Cortex->Transform->GetMatrix();
+	m_VertexModeRenderCmd.Transform = m_Cortex->GetTransform()->GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 }
 
@@ -358,7 +360,7 @@ void ProjectionLayer::RenderVertexMode()
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.ViewTargetID = MAIN_VIEWPORT;
-	m_VertexModeRenderCmd.Transform = m_Cortex->Transform->GetMatrix();
+	m_VertexModeRenderCmd.Transform = m_Cortex->GetTransform()->GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 	m_VertexModeRenderCmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
 	Renderer::Submit(m_VertexModeRenderCmd);

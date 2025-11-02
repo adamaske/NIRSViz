@@ -59,13 +59,15 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	m_ChannelSelectorLayer = CreateRef<ChannelSelectorLayer>(settingsEntity);
 
 	PushOverlay(m_ImGuiLayer.get());
+	PushLayer(m_FileLayer.get());
 	PushLayer(m_MainViewportLayer.get());
 	PushLayer(m_ProbeLayer.get());
 	PushLayer(m_AtlasLayer.get());
 	PushLayer(m_PlottingLayer.get());
 	PushLayer(m_ProjectionLayer.get());
 	PushLayer(m_ChannelSelectorLayer.get());
-	PushLayer(m_FileLayer.get());
+
+	m_FileLayer->PostInit();
 }
 
 Application::~Application()

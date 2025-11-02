@@ -45,9 +45,6 @@ public:
 
 	void HandleSNIRFLoaded();
 
-	void DrawBackground();
-	void DrawSourcesAndDetectors();
-	void DrawChannels();
 private:
 	Ref<Framebuffer> m_Framebuffer = nullptr;
 	Ref<OrthogonalCamera> m_OrthoCamera = nullptr;
@@ -83,5 +80,18 @@ private:
 	glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 	glm::vec2 m_ViewportBounds[2];
 
+	std::vector<RenderCommand> m_BackgroundRenderCommands = {};
+	std::vector<RenderCommand> m_SourceRenderCommands = {};
+	std::vector<RenderCommand> m_DetectorRenderCommands = {};
+	std::vector<RenderCommand> m_ChannelRenderCommands = {};
 
+	void GenerateSourceRenderCommands();
+	void GenerateDetectorRenderCommands();
+	void GenerateChannelRenderCommands();
+	void GenerateBackgroundRenderCommands();
+
+
+	void DrawBackground();
+	void DrawSourcesAndDetectors();
+	void DrawChannels();
 };

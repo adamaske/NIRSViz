@@ -49,6 +49,7 @@ void ChannelSelectorLayer::OnAttach()
 
 	m_QuadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/plane.obj");
 	m_PlateMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/plate.obj");
+
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e){
 		this->HandleSNIRFLoaded();
 	});
@@ -60,9 +61,8 @@ void ChannelSelectorLayer::OnDetach()
 
 void ChannelSelectorLayer::OnUpdate(float dt)
 {
-	auto camera = ViewportManager::GetViewport("ChannelSelectorViewport").CameraPtr;
-	camera->UpdateProjectionMatrix();
-	camera->UpdateViewMatrix();
+	m_OrthoCamera->UpdateProjectionMatrix();
+	m_OrthoCamera->UpdateViewMatrix();
 
 	DrawBackground();
 	DrawSourcesAndDetectors();
@@ -238,10 +238,134 @@ void ChannelSelectorLayer::HandleSNIRFLoaded()
 		m_SelectedChannels.push_back(ID); // Select all channels by default
 		NVIZ_INFO("Channel: {}, Source {} Detector {} Wavelength {}", ID, channel.SourceID, channel.DetectorID, 0);
 	}
+
+	GenerateBackgroundRenderCommands();
+	GenerateSourceRenderCommands();
+	GenerateDetectorRenderCommands();
+	GenerateChannelRenderCommands();
 }
 
-void ChannelSelectorLayer::DrawBackground()
+
+void ChannelSelectorLayer::GenerateSourceRenderCommands()
 {
+	m_SourceRenderCommands.clear();
+
+	RenderCommand cmd;
+	cmd.ShaderPtr = m_TextureShader.get();
+	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.VAOPtr = m_PlateMesh->GetVAO().get();
+	cmd.Mode = DRAW_ELEMENTS;
+
+	TextureBinding texBind;
+	texBind.Slot = 0;
+	texBind.TexturePtr = m_SourceTexture.get();
+	cmd.TextureBindings = { texBind };
+
+	UniformData texUnifrom;
+	texUnifrom.Type = UniformDataType::SAMPLER2D;
+	texUnifrom.Name = "u_Texture";
+	texUnifrom.Data.i1 = 0;
+
+	UniformData id;
+	id.Name = "u_ID";
+	id.Type = UniformDataType::INT1;
+
+	for (auto& [ID, source] : m_Sources) {
+		auto pos = glm::vec3(-source.Position.x, source.Position.y, 0.0f) * (m_GridScale * 0.1f);
+		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
+
+		id.Data.i1 = source.ID + SOURCE_OFFSET;
+		cmd.UniformCommands = { texUnifrom, id };
+
+		m_SourceRenderCommands.push_back(cmd);
+	}
+}
+
+void ChannelSelectorLayer::GenerateDetectorRenderCommands()
+{
+	m_DetectorRenderCommands.clear();
+
+	RenderCommand cmd;
+	cmd.ShaderPtr = m_TextureShader.get();
+	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.VAOPtr = m_PlateMesh->GetVAO().get();
+	cmd.Mode = DRAW_ELEMENTS;
+
+	TextureBinding texBind;
+	texBind.Slot = 0;
+	texBind.TexturePtr = m_DetectorTexture.get();
+	cmd.TextureBindings = { texBind };
+
+	UniformData texUnifrom;
+	texUnifrom.Type = UniformDataType::SAMPLER2D;
+	texUnifrom.Name = "u_Texture";
+	texUnifrom.Data.i1 = 0;
+
+	UniformData id;
+	id.Name = "u_ID";
+	id.Type = UniformDataType::INT1;
+
+	for (auto& [ID, source] : m_Detectors) {
+		auto pos = glm::vec3(-source.Position.x, source.Position.y, 0.0f) * (m_GridScale * 0.1f);
+		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
+
+		id.Data.i1 = source.ID + DETECTOR_OFFSET;
+		cmd.UniformCommands = { texUnifrom, id };
+
+		m_DetectorRenderCommands.push_back(cmd);
+	}
+}
+
+void ChannelSelectorLayer::GenerateChannelRenderCommands()
+{
+	m_ChannelRenderCommands.clear();
+
+	RenderCommand cmd;
+	cmd.ShaderPtr = m_TextureShader.get();
+	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.VAOPtr = m_QuadMesh->GetVAO().get();
+	cmd.Mode = DRAW_ELEMENTS;
+
+	TextureBinding texBind;
+	texBind.Slot = 2;
+	texBind.TexturePtr = m_ChannelTexture.get();
+	cmd.TextureBindings = { texBind };
+
+	UniformData texUnifrom;
+	texUnifrom.Type = UniformDataType::SAMPLER2D;
+	texUnifrom.Name = "u_Texture";
+	texUnifrom.Data.i1 = 2;
+
+	UniformData id;
+	id.Name = "u_ID";
+	id.Type = UniformDataType::INT1;
+
+	for (auto& [ID, channel] : m_Channels) {
+		auto visual = m_ChannelVisuals[ID];
+
+		glm::vec3 startPos = visual.Start * (m_GridScale * 0.1f);
+		glm::vec3 endPos = visual.End * (m_GridScale * 0.1f);
+		glm::vec3 centerPos = (startPos + endPos) / 2.0f;
+		glm::vec3 dir = endPos - startPos;
+		float length = glm::length(dir);
+		float angle = atan2(dir.y, dir.x);
+
+		cmd.Transform = glm::translate(glm::mat4(1.0f), centerPos) *
+			glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 0, 1)) *
+			glm::scale(glm::mat4(1.0f), glm::vec3(length, m_ChannelWidth, 1.0f));
+
+
+		id.Data.i1 = ID + CHANNEL_OFFSET;
+		cmd.UniformCommands = { texUnifrom, id };
+
+		m_ChannelRenderCommands.push_back(cmd);
+	}
+}
+
+void ChannelSelectorLayer::GenerateBackgroundRenderCommands()
+{
+	m_BackgroundRenderCommands.clear();
+
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
 	cmd.ViewTargetID = CHANNEL_SELECTOR;
@@ -258,124 +382,51 @@ void ChannelSelectorLayer::DrawBackground()
 	texUnifrom.Type = UniformDataType::SAMPLER2D;
 	texUnifrom.Name = "u_Texture";
 	texUnifrom.Data.i1 = 3;
+
 	UniformData id;
 	id.Name = "u_ID";
 	id.Type = UniformDataType::INT1;
 	id.Data.i1 = BACKGROUND_ID;
+
 	cmd.UniformCommands = { texUnifrom, id };
 
-	Renderer::Submit(cmd);
+	m_BackgroundRenderCommands.push_back(cmd);
+}
+
+void ChannelSelectorLayer::DrawBackground()
+{
+	for (auto& cmd : m_BackgroundRenderCommands) {
+		Renderer::Submit(cmd);
+	}
 }
 
 void ChannelSelectorLayer::DrawSourcesAndDetectors()
 {
+	for (auto& cmd : m_SourceRenderCommands)
+	{
+		Renderer::Submit(cmd);
+	}
+	for (auto& cmd : m_DetectorRenderCommands)
+	{
+		Renderer::Submit(cmd);
+	}
+
+	// The user needs to be able to 
 	glm::vec3 centerSum(0.0f);
 	// 1. Sum up all source positions
 	for (auto& [ID, source] : m_Sources) {
 		centerSum += glm::vec3(source.Position.x, source.Position.y, 0);
 	}
-	glm::vec3 centerPos = centerSum / (float)m_Sources.size(); 
+	glm::vec3 centerPos = centerSum / (float)m_Sources.size();
 	centerPos = glm::vec3(-centerPos.x, centerPos.y, 0.0f) * (m_GridScale * 0.1f);
 
 	m_OrthoCamera->SetPosition(glm::vec3(centerPos.x, centerPos.y, -10.0f));
-
-	for (auto& [ID, source] : m_Sources) {
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_TextureShader.get();
-		cmd.ViewTargetID = CHANNEL_SELECTOR;
-		auto pos = glm::vec3(source.Position.x, source.Position.y, 0.0f) * (m_GridScale * 0.1f);
-		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
-		cmd.VAOPtr = m_PlateMesh->GetVAO().get();
-		cmd.Mode = DRAW_ELEMENTS;
-
-		TextureBinding texBind;
-		texBind.Slot = 0;
-		texBind.TexturePtr = m_SourceTexture.get();
-		cmd.TextureBindings = { texBind };
-
-		UniformData texUnifrom;
-		texUnifrom.Type = UniformDataType::SAMPLER2D;
-		texUnifrom.Name = "u_Texture";
-		texUnifrom.Data.i1 = 0;
-		UniformData id;
-		id.Name = "u_ID";
-		id.Type = UniformDataType::INT1;
-		id.Data.i1 = source.ID + SOURCE_OFFSET;
-		cmd.UniformCommands = { texUnifrom, id };
-
-		Renderer::Submit(cmd);
-	}
-
-	// Draw Detectors
-	for (auto& [ID, detector] : m_Detectors) {
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_TextureShader.get();
-		cmd.ViewTargetID = CHANNEL_SELECTOR;
-		auto pos = glm::vec3(detector.Position.x, detector.Position.y, 0.0f) * (m_GridScale * 0.1f);
-		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
-		cmd.VAOPtr = m_PlateMesh->GetVAO().get();
-		cmd.Mode = DRAW_ELEMENTS;
-
-		TextureBinding texBind;
-		texBind.Slot = 1;
-		texBind.TexturePtr = m_DetectorTexture.get();
-		cmd.TextureBindings = { texBind };
-
-		UniformData texUnifrom;
-		texUnifrom.Type = UniformDataType::SAMPLER2D;
-		texUnifrom.Name = "u_Texture";
-		texUnifrom.Data.i1 = 1;
-		UniformData id;
-		id.Name = "u_ID";
-		id.Type = UniformDataType::INT1;
-		id.Data.i1 = detector.ID + DETECTOR_OFFSET;
-		cmd.UniformCommands = { texUnifrom, id };
-
-		Renderer::Submit(cmd);
-	}
-
-	// Position the camera above the center of the sources and detectors
-	// Find the center
-	// m_OrthoCamera->SetPosition(glm::vec3(centerPos.x, centerPos.y, -10.0f));
 }
 
 void ChannelSelectorLayer::DrawChannels()
 {
-
-	for (auto& [ID, channel] : m_Channels) {
-		auto visual = m_ChannelVisuals[ID];
-
-		glm::vec3 startPos = visual.Start * (m_GridScale * 0.1f);
-		glm::vec3 endPos = visual.End * (m_GridScale * 0.1f);
-		glm::vec3 centerPos = (startPos + endPos) / 2.0f;
-		glm::vec3 dir = endPos - startPos;
-		float length = glm::length(dir);
-		float angle = atan2(dir.y, dir.x);
-
-		RenderCommand cmd;
-		cmd.ShaderPtr = m_TextureShader.get();
-		cmd.ViewTargetID = CHANNEL_SELECTOR;
-		cmd.Transform = glm::translate(glm::mat4(1.0f), centerPos) *
-						glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 0, 1)) *
-						glm::scale(glm::mat4(1.0f), glm::vec3(length, m_ChannelWidth, 1.0f));
-
-		cmd.VAOPtr = m_QuadMesh->GetVAO().get();
-		cmd.Mode = DRAW_ELEMENTS;
-
-		TextureBinding texBind;
-		texBind.Slot = 2;
-		texBind.TexturePtr = m_ChannelTexture.get();
-		cmd.TextureBindings = { texBind };
-		UniformData texUnifrom;
-		texUnifrom.Type = UniformDataType::SAMPLER2D;
-		texUnifrom.Name = "u_Texture";
-		texUnifrom.Data.i1 = 2;
-		UniformData id;
-		id.Name = "u_ID";
-		id.Type = UniformDataType::INT1;
-		id.Data.i1 = ID + CHANNEL_OFFSET;
-		cmd.UniformCommands = { texUnifrom, id };
+	for (auto& cmd : m_ChannelRenderCommands)
+	{
 		Renderer::Submit(cmd);
 	}
-
 }
