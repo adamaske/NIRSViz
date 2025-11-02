@@ -61,6 +61,10 @@ void ChannelSelectorLayer::OnDetach()
 
 void ChannelSelectorLayer::OnUpdate(float dt)
 {
+	if (!m_InitalSelection) {
+		SelectAllChannels(); 
+		m_InitalSelection = true;
+	}
 	m_OrthoCamera->UpdateProjectionMatrix();
 	m_OrthoCamera->UpdateViewMatrix();
 
@@ -75,33 +79,26 @@ void ChannelSelectorLayer::OnRender()
 
 void ChannelSelectorLayer::OnImGuiRender()
 {
-	ImGui::Begin("Channel Selector Settings");
-	ImGui::SliderFloat("Grid Scale", &m_GridScale, 0.01f, 10.0f);
-	ImGui::SliderFloat("Plate Size", &m_PlateSize, 0.1f, 10.0f);
-	ImGui::SliderFloat("Channel Width", &m_ChannelWidth, 0.01f, 1.0f);
-	ImGui::SeparatorText("Camera Settings");
-	ImGui::Text("Use Mouse Scroll to Zoom In/Out");
-	ImGui::Text("Use Right Click to Select Channel");
-	m_OrthoCamera->OnImGuiRender(false);
-
-	ImGui::End();
-
-
+	
 	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
+	
 	ImGui::Begin("Channel Selector");
 
-	if (ImGui::Button("Select All")) {
-		m_SelectedChannels.clear();
-		for (auto& [ID, channel] : m_Channels) {
-			m_SelectedChannels.push_back(ID);
-		}
-		EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
+	if (ImGui::CollapsingHeader("Settings")) {
+
+		ImGui::SliderFloat("Grid Scale", &m_GridScale, 0.01f, 10.0f);
+		ImGui::SliderFloat("Plate Size", &m_PlateSize, 0.1f, 10.0f);
+		ImGui::SliderFloat("Channel Width", &m_ChannelWidth, 0.01f, 1.0f);
+		ImGui::SeparatorText("Camera Settings");
+		ImGui::Text("Use Mouse Scroll to Zoom In/Out");
+		ImGui::Text("Use Right Click to Select Channel");
+		m_OrthoCamera->OnImGuiRender(false);
 	}
+
+	if (ImGui::Button("Select All")) SelectAllChannels(); 
 	ImGui::SameLine();
-	if(ImGui::Button("Select None")) {
-		m_SelectedChannels.clear();
-		EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
-	}
+	if (ImGui::Button("Select None")) ClearSelection();
+
 
 	auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
 	auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
@@ -243,8 +240,22 @@ void ChannelSelectorLayer::HandleSNIRFLoaded()
 	GenerateSourceRenderCommands();
 	GenerateDetectorRenderCommands();
 	GenerateChannelRenderCommands();
+
 }
 
+void ChannelSelectorLayer::SelectAllChannels()
+{
+	m_SelectedChannels.clear();
+	for (auto& [ID, channel] : m_Channels) {
+		m_SelectedChannels.push_back(ID);
+	}
+	EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
+}
+void ChannelSelectorLayer::ClearSelection()
+{
+	m_SelectedChannels.clear();
+	EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
+}
 
 void ChannelSelectorLayer::GenerateSourceRenderCommands()
 {

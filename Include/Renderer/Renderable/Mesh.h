@@ -37,6 +37,10 @@ public:
 
 	const std::vector<Vertex> GetVertices() { return m_Vertices; };
 	const std::vector<unsigned int> GetIndices() { return m_Indices; };
+
+	int GetVertexCount() const { return m_VertexCount; };
+	int GetIndexCount() const { return m_IndexCount; };
+
 private:
 	Ref<VertexArray> m_VAO;
 	Ref<VertexBuffer> m_VBO;
@@ -44,5 +48,8 @@ private:
 
 	std::vector<Vertex> m_Vertices;
 	std::vector<unsigned int> m_Indices;
+
+	int m_VertexCount;
+	int m_IndexCount;
 
 };

@@ -27,6 +27,9 @@ namespace NIRS {
 														const std::vector<unsigned int>& pathIndices, 
 														float percentage)
 	{
+		if (percentage == 0.0f) return vertices[pathIndices.front()];
+		if (percentage == 1.0f) return vertices[pathIndices.back()];
+
 		auto cumulativeDistances = CalculateCumulativeDistances(vertices, pathIndices);
 		auto totalDistance = cumulativeDistances.back();
 

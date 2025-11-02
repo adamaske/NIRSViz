@@ -2,11 +2,13 @@
 #include "App/Layer/PlottingLayer.h"
 
 #include <imgui.h>
-
 #include <implot.h>
 #include <implot_internal.h>
+
 #include "Core/AssetManager.h"
 #include "Events/EventBus.h"
+
+#include "GUI/GUI.h"
 
 PlottingLayer::PlottingLayer(const EntityID& settingsID) : Layer(settingsID)
 {
@@ -45,23 +47,11 @@ void PlottingLayer::OnImGuiRender()
 {
 	if (m_EditingProcessingStream) EditProcessingStream();
 
-	ImGui::Begin("Plotting");
-	ImGui::Text("Loaded SNIRF file : %s", m_SNIRF->GetFilepath().c_str());
+	ImGui::Begin("Data Plotter");
+	if (ImGui::CollapsingHeader("SNIRF File Info")) NIRS::RenderSNIRFInfo(m_SNIRF.get());
 
 	ImGui::Separator(); 
-	ImGui::Text("Wavelength : ");
-	if(ImGui::RadioButton("HbO", m_PlottingWavelength == HBO_ONLY)) {
-		m_PlottingWavelength = HBO_ONLY; 
-	}
-	ImGui::SameLine();
-	if (ImGui::RadioButton("HbR", m_PlottingWavelength == HBR_ONLY)) {
-		m_PlottingWavelength = HBR_ONLY;
-	}
-	ImGui::SameLine();
-	if (ImGui::RadioButton("HbO & HbR", m_PlottingWavelength == HBO_AND_HBR)) {
-		m_PlottingWavelength = HBO_AND_HBR;
-		
-	}
+	RenderWavelengthSelector();
 	ImGui::Separator();
 	
 	auto fs = m_SNIRF->GetSamplingRate();
@@ -183,6 +173,25 @@ void PlottingLayer::EditProcessingStream()
 
 
 	ImGui::End();
+}
+
+void PlottingLayer::RenderWavelengthSelector()
+{
+
+	ImGui::Text("Wavelength : ");
+	ImGui::SameLine();
+	if (ImGui::RadioButton("HbO", m_PlottingWavelength == HBO_ONLY)) {
+		m_PlottingWavelength = HBO_ONLY;
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("HbR", m_PlottingWavelength == HBR_ONLY)) {
+		m_PlottingWavelength = HBR_ONLY;
+	}
+	ImGui::SameLine();
+	if (ImGui::RadioButton("HbO & HbR", m_PlottingWavelength == HBO_AND_HBR)) {
+		m_PlottingWavelength = HBO_AND_HBR;
+	}
+
 }
 
 void PlottingLayer::RenderMenuBar()

@@ -40,6 +40,9 @@ Window::Window(const WindowSpecification& spec)
 	glfwSetWindowUserPointer(m_Window, &m_Data);
 	SetVSync(true);
 
+
+	glfwMaximizeWindow(m_Window);
+
 	glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);

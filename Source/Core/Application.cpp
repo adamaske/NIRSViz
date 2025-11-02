@@ -25,8 +25,8 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 
 	WindowSpecification window_spec;
 	window_spec.title = spec.Name;
-	window_spec.width = 1920;
-	window_spec.height = 1080;
+	window_spec.width = 1280;
+	window_spec.height = 720;
 	window_spec.resizeable = true;
 	window_spec.vsync = true;
 

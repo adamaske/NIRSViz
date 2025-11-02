@@ -40,6 +40,8 @@ public:
 	void SetChannelValuesAtTimeIndex(int index);
 
 	void EditProcessingStream();
+
+	void RenderWavelengthSelector();
 private:
 	Ref<SNIRF> m_SNIRF;
 	

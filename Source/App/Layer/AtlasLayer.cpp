@@ -2,8 +2,12 @@
 #include "App/Layer/AtlasLayer.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
+
 #include <glm/geometric.hpp>
 #include "glm/gtx/string_cast.hpp"
+#include <misc/cpp/imgui_stdlib.h>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <Core/Application.h>
 #include "Core/AssetManager.h"
@@ -15,6 +19,8 @@
 #include "App/Data/Raycast.h"
 
 #include "Events/EventBus.h"
+
+#include "GUI/GUI.h"
 
 namespace Utils {
 	
@@ -42,7 +48,6 @@ namespace Utils {
 		}
 		return tokens;
 	}
-
 }
 
 
@@ -139,27 +144,22 @@ void AtlasLayer::OnImGuiRender()
 	ImGui::Begin("Atlas Settings");
 
 	RenderHeadSettings();
+	ImGui::Separator();
+
 	RenderCortexSettings();
+	ImGui::Separator();
+	
 
 	ImGui::Separator();
-	auto* head = NIRS::AnatomyManager::Instance().GetHead();
-	auto coordSystem = m_CoordController->GetCoordinateSystem();
-
-	std::string text = "Generated Landmarks: ";
-	text = text + (coordSystem.IsGenerated() ? "Success" : "Failure");
-	if (head) ImGui::Text(text.c_str());
-
-	if (ImGui::Button("Generate 10-20 Coordinate System")) {
-		
-		if (head) {
-			m_CoordController->GenerateCoordinateSystem(head);
-
-		}
-	}
+	ImGui::Checkbox("Draw Waypoints", &m_DrawWaypoints);
+	ImGui::ColorEdit4("Waypoint Color", &m_WaypointRenderer->GetPointColor()[0], 0);
+	ImGui::SliderFloat("Waypoint Size", &m_WaypointRenderer->GetPointSize(), 0.0f, 20.0f);
+	ImGui::Separator();
 
 	RenderCoordinateSystemSettings();
 	RenderManualLandmarkSettings();
 	RenderLandmarkSettings();
+	
 	RenderVisualizationSettings();
 
 	ImGui::End();
@@ -234,52 +234,41 @@ void AtlasLayer::RenderMenuBar()
 
 void AtlasLayer::RenderHeadSettings() {
 
-	auto* head = NIRS::AnatomyManager::Instance().GetHead();
-	ImGui::Checkbox("Draw Head Anatomy", &head->IsVisible());
-	if (ImGui::CollapsingHeader("Head Anatomy Settings")) {
-		ImGui::SliderFloat("Head Opacity", &head->GetOpacity(), 0.0f, 1.0f);
-		ImGui::Text("Position");
-		ImGui::Text("Rotation");
-		ImGui::Text("Scale");
-	}
+	auto head = NIRS::AnatomyManager::Instance().GetHead();
+	if (!head) return;
 
+	NIRS::RenderAnatomySettings(head, "Head", "Head Anatomy Settings", false);
 }
 
 namespace Utils {
 
-	static glm::vec3 CortexRotationAxis = { 0,1,0 };
-	static float CortexRotationAngleStep = 10;
 	static glm::vec3 HeadRotationAxis = { 0,1,0 };
 	static float HeadRotationAngleStep = 10;
 }
 
 void AtlasLayer::RenderCortexSettings() {
 
-	auto* cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	if (!cortex || !cortex->IsVisible()) return;
-	ImGui::Checkbox("Draw Brain Anatomy", &cortex->IsVisible());
-	
-	if(ImGui::CollapsingHeader("Cortex Transform Settings")) {
-		ImGui::DragFloat3("Position", &cortex->GetTransform()->GetPosition()[0], 0.1f, -100.0f, 100.0f);
-		
-		ImGui::DragFloat3("Rotation Axis", &Utils::CortexRotationAxis[0], 0.1f, -180.0f, 180.0f);
-		ImGui::SliderFloat("Rotation Step Angle", &Utils::CortexRotationAngleStep, 1.0f, 45.0f);
-		ImGui::Text("Rotate: ");
-		ImGui::SameLine();
-		if (ImGui::Button("+")) {
-			cortex->GetTransform()->Rotate(Utils::CortexRotationAngleStep, Utils::CortexRotationAxis);
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("-")){
-			cortex->GetTransform()->Rotate(-Utils::CortexRotationAngleStep, Utils::CortexRotationAxis);
-		}
+	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
+	if (!cortex) return;
 
-		ImGui::DragFloat3("Scale", &cortex->GetTransform()->GetScale()[0], 0.1f, 0.1f, 10.0f);
-	}
+	NIRS::RenderAnatomySettings(cortex, "Cortex", "Cortex Anatomy Settings", false);
 }
 
 void AtlasLayer::RenderCoordinateSystemSettings()
 {
+
+	auto head = NIRS::AnatomyManager::Instance().GetHead();
+	auto coordSystem = m_CoordController->GetCoordinateSystem();
+
+	if (ImGui::Button("Generate 10-20 Coordinate System")) {
+		if (head) m_CoordController->GenerateCoordinateSystem(head);
+	}
+	std::string text = "Status : ";
+	text = text + (coordSystem.IsGenerated() ? "Success" : "Failure");
+
+	if (head) ImGui::Text(text.c_str());
+
+	
 	if (ImGui::CollapsingHeader("Coordinate System Settings")) {
 
 		auto rayConfig = m_CoordController->GetRaycastSampler().GetConfig();
@@ -412,7 +401,6 @@ void AtlasLayer::HandleCoordinateSystemGenerated() {
 		line.End = ray.End;
 		m_RayRenderer->SubmitLine(line);
 	}
-
 	for (auto ray : coronalRays) {
 
 		NIRS::Line line;
@@ -424,8 +412,23 @@ void AtlasLayer::HandleCoordinateSystemGenerated() {
 	// --- LANDMARKS ---
 	m_LandmarkRenderer->Clear();
 	auto landmarkRegistry = coordSystem.GetLandmarks();
-	auto landmarks = landmarkRegistry.GetAllLandmarks();
-	for (auto& landmark : landmarks) {
-		m_LandmarkRenderer->SubmitPoint(landmark.Position);
+	auto landmarks = landmarkRegistry.GetAllLandmarkMap();
+	for (auto& [LM, data] : landmarks) {
+		m_LandmarkRenderer->SubmitPoint(data.Position);
+	}
+
+	// --- WAYPOINTS ---
+	m_WaypointRenderer->Clear();
+	auto saggitalWaypoints = coordSystem.GetSagittalPath().RoughVertexPath;
+	auto coronalWaypoints = coordSystem.GetCoronalPath().RoughVertexPath;
+
+	auto* head = NIRS::AnatomyManager::Instance().GetHead();
+
+	auto worldVertices = head->GetWorldSpaceVertexPositions();
+	for (auto vertexIndex : saggitalWaypoints) {
+		m_WaypointRenderer->SubmitPoint(worldVertices[vertexIndex]);
+	}
+	for (auto vertexIndex : coronalWaypoints) {
+		m_WaypointRenderer->SubmitPoint(worldVertices[vertexIndex]);
 	}
 }

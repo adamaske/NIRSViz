@@ -45,6 +45,8 @@ public:
 
 	void HandleSNIRFLoaded();
 
+	void SelectAllChannels();
+	void ClearSelection();
 private:
 	Ref<Framebuffer> m_Framebuffer = nullptr;
 	Ref<OrthogonalCamera> m_OrthoCamera = nullptr;
@@ -75,6 +77,8 @@ private:
 	std::map<NIRS::ProbeID, NIRS::Probe2D> m_Detectors;
 
 	// --- Viewport Settings
+	bool m_InitalSelection = false;
+
 	bool m_ViewportHovered = false;
 	bool m_ViewportFocused = false;
 	glm::vec2 m_ViewportSize = { 0.0f, 0.0f };

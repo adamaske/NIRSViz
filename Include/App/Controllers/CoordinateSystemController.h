@@ -7,6 +7,7 @@
 
 namespace App
 {
+
     class CoordinateSystemController {
     public:
         CoordinateSystemController();

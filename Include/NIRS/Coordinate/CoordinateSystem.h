@@ -12,8 +12,9 @@ namespace NIRS {
 
         // Path data for visualization
         struct PathData {
-            std::vector<unsigned int> VertexIndices; // Closest 
-            std::vector<glm::vec3> IntersectionPoints; // Find intersection points
+            std::vector<unsigned int> FineVertexPath; 
+            std::vector<unsigned int> RoughVertexPath; 
+            std::vector<glm::vec3> IntersectionPoints;
             std::vector<Ray> Rays; // 
         };
         

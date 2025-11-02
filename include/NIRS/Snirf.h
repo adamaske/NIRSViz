@@ -121,6 +121,8 @@ public:
 	std::vector<double> GetTime() { return m_Time; };
 
 	Ref<ChannelDataRegistry> GetChannelDataRegistry() { return m_ChannelDataRegistry; }
+
+	double GetDurationSeconds() { return m_DurationSeconds; };
 private:
 	std::filesystem::path m_Filepath = std::filesystem::path("");
 

@@ -28,6 +28,15 @@ namespace App {
 	    NVIZ_INFO("Coordinate system generation complete");
 
 		EventBus::Instance().Publish<OnCoordinateSystemGenerated>({});
+
+
+		for (auto& landmark : m_CoordinateSystem.GetLandmarks().GetAllLandmarks()) {
+
+			auto type = landmark.Type;
+			auto position = landmark.Position;
+
+			NVIZ_INFO("[{}] : ( {:.2f}, {:.2f}, {:.2f} )", NIRS::LandmarkToString(type), position.x, position.y, position.z);
+		}
 	}
 
 	void CoordinateSystemController::GenerateSagittalPath(NIRS::Head* head)
@@ -65,7 +74,8 @@ namespace App {
 		CoordinateSystem::PathData path;
 		path.Rays = rays;
 		path.IntersectionPoints = intersections;
-		path.VertexIndices = finePath;
+		path.FineVertexPath = finePath;
+		path.RoughVertexPath = roughPath;
 
 		m_CoordinateSystem.SetSagittalPath(path);
 
@@ -86,14 +96,6 @@ namespace App {
 			data.IsVisible = true;
 
 			landmarks.SetLandmark(label, data);
-		}
-
-		for (auto& landmark : m_CoordinateSystem.GetLandmarks().GetAllLandmarks()) {
-
-			auto type = landmark.Type;
-			auto position = landmark.Position;
-
-			NVIZ_INFO("[{}] : ( {:.2f}, {:.2f}, {:.2f} )", NIRS::LandmarkToString(type), position.x, position.y, position.z);
 		}
     }
 
@@ -154,8 +156,8 @@ namespace App {
 		CoordinateSystem::PathData path;
 		path.Rays = rays;
 		path.IntersectionPoints = intersections;
-		path.VertexIndices = finePath;
-
+		path.FineVertexPath = finePath;
+		path.RoughVertexPath = roughPath;
 		m_CoordinateSystem.SetCoronalPath(path);
 
 		std::vector<Landmark> labels = { LPA, T3, C3, C4, T4, RPA };
@@ -189,7 +191,7 @@ namespace App {
 
 
 		CoordinateSystem::PathData path;
-		path.VertexIndices = finePath;
+		path.FineVertexPath = finePath;
 
 		m_CoordinateSystem.SetCoronalPath(path);
 

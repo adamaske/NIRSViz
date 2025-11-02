@@ -128,6 +128,9 @@ bool Mesh::LoadModel(const std::string& inputFile,
     }
     NVIZ_INFO("Loaded OBJ : {0}", inputFile);
 	NVIZ_INFO("Vertices: {0}, Indices: {1}", vertices.size(), indices.size());
+
+	m_VertexCount = static_cast<int>(vertices.size());
+	m_IndexCount = static_cast<int>(indices.size());
     return true;
 }
 

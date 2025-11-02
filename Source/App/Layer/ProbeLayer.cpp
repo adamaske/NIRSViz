@@ -21,6 +21,7 @@
 #include "App/Data/Raycast.h"
 
 #include "Events/EventBus.h"
+#include "GUI/GUI.h"
 
 ProbeLayer::ProbeLayer(const EntityID& settingsID) : Layer(settingsID)
 {
@@ -187,48 +188,71 @@ void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 	bool showContent = standalone;
 	if (!standalone)
 	{
-		showContent = ImGui::CollapsingHeader("Probe 3D Global Transform");
+		showContent = ImGui::CollapsingHeader("Probe Settings");
+	}
+	else {
+
+		ImGui::TextDisabled("Probe Settings");
 	}
 	if (showContent)
 	{
+
 		if (ImGui::Checkbox("Draw Probes", &m_DrawProbes3D)) {
 			m_DrawChannels3D = m_DrawProbes3D;
 			m_DrawChannelProjections3D = m_DrawProbes3D;
 		}
-		ImGui::DragFloat("Spread Factor", &m_Probe3DSpreadFactor,
+
+		float columnLabelWidth = 200.0f;
+
+		ImGui::Columns(2, nullptr, false);
+		ImGui::SetColumnWidth(0, columnLabelWidth); // Label column width
+
+		ImGui::Text("Spread Factor");
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1); // Fill remaining space
+		ImGui::DragFloat("##SpreadFactor", &m_Probe3DSpreadFactor,
 			0.01f, 0.0f, 5.0f, "%.2f"
 		);
-		ImGui::DragFloat("Mesh Scale", &m_Probe3DMeshScale,
+		ImGui::PopItemWidth();
+		ImGui::NextColumn();
+
+		ImGui::Text("Mesh Scale");
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1);
+		ImGui::DragFloat("##MeshScale", &m_Probe3DMeshScale,
 			0.01f, 0.0f, 2.0f, "%.2f"
 		);
-		ImGui::DragFloat3("Translation Offset", &m_Probe3DTranslationOffset.x,
-			0.05f, -100.0f, 100.0f, "%.2f"
-		);
-		ImGui::DragFloat3(
-			"Rotation Axis (X, Y, Z)", &m_Probe3DRotationAxis.x,
-			0.01f, -1.0f, 1.0f, "%.2f"
-		);
+		ImGui::PopItemWidth();
+		ImGui::Columns(1);
+
+		NIRS::RenderVec3Control("Projection Target Position", m_TargetProbePosition, 0.0f, columnLabelWidth);
+		NIRS::RenderVec3Control("Translation", m_Probe3DTranslationOffset, 0.0f, columnLabelWidth);
+		NIRS::RenderVec3Control("Rotation Axis", m_Probe3DRotationAxis, 0.0f, columnLabelWidth);
+		
+		ImGui::Columns(2, nullptr, false);
+		ImGui::SetColumnWidth(0, columnLabelWidth); // Label column
+		ImGui::Text("Rotation Angle");
+		ImGui::NextColumn();
+		ImGui::PushItemWidth(-1); // Fill remaining space
 		ImGui::DragFloat(
-			"Rotation Angle (deg)", &m_Probe3DRotationAngle,
+			"##Rotation Angle", &m_Probe3DRotationAngle,
 			1.0f, -360.0f, 360.0f, "%.0f deg"
 		);
-		ImGui::DragFloat3("View Target Position", &m_TargetProbePosition.x,
-			0.05f, -100.0f, 100.0f, "%.2f"
-		);
+		ImGui::PopItemWidth();
+		ImGui::Columns(1);
 
 		ImGui::Separator();
 
-		ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
-		ImGui::Checkbox("Draw Channels", &m_DrawChannels3D);
-		ImGui::ColorEdit4("Channel Color", &m_LineRenderer3D->m_LineColor[0], colorFlags);
-		ImGui::SliderFloat("Channel Width", &m_LineRenderer3D->m_LineWidth, 1.0f, 10.0f);
+		// --- CHANNELS ---
+
+		NIRS::RenderLineRendererSettings(m_LineRenderer3D.get(), m_DrawChannels3D, "Channels", false, 200);
 
 		ImGui::Separator();
+		ImGui::Columns(1);
+		NIRS::RenderLineRendererSettings(m_ProjLineRenderer3D.get(), m_DrawChannelProjections3D, "Projection", false, 200);
 
-		ImGui::Checkbox("Draw Projection", &m_DrawChannelProjections3D);
-		ImGui::ColorEdit4("Projection Color", &m_ProjLineRenderer3D->m_LineColor[0], colorFlags);
-		ImGui::SliderFloat("Projection Width", &m_ProjLineRenderer3D->m_LineWidth, 1.0f, 10.0f);
-
+		ImGui::Columns(1);
+		ImGui::Separator();
 	}
 	if (standalone) ImGui::End();
 }
