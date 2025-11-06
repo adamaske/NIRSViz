@@ -11,8 +11,8 @@
 #include "NIRS/Anatomy/AnatomyManager.h"
 
 #include "NIRS/Snirf.h"
-#include "NIRS/SNIRFValidator.h"
 #include "NIRS/SNIRFFactory.h"
+#include "NIRS/SNIRFValidator.h"
 
 namespace Utils {
     std::string SNIRFFileDialogFilepath() {

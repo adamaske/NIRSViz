@@ -10,8 +10,6 @@
 #include "NIRS/Anatomy/AnatomyManager.h"
 
 #include "NIRS/Snirf.h"
-#include "NIRS/SNIRFFactory.h"
-#include "NIRS/SNIRFValidator.h"
 #include "GUI/SNIRFFileLoaderPanel.h"
 
 FileLayer::FileLayer(const EntityID& settingsID) : Layer(settingsID)

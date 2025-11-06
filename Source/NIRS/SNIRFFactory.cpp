@@ -1,11 +1,9 @@
 #include "pch.h"
 #include "NIRS/SNIRFFactory.h"
-<<<<<<< Updated upstream
-=======
+
 #include "NIRS/Snirf.h"
 #include "NIRS/Factories/SatoriSNIRF.h"
 
->>>>>>> Stashed changes
 Ref<SNIRF> SNIRFFactory::CreateSNIRF(SNIRFType type)
 {
     switch (type) {

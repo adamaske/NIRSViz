@@ -2,8 +2,6 @@
 #include "Core/Base.h"
 #include "NIRS/Snirf.h"
 
-class SNIRF;
-
 enum SNIRFType {
 	SNIRF_TYPE_NONE,
 	SNIRF_TYPE_UNKNOWN,
@@ -14,6 +12,7 @@ enum SNIRFType {
 	SNIRF_TYPE_MNE_NIRS,
 	SNIRF_TYPE_CUSTOM
 };
+
 class SNIRF;
 
 class SNIRFFactory {
