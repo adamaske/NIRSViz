@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "NIRS/SNIRFFactory.h"
-
 Ref<SNIRF> SNIRFFactory::CreateSNIRF(SNIRFType type)
 {
     switch (type) {

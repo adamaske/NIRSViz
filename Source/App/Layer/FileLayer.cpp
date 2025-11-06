@@ -13,6 +13,7 @@
 
 #include "NIRS/Anatomy/AnatomyManager.h"
 #include "NIRS/SNIRFFactory.h"
+#include "NIRS/SNIRFValidator.h"
 
 
 
@@ -219,6 +220,7 @@ void FileLayer::RenderSNIRFFileLoader(bool standalone)
         ImGui::EndCombo();
     }
 
+    std::vector<ValidationError> errors;
     ImGui::SameLine();
     if (ImGui::Button("Validate")) {
         // Call your actual validation function.
@@ -226,8 +228,9 @@ void FileLayer::RenderSNIRFFileLoader(bool standalone)
         // m_IsValid = ValidateSNIRFFile(FilePathUserInput, SelectedType, m_ErrorMessages);
 
         // --- Mock Validation for Demonstration ---
-
-        if (UserSelectedFilepath.empty() || SelectedType == SNIRFType::SNIRF_TYPE_NONE) {
+        std::string emptyString;
+		emptyString.resize(256);
+        if (UserSelectedFilepath.empty() || UserSelectedFilepath  == emptyString || SelectedType == SNIRFType::SNIRF_TYPE_NONE) {
 
             IsValid = false;
             ValidationErrorMessages.push_back("File path is empty.");
@@ -237,11 +240,14 @@ void FileLayer::RenderSNIRFFileLoader(bool standalone)
             // 
             ValidationErrorMessages.clear();
           
+            IsValid = SNIRFValidator::Validate(UserSelectedFilepath, SelectedType, errors);
 
-            IsValid = ValidationErrorMessages.empty();
+
+
         }
-    };
 
+        NVIZ_INFO("USER INPUT : {}", UserSelectedFilepath.size());
+    };
     // --- Row 3 (Conditional): Validation Errors Scrollable Block ---
     if (!IsValid) {
         ImGui::Separator();
@@ -250,6 +256,7 @@ void FileLayer::RenderSNIRFFileLoader(bool standalone)
         if(ValidationErrorMessages.empty()) {
             ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Border);
             ImGui::TextWrapped("No messages...");
+            ImGui::EndChild();
         }
         else {
 
@@ -263,8 +270,18 @@ void FileLayer::RenderSNIRFFileLoader(bool standalone)
                 ImGui::EndChild();
             }
         }
-        ImGui::Separator();
     }
+    else {
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Validation Messages:");
+
+        for(auto& msg : errors) {
+            ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Border);
+            ImGui::TextWrapped(msg.message.c_str());
+            ImGui::EndChild();
+        }
+    }
+    ImGui::Separator();
 
 
     // --- Row 4 (Conditional Color): Open File Button ---
@@ -290,18 +307,15 @@ void FileLayer::RenderSNIRFFileLoader(bool standalone)
     // The button takes up the remaining width (-1)
     if (ImGui::Button("Open File", ImVec2(-1, 0))) {
         if (IsValid) {
-            // Your actual file opening logic goes here
-            // OpenSNIRFFile(FilePathUserInput, SelectedType);
 
-            //auto snirf = SNIRFFactory::CreateSNIRF(SNIRFType::SNIRF_TYPE_SATORI);
+            auto snirf = SNIRFFactory::CreateSNIRF(SNIRFType::SNIRF_TYPE_SATORI, UserSelectedFilepath);
 
-            //if (!AssetManager::Get<SNIRF>("SNIRF")) {
-            //    AssetManager::Register<SNIRF>("SNIRF", snirf);
-            //}
-            //
-            //snirf->LoadFile(std::string(UserSelectedFilepath));
-            //
-            //EventBus::Instance().Publish<OnSNIRFLoaded>({});
+            if (!AssetManager::Get<SNIRF>("SNIRF")) {
+                AssetManager::Register<SNIRF>("SNIRF", snirf);
+            }
+            
+            
+            EventBus::Instance().Publish<OnSNIRFLoaded>({});
         }
     }
 

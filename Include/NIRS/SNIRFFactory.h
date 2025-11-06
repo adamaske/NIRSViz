@@ -1,7 +1,8 @@
 #pragma once
 #include "Core/Base.h"
 #include "NIRS/Snirf.h"
-#include "NIRS/Factories/SatoriSNIRF.h"
+
+class SNIRF;
 
 enum SNIRFType {
 	SNIRF_TYPE_NONE,
