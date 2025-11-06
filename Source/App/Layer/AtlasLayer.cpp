@@ -112,6 +112,19 @@ void AtlasLayer::OnAttach()
 		this->HandleCoordinateSystemGenerated();
 		});
 
+	// Hide head and cortex during projection
+	EventBus::Instance().Subscribe<OnStartProjection>([this](const OnStartProjection& event) {
+		auto head = NIRS::AnatomyManager::Instance().GetHead();
+		auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
+		head->SetVisible(false);
+		cortex->SetVisible(false);
+	});
+	EventBus::Instance().Subscribe<OnStopProjection>([this](const OnStopProjection& event) {
+		auto head = NIRS::AnatomyManager::Instance().GetHead();
+		auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
+		head->SetVisible(true);
+		cortex->SetVisible(true);
+	});
 }
 
 void AtlasLayer::OnDetach()
@@ -237,7 +250,7 @@ void AtlasLayer::RenderHeadSettings() {
 	auto head = NIRS::AnatomyManager::Instance().GetHead();
 	if (!head) return;
 
-	NIRS::RenderAnatomySettings(head, "Head", "Head Anatomy Settings", false);
+	GUI::RenderAnatomySettings(head, "Head", "Head Anatomy Settings", false);
 }
 
 namespace Utils {
@@ -251,7 +264,7 @@ void AtlasLayer::RenderCortexSettings() {
 	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	if (!cortex) return;
 
-	NIRS::RenderAnatomySettings(cortex, "Cortex", "Cortex Anatomy Settings", false);
+	GUI::RenderAnatomySettings(cortex, "Cortex", "Cortex Anatomy Settings", false);
 }
 
 void AtlasLayer::RenderCoordinateSystemSettings()

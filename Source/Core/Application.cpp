@@ -57,6 +57,7 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	m_ProjectionLayer	= CreateRef<ProjectionLayer>(settingsEntity);
 	m_FileLayer			= CreateRef<FileLayer>(settingsEntity);
 	m_ChannelSelectorLayer = CreateRef<ChannelSelectorLayer>(settingsEntity);
+	m_ControlPanelLayer = CreateRef<ControlPanelLayer>(settingsEntity);
 
 	PushOverlay(m_ImGuiLayer.get());
 	PushLayer(m_FileLayer.get());
@@ -66,6 +67,7 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	PushLayer(m_PlottingLayer.get());
 	PushLayer(m_ProjectionLayer.get());
 	PushLayer(m_ChannelSelectorLayer.get());
+	PushLayer(m_ControlPanelLayer.get());
 
 	m_FileLayer->PostInit();
 }

@@ -23,6 +23,8 @@
 #include "Events/EventBus.h"
 #include "GUI/GUI.h"
 
+#include "NIRS/Anatomy/AnatomyManager.h"
+
 ProbeLayer::ProbeLayer(const EntityID& settingsID) : Layer(settingsID)
 {
 }
@@ -44,15 +46,17 @@ void ProbeLayer::OnAttach()
 	m_LineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(MAIN_VIEWPORT, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
 
-	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
+	InitHitDataTexture();
 
+	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
 		this->LoadSNIRF();
-		
+
 	});
 
 	EventBus::Instance().Subscribe<OnChannelValuesUpdated>([this](const OnChannelValuesUpdated& e) {
 		this->UpdateHitDataTexture();
 	});
+
 }
 
 void ProbeLayer::OnDetach()
@@ -62,6 +66,12 @@ void ProbeLayer::OnDetach()
 void ProbeLayer::OnUpdate(float dt)
 {
 
+	if (!m_InitalProjectionToCortex) {
+		this->ProjectChannelsToCortex();
+		m_InitalProjectionToCortex = true;
+
+		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
+	}
 	if (m_DrawChannelProjections3D || m_DrawChannels3D || m_DrawChannels2D ||
 		m_DrawProbes2D || m_DrawProbes3D) {
 		UpdateProbeVisuals();
@@ -99,19 +109,20 @@ void ProbeLayer::OnRender()
 
 void ProbeLayer::OnImGuiRender()
 {
-
 	ImGui::Begin("Probe Settings");
-	ImGui::TextWrapped("%s", m_SNIRF->IsFileLoaded() ? m_SNIRF->GetFilepath().c_str() : "...");
-
+	
 	if (ImGui::Button("Project To Cortex")) {
 		ProjectChannelsToCortex();
 
+		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
-	ImGui::SeparatorText("Render Settings");
+
+	ImGui::TextDisabled("Render Settings");
 	ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_NoInputs;
 	ImGui::ColorEdit4("Source Color", &NIRS::SourceColor[0], colorFlags);
+	ImGui::SameLine();
 	ImGui::ColorEdit4("Detector Color", &NIRS::DetectorColor[0], colorFlags);
-
+	ImGui::Separator();
 	//ImGui::ColorEdit4("2D Channel Color", &m_LineRenderer2D->m_LineColor[0], colorFlags);
 
 	//Render2DProbeTransformControls(false);
@@ -183,78 +194,62 @@ void ProbeLayer::Render2DProbeTransformControls(bool standalone)
 
 void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 {
-	if (standalone) ImGui::Begin("3D Probe Transform Controls");
-
-	bool showContent = standalone;
-	if (!standalone)
-	{
-		showContent = ImGui::CollapsingHeader("Probe Settings");
+	if (ImGui::Checkbox("Draw Probes", &m_DrawProbes3D)) {
+		m_DrawChannels3D = m_DrawProbes3D;
+		m_DrawChannelProjections3D = m_DrawProbes3D;
 	}
-	else {
-
-		ImGui::TextDisabled("Probe Settings");
-	}
-	if (showContent)
-	{
-
-		if (ImGui::Checkbox("Draw Probes", &m_DrawProbes3D)) {
-			m_DrawChannels3D = m_DrawProbes3D;
-			m_DrawChannelProjections3D = m_DrawProbes3D;
-		}
-
-		float columnLabelWidth = 200.0f;
-
-		ImGui::Columns(2, nullptr, false);
-		ImGui::SetColumnWidth(0, columnLabelWidth); // Label column width
-
-		ImGui::Text("Spread Factor");
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1); // Fill remaining space
-		ImGui::DragFloat("##SpreadFactor", &m_Probe3DSpreadFactor,
-			0.01f, 0.0f, 5.0f, "%.2f"
-		);
-		ImGui::PopItemWidth();
-		ImGui::NextColumn();
-
-		ImGui::Text("Mesh Scale");
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1);
-		ImGui::DragFloat("##MeshScale", &m_Probe3DMeshScale,
-			0.01f, 0.0f, 2.0f, "%.2f"
-		);
-		ImGui::PopItemWidth();
-		ImGui::Columns(1);
-
-		NIRS::RenderVec3Control("Projection Target Position", m_TargetProbePosition, 0.0f, columnLabelWidth);
-		NIRS::RenderVec3Control("Translation", m_Probe3DTranslationOffset, 0.0f, columnLabelWidth);
-		NIRS::RenderVec3Control("Rotation Axis", m_Probe3DRotationAxis, 0.0f, columnLabelWidth);
-		
-		ImGui::Columns(2, nullptr, false);
-		ImGui::SetColumnWidth(0, columnLabelWidth); // Label column
-		ImGui::Text("Rotation Angle");
-		ImGui::NextColumn();
-		ImGui::PushItemWidth(-1); // Fill remaining space
-		ImGui::DragFloat(
-			"##Rotation Angle", &m_Probe3DRotationAngle,
-			1.0f, -360.0f, 360.0f, "%.0f deg"
-		);
-		ImGui::PopItemWidth();
-		ImGui::Columns(1);
-
-		ImGui::Separator();
-
-		// --- CHANNELS ---
-
-		NIRS::RenderLineRendererSettings(m_LineRenderer3D.get(), m_DrawChannels3D, "Channels", false, 200);
-
-		ImGui::Separator();
-		ImGui::Columns(1);
-		NIRS::RenderLineRendererSettings(m_ProjLineRenderer3D.get(), m_DrawChannelProjections3D, "Projection", false, 200);
-
-		ImGui::Columns(1);
-		ImGui::Separator();
-	}
-	if (standalone) ImGui::End();
+	
+	float columnLabelWidth = 200.0f;
+	
+	ImGui::Columns(2, nullptr, false);
+	ImGui::SetColumnWidth(0, columnLabelWidth); // Label column width
+	
+	ImGui::Text("Spread Factor");
+	ImGui::NextColumn();
+	ImGui::PushItemWidth(-1); // Fill remaining space
+	ImGui::DragFloat("##SpreadFactor", &m_Probe3DSpreadFactor,
+		0.01f, 0.0f, 5.0f, "%.2f"
+	);
+	ImGui::PopItemWidth();
+	ImGui::NextColumn();
+	
+	ImGui::Text("Mesh Scale");
+	ImGui::NextColumn();
+	ImGui::PushItemWidth(-1);
+	ImGui::DragFloat("##MeshScale", &m_Probe3DMeshScale,
+		0.01f, 0.0f, 2.0f, "%.2f"
+	);
+	ImGui::PopItemWidth();
+	ImGui::Columns(1);
+	
+	GUI::RenderVec3Control("Projection Target Position", m_TargetProbePosition, 0.0f, columnLabelWidth);
+	GUI::RenderVec3Control("Translation", m_Probe3DTranslationOffset, 0.0f, columnLabelWidth);
+	GUI::RenderVec3Control("Rotation Axis", m_Probe3DRotationAxis, 0.0f, columnLabelWidth);
+	
+	ImGui::Columns(2, nullptr, false);
+	ImGui::SetColumnWidth(0, columnLabelWidth); // Label column
+	ImGui::Text("Rotation Angle");
+	ImGui::NextColumn();
+	ImGui::PushItemWidth(-1); // Fill remaining space
+	ImGui::DragFloat(
+		"##Rotation Angle", &m_Probe3DRotationAngle,
+		1.0f, -360.0f, 360.0f, "%.0f deg"
+	);
+	ImGui::PopItemWidth();
+	ImGui::Columns(1);
+	
+	ImGui::Separator();
+	
+	// --- CHANNELS ---
+	
+	GUI::RenderLineRendererSettings(m_LineRenderer3D.get(), m_DrawChannels3D, "Channels", false, 200);
+	
+	ImGui::Separator();
+	ImGui::Columns(1);
+	GUI::RenderLineRendererSettings(m_ProjLineRenderer3D.get(), m_DrawChannelProjections3D, "Projection", false, 200);
+	
+	ImGui::Columns(1);
+	ImGui::Separator();
 }
 
 void ProbeLayer::LoadSNIRF()
@@ -282,6 +277,7 @@ void ProbeLayer::LoadSNIRF()
 
 	UpdateProbeVisuals();
 	UpdateChannelVisuals();
+
 }
 
 // In ProbeLayer.cpp (private helper function)
@@ -468,9 +464,6 @@ void ProbeLayer::ProjectChannelsToCortex()
 
 	UpdateHitDataTexture();
 
-
-	EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
-	EventBus::Instance().Publish<OnProjectHemodynamicsToCortex>({ true });
 }
 
 void ProbeLayer::InitHitDataTexture()
@@ -495,9 +488,6 @@ void ProbeLayer::InitHitDataTexture()
 
 void ProbeLayer::UpdateHitDataTexture()
 {
-	if (m_HitDataTextureID == 0) {
-		InitHitDataTexture(); // Ensure texture is initialized
-	}
 	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
 
 	projData->HitDataTextureID = m_HitDataTextureID;

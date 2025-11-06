@@ -1,12 +1,11 @@
 #include "pch.h"
 #include "NIRS/Snirf.h"
-#include "NIRS/Processing.h"
+#include "NIRS/SNIRFProcessor.h"
 
 #include <HighFive/H5File.hpp>
 #include <highfive/H5DataSet.hpp>
 #include <highfive/H5DataSpace.hpp>
 #include <highfive/H5Easy.hpp>
-
 
 using namespace HighFive;
 using namespace NIRS;
@@ -405,7 +404,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
             std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
 
             std::vector<double> processed;
-            PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
+            //PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
 
             channel.HBRDataIndex = m_ChannelDataRegistry->SubmitChannelData(channel_data_vec);
         };
@@ -416,7 +415,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
             std::copy(channel_row.data(), channel_row.data() + channel_row.size(), channel_data_vec.begin());
 
             std::vector<double> processed;
-            PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
+            //PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
 
             channel.HBODataIndex = m_ChannelDataRegistry->SubmitChannelData(channel_data_vec);
         };

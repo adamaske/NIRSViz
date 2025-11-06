@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Base.h"
-
+#include "NIRS/NIRS.h"
 
 // EventBus is a singleton class that manages event subscriptions and publishing.
 // Here we define the structs which represent different commands/events in the application.
@@ -35,10 +35,29 @@ struct OnCoordinateSystemGenerated {
 };
 
 
-// --- Channels ---
-struct OnChannelIntersectionsUpdated {
+// --- Projection ---
+struct OnStartProjection {
+	NIRS::WavelengthType Wavelength;
+};
+struct OnStopProjection {
 
 };
+
+struct OnChannelIntersectionsUpdated {
+};
+
+struct OnProjectionWavelengthChanged {
+	NIRS::WavelengthType Wavelength;
+};
+
+struct OnProjectionSettingsChanged {
+	NIRS::ProjectionSettings Settings;
+
+};
+struct OnProjectionDataChanged {
+	NIRS::ProjectionData Data;
+};
+
 
 namespace NIRS {
 	using ChannelID = uint32_t;

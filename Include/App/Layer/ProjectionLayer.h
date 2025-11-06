@@ -29,11 +29,6 @@ enum ProjectionMode {
 	WORLD_SPACE_BASED = 1
 };
 
-enum ProjectionWavelength {
-	HBO = 0,
-	HBR = 1,
-};
-
 class ProjectionLayer : public Layer {
 public:
 	ProjectionLayer(const EntityID& settingsID);
@@ -64,13 +59,10 @@ private:
 	NIRS::ProjectionSettings m_WorldSpaceProjectionSettings;
 	Ref<Shader> m_ProjectionShader = nullptr;
 
-	NIRS::Cortex* m_Cortex = nullptr;
-
 	ProjectionMode m_ProjectionMode = VERTEX_BASED;
 
 	// --- VERTEX_BASED MODE ---
 	NIRS::ProjectionSettings m_VertexBasedProjectionSettings;
-
 	Ref<Shader> m_VertexProjectionShader = nullptr;
 
 	Ref<VertexArray> m_VertexModeVAO;
@@ -85,7 +77,7 @@ private:
 	std::vector<unsigned int> m_VertexModeIndices;
 	RenderCommand m_VertexModeRenderCmd;
 
-	ProjectionWavelength m_ProjectionWavelength = HBO;
+	NIRS::WavelengthType m_ProjectionWavelength = NIRS::WavelengthType::HBO;
 
 	void SetupVertexBasedProjection();
 	void UpdateVerticiesInfluencedByChannel();

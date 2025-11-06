@@ -73,33 +73,40 @@ void ProjectionLayer::OnAttach(){
 
 	AssetManager::Register<NIRS::ProjectionData>("ProjectionData", CreateRef<NIRS::ProjectionData>());
 
-	EventBus::Instance().Subscribe<OnProjectHemodynamicsToCortex>([this](const OnProjectHemodynamicsToCortex& event) {
-		auto head = NIRS::AnatomyManager::Instance().GetHead();
-		auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 
-		m_IsProjecting = event.Enabled;
-
-		head->SetVisible(!event.Enabled);
-		cortex->SetVisible(!event.Enabled);
-	});
 
 	EventBus::Instance().Subscribe<OnCortexAnatomyLoaded>([this](const OnCortexAnatomyLoaded& event) {
-		m_Cortex = NIRS::AnatomyManager::Instance().GetCortex();
-
 		SetupVertexBasedProjection(); // Ready the mesh for vertex-based projection
 	});
 
-	// The ProbeLayer calculated the intersection points
 	EventBus::Instance().Subscribe<OnChannelIntersectionsUpdated>([this](const OnChannelIntersectionsUpdated& event) {
-		
-		// Go through each intersection point, find the vertiecs which are effected by this intersection point
 		UpdateVerticiesInfluencedByChannel();
 	});
 
-	// The Plotting layer updated the channel values
 	EventBus::Instance().Subscribe<OnChannelValuesUpdated>([this](const OnChannelValuesUpdated& event) {
 		UpdateVertexBasedProjection();
 	});
+
+	EventBus::Instance().Subscribe<OnStartProjection>([this](const OnStartProjection& event) {
+		this->StartProjection();
+	});
+	EventBus::Instance().Subscribe<OnStopProjection>([this](const OnStopProjection& event) {
+		this->EndProjection();
+	});
+
+	EventBus::Instance().Subscribe<OnProjectionWavelengthChanged>([this](const OnProjectionWavelengthChanged& event) {
+		m_ProjectionWavelength = event.Wavelength;
+	});
+
+	EventBus::Instance().Subscribe<OnProjectionSettingsChanged>([this](const OnProjectionSettingsChanged& event) {
+		m_VertexBasedProjectionSettings = event.Settings;
+
+	});
+
+	EventBus::Instance().Subscribe<OnProjectionDataChanged>([this](const OnProjectionDataChanged& event) {
+		
+	});
+
 
 }
 
@@ -110,7 +117,7 @@ void ProjectionLayer::OnUpdate(float dt){
 
 	if (!m_IsProjecting) return;
 
-	if (!m_Cortex) {
+	if (!NIRS::AnatomyManager::Instance().GetCortex()) {
 		NVIZ_ERROR("ProjectionLayer: No Cortex asset loaded for projection.");
 		return;
 	}
@@ -129,12 +136,12 @@ void ProjectionLayer::OnImGuiRender(){
 	ImGui::Begin("ProjectionSettings");
 	// Projection Settigns
 	// ProjectionModeToString
-	if(ImGui::RadioButton("HBO", m_ProjectionWavelength == HBO)){
-		m_ProjectionWavelength = HBO;
+	if(ImGui::RadioButton("HBO", m_ProjectionWavelength == NIRS::WavelengthType::HBO)){
+		m_ProjectionWavelength = NIRS::WavelengthType::HBO;
 	}
 	ImGui::SameLine();
-	if (ImGui::RadioButton("HBR", m_ProjectionWavelength == HBR)) {
-		m_ProjectionWavelength = HBR;
+	if (ImGui::RadioButton("HBR", m_ProjectionWavelength == NIRS::WavelengthType::HBR)) {
+		m_ProjectionWavelength = NIRS::WavelengthType::HBR;
 	}
 	ImGui::Separator();
 
@@ -196,6 +203,8 @@ void ProjectionLayer::EndProjection(){
 
 void ProjectionLayer::RenderWorldSpaceMode()
 {
+	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
+
 	auto projectionData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
 	auto projectionDataUniforms = Utils::ProjectionDataToUniforms(*projectionData);
 	auto projectionSettingsUniforms = Utils::ProjectionSettingsToUniforms(m_WorldSpaceProjectionSettings);
@@ -211,10 +220,10 @@ void ProjectionLayer::RenderWorldSpaceMode()
 	objectColor.Data.f4 = { 0.8f, 0.8f, 0.8f, 1.0f };
 
 	RenderCommand cmd;
-	cmd.ShaderPtr = m_ProjectionShader.get();
-	cmd.VAOPtr = m_Cortex->GetMesh()->GetVAO().get();
 	cmd.ViewTargetID = MAIN_VIEWPORT;
-	cmd.Transform = m_Cortex->GetTransform()->GetMatrix();
+	cmd.ShaderPtr = m_ProjectionShader.get();
+	cmd.VAOPtr = cortex->GetMesh()->GetVAO().get();
+	cmd.Transform = cortex->GetTransform()->GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	cmd.UniformCommands = { lightPos, objectColor };
@@ -231,9 +240,10 @@ void ProjectionLayer::RenderWorldSpaceMode()
 
 void ProjectionLayer::SetupVertexBasedProjection()
 { 
+	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	// A new Cortex mesh is loaded, we need to setup the buffers for vertex-based projection
-	auto vertices = m_Cortex->GetMesh()->GetVertices();
-	auto indices = m_Cortex->GetMesh()->GetIndices();
+	auto vertices = cortex->GetMesh()->GetVertices();
+	auto indices = cortex->GetMesh()->GetIndices();
 
 	// Create projection vertices 
 	m_VertexModeProjectionVertices.resize(vertices.size());
@@ -260,10 +270,6 @@ void ProjectionLayer::SetupVertexBasedProjection()
 
 	m_VertexModeVAO->AddVertexBuffer(m_VertexModeVBO);
 	m_VertexModeVAO->SetIndexBuffer(m_VertexModeIBO);
-
-	
-	auto projectionSettingsUniforms = Utils::ProjectionSettingsToUniforms(m_VertexBasedProjectionSettings);
-
 }
 
 void ProjectionLayer::UpdateVerticiesInfluencedByChannel()
@@ -299,7 +305,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 
 	// We need to identifity each vertex 's activity level
 	auto intersection_points = projectionData->ChannelProjectionIntersections;
-	auto channel_values = m_ProjectionWavelength == HBO ? projectionData->HBOChannelValues : projectionData->HBRChannelValues;
+	auto channel_values = m_ProjectionWavelength == NIRS::WavelengthType::HBO ? projectionData->HBOChannelValues : projectionData->HBRChannelValues;
 
 	for (auto& [ID, pos] : projectionData->ChannelProjectionIntersections) {
 		
@@ -320,12 +326,10 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 
 	m_VertexModeVBO->SetData(&m_VertexModeProjectionVertices[0], m_VertexModeProjectionVertices.size() * sizeof(ProjectionVertex));
 
-	// Fill Render Command
-
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.ViewTargetID = MAIN_VIEWPORT;
-	m_VertexModeRenderCmd.Transform = m_Cortex->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 }
 
@@ -360,7 +364,7 @@ void ProjectionLayer::RenderVertexMode()
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.ViewTargetID = MAIN_VIEWPORT;
-	m_VertexModeRenderCmd.Transform = m_Cortex->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 	m_VertexModeRenderCmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
 	Renderer::Submit(m_VertexModeRenderCmd);

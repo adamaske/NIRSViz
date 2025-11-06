@@ -118,4 +118,5 @@ private:
 		}
 	}
 
+	bool m_InitalProjectionToCortex = false;
 };

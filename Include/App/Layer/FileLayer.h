@@ -25,4 +25,8 @@ public:
 	void LoadSNIRFFile();
 	void LoadHeadAnatomy();
 	void LoadCortexAnatomy();
+
+	void RenderSNIRFFileLoader(bool standalone);
+private:
+	bool m_SNIRFileLoaderOpen = false;
 };

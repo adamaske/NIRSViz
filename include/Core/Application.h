@@ -14,6 +14,7 @@
 #include "App/Layer/ProjectionLayer.h"
 #include "App/Layer/FileLayer.h"
 #include "App/Layer/ChannelSelectorLayer.h"
+#include "App/Layer/ControlPanelLayer.h"
 
 struct ApplicationCommandLineArgs
 {
@@ -89,4 +90,5 @@ private:
 	Ref<PlottingLayer> m_PlottingLayer;
 	Ref<ProjectionLayer> m_ProjectionLayer;
 	Ref<ChannelSelectorLayer> m_ChannelSelectorLayer;
+	Ref<ControlPanelLayer> m_ControlPanelLayer;
 };

@@ -422,9 +422,10 @@ void ChannelSelectorLayer::DrawSourcesAndDetectors()
 		Renderer::Submit(cmd);
 	}
 
-	// The user needs to be able to 
+	// We want to find the center position of all sources and detectors
+	// And place the ortho camera there
 	glm::vec3 centerSum(0.0f);
-	// 1. Sum up all source positions
+
 	for (auto& [ID, source] : m_Sources) {
 		centerSum += glm::vec3(source.Position.x, source.Position.y, 0);
 	}
@@ -432,6 +433,77 @@ void ChannelSelectorLayer::DrawSourcesAndDetectors()
 	centerPos = glm::vec3(-centerPos.x, centerPos.y, 0.0f) * (m_GridScale * 0.1f);
 
 	m_OrthoCamera->SetPosition(glm::vec3(centerPos.x, centerPos.y, -10.0f));
+
+	// --- NEW/UPDATED LOGIC STARTS HERE ---
+	float maxWorldX = 0.0f; // Max absolute distance in X
+	float maxWorldY = 0.0f; // Max absolute distance in Y
+
+	// 1. Iterate through sources (and detectors) to find the maximum extent from the center
+	auto calculateMaxExtent = [&](const glm::vec3& point) {
+		// Note: If you are already scaling the positions, ensure 'centerPos' is 
+		// also scaled appropriately relative to the original source.Position.
+
+		// For simplicity, let's assume 'point' is in the same coordinate system as 'centerPos'.
+		float x_dist = std::abs(point.x - centerPos.x);
+		float y_dist = std::abs(point.y - centerPos.y);
+
+		if (x_dist > maxWorldX)
+			maxWorldX = x_dist;
+		if (y_dist > maxWorldY)
+			maxWorldY = y_dist;
+		};
+
+	// Apply scaling to source positions if you applied a scale to centerPos
+	float positionScale = m_GridScale * 0.1f;
+
+	for (auto& [ID, source] : m_Sources) {
+		// Assuming source.Position is the *original* position
+		glm::vec3 scaledPos = glm::vec3(-source.Position.x * positionScale,
+			source.Position.y * positionScale,
+			0.0f);
+		calculateMaxExtent(scaledPos);
+	}
+
+	// Don't forget the detectors!
+	// for (auto& [ID, detector] : m_Detectors) {
+	//     glm::vec3 scaledPos = glm::vec3(-detector.Position.x * positionScale, 
+	//                                      detector.Position.y * positionScale, 
+	//                                      0.0f);
+	//     calculateMaxExtent(scaledPos);
+	// }
+
+	// 2. Add a small padding for margin around the elements
+	const float paddingFactor = 1.1f; // Add 10% padding
+	maxWorldX *= paddingFactor;
+	maxWorldY *= paddingFactor;
+
+	// 3. Calculate the required Zoom Level
+	// The Ortho camera projection is defined by:
+	// Left = -m_AspectRatio * m_ZoomLevel
+	// Right = m_AspectRatio * m_ZoomLevel
+	// Bottom = -m_ZoomLevel
+	// Top = m_ZoomLevel
+
+	// This means the total visible width is 2 * m_AspectRatio * m_ZoomLevel,
+	// and the total visible height is 2 * m_ZoomLevel.
+
+	// To fit the maximum X distance (maxWorldX) from the center, we need:
+	// m_AspectRatio * m_ZoomLevel >= maxWorldX
+	// m_ZoomLevel >= maxWorldX / m_AspectRatio
+
+	// To fit the maximum Y distance (maxWorldY) from the center, we need:
+	// m_ZoomLevel >= maxWorldY
+
+	// We must choose the larger (more zoomed out) of the two required Zoom Levels.
+	float requiredZoomX = maxWorldX / m_OrthoCamera->GetAspectRatio(); // You need to be able to access the aspect ratio
+	float requiredZoomY = maxWorldY;
+
+	float newZoomLevel = std::max(requiredZoomX, requiredZoomY);
+
+	// Optional: Set a minimum zoom level
+	// if (newZoomLevel < 1.0f) newZoomLevel = 1.0f; 
+
+	m_OrthoCamera->SetZoomLevel(newZoomLevel);
 }
 
 void ChannelSelectorLayer::DrawChannels()

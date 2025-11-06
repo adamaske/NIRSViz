@@ -9,7 +9,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <glm/gtc/type_ptr.hpp>
 
-void NIRS::RenderVec3Control(const std::string& label, glm::vec3& values, float resetValue, float columnWidth)
+void GUI::RenderVec3Control(const std::string& label, glm::vec3& values, float resetValue, float columnWidth)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	auto boldFont = io.Fonts->Fonts[0];
@@ -74,7 +74,7 @@ void NIRS::RenderVec3Control(const std::string& label, glm::vec3& values, float 
 	ImGui::PopID();
 }
 
-void NIRS::RenderTransformSettings(Transform* transform)
+void GUI::RenderTransformSettings(Transform* transform)
 {
 	auto& position = transform->GetPosition();
 	auto& rotation = transform->GetRotation();
@@ -85,7 +85,7 @@ void NIRS::RenderTransformSettings(Transform* transform)
 	RenderVec3Control("Scale", scale, 1.0f);
 }
 
-void NIRS::RenderAnatomySettings(Anatomy* anatomy, const std::string& name, const std::string& label, bool standalone)
+void GUI::RenderAnatomySettings(Anatomy* anatomy, const std::string& name, const std::string& label, bool standalone)
 {
 	ImGui::PushID(std::string("anatomy_settings_" + name).c_str());
 	if (standalone)
@@ -132,7 +132,7 @@ void NIRS::RenderAnatomySettings(Anatomy* anatomy, const std::string& name, cons
 	ImGui::PopID();
 }
 
-void NIRS::RenderLineRendererSettings(LineRenderer* renderer, bool& show, const std::string& label, bool standalone, float columnWidth)
+void GUI::RenderLineRendererSettings(LineRenderer* renderer, bool& show, const std::string& label, bool standalone, float columnWidth)
 {
 	ImGui::PushID(std::string(label + "_settings").c_str());
 
@@ -160,11 +160,11 @@ void NIRS::RenderLineRendererSettings(LineRenderer* renderer, bool& show, const 
 	ImGui::PopID();
 }
 
-void NIRS::RenderPointRendererSettings(LineRenderer* renderer, bool& show, const std::string& label, bool standalone, float columnWidth)
+void GUI::RenderPointRendererSettings(LineRenderer* renderer, bool& show, const std::string& label, bool standalone, float columnWidth)
 {
 }
 
-void NIRS::RenderSNIRFInfo(SNIRF* snirf)
+void GUI::RenderSNIRFInfo(SNIRF* snirf)
 {
 	ImGui::PushID("snirf_info");
 	ImGui::TextDisabled("SNIRF File Info:");

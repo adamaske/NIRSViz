@@ -41,6 +41,9 @@ public:
 	glm::vec3& GetFront() { return front; };
 	glm::vec3& GetUp() { return up; };
 	glm::vec3& GetRight() { return right; };
+
+	float GetAspectRatio() const { return m_AspectRatio; };
+	float GetFOV() const { return m_FOV; };
 protected:
 	glm::mat4 m_ViewMatrix = glm::mat4(1.0f);
 	glm::mat4 m_ProjectionMatrix = glm::mat4(1.0f);
