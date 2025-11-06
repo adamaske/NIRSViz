@@ -1,5 +1,11 @@
 #include "pch.h"
 #include "NIRS/SNIRFFactory.h"
+<<<<<<< Updated upstream
+=======
+#include "NIRS/Snirf.h"
+#include "NIRS/Factories/SatoriSNIRF.h"
+
+>>>>>>> Stashed changes
 Ref<SNIRF> SNIRFFactory::CreateSNIRF(SNIRFType type)
 {
     switch (type) {
@@ -8,7 +14,7 @@ Ref<SNIRF> SNIRFFactory::CreateSNIRF(SNIRFType type)
     case SNIRFType::SNIRF_TYPE_NIRSPY:
         return CreateRef<SNIRF>(); // Create derived class for NIRSpy
     case SNIRFType::SNIRF_TYPE_SATORI:
-        return CreateRef<SNIRF>();
+        return std::reinterpret_pointer_cast<SNIRF>(CreateRef<SatoriSNIRF>());
     case SNIRFType::SNIRF_TYPE_AURORA:
         return CreateRef<SNIRF>(); // Create derived class for Aurora
     case SNIRFType::SNIRF_TYPE_MNE_NIRS:

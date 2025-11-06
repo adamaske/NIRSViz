@@ -1,7 +1,12 @@
 #pragma once
+
 #include "Core/Base.h"
 #include "Core/Layer.h"
+
+enum SNIRFType;
+
 class Cortex;
+class SNIRFFileLoaderPanel;
 
 class FileLayer : public Layer {
 public:
@@ -26,7 +31,9 @@ public:
 	void LoadHeadAnatomy();
 	void LoadCortexAnatomy();
 
-	void RenderSNIRFFileLoader(bool standalone);
 private:
 	bool m_SNIRFileLoaderOpen = false;
+
+	Ref<SNIRFFileLoaderPanel> m_SNIRFFileLoaderPanel;
+
 };

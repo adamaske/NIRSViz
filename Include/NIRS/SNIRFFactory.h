@@ -14,6 +14,7 @@ enum SNIRFType {
 	SNIRF_TYPE_MNE_NIRS,
 	SNIRF_TYPE_CUSTOM
 };
+class SNIRF;
 
 class SNIRFFactory {
 public:
