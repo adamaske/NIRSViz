@@ -16,7 +16,7 @@ namespace NIRS {
 
         std::vector<LandmarkData> GetVisibleLandmarks();
         std::vector<LandmarkData> GetAllLandmarks();
-		std::map<Landmark, LandmarkData> GetAllLandmarkMap() const { return m_Landmarks; }
+		std::map<Landmark, LandmarkData>& GetAllLandmarkMap() { return m_Landmarks; }
         void Clear();
 
     private:

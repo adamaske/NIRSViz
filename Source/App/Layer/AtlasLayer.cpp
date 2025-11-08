@@ -82,7 +82,7 @@ void AtlasLayer::OnAttach()
 
 	// Setup renderers
 	auto mainID = ViewportManager::GetViewport("MainViewport").ID;
-	m_PathRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(1, 0, 0, 1), 2.0f);
+	m_PathRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(1, 0.2, 0.2, 1), 2.0f);
 	m_RayRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(0, 1, 0, 1), 2.0f);
 	m_ManualLandmarkRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(0.3, 0, 1, 1), 0.8);
 	m_LandmarkRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
@@ -142,7 +142,7 @@ void AtlasLayer::OnUpdate(float dt)
 	if (m_DrawLandmarks) DrawLandmarks();
 	if (m_DrawWaypoints) m_WaypointRenderer->Draw();
 	if (m_DrawRays) DrawRays();
-	if (m_DrawManualLandmarks) m_LandmarkEditor->Render3D(m_FlatColorShader, m_SphereMesh); // TODO : Move shader and mesh into editor
+	if (m_DrawManualLandmarks) DrawManualLandmarks(); // TODO : Move shader and mesh into editor
 
 	DrawCortex();
 	DrawHead();
@@ -164,17 +164,13 @@ void AtlasLayer::OnImGuiRender()
 	
 
 	ImGui::Separator();
-	ImGui::Checkbox("Draw Waypoints", &m_DrawWaypoints);
-	ImGui::ColorEdit4("Waypoint Color", &m_WaypointRenderer->GetPointColor()[0], 0);
-	ImGui::SliderFloat("Waypoint Size", &m_WaypointRenderer->GetPointSize(), 0.0f, 20.0f);
-	ImGui::Separator();
 
 	RenderCoordinateSystemSettings();
 	RenderManualLandmarkSettings();
+	RenderWaypointSettings();
 	RenderLandmarkSettings();
-	
 	RenderVisualizationSettings();
-
+	RenderPathSettings();
 	ImGui::End();
 
 	//ImGui::Separator();
@@ -292,6 +288,22 @@ void AtlasLayer::RenderCoordinateSystemSettings()
 		ImGui::SliderFloat("Theta Max", &rayConfig.ThetaMax, 0.0f, 180.0f);
 	}
 	
+
+	ImGui::Text("Defined Landmarks:");
+	for(auto & [LM, data] : coordSystem.GetLandmarks().GetAllLandmarkMap()) {
+		auto label = NIRS::LandmarkToString(LM);
+
+		ImGui::DragFloat3(label.c_str(), &data.Position[0], -0.1f, -1000.0f, 1000.0f, "%.1f");
+	}
+}
+
+void AtlasLayer::RenderWaypointSettings()
+{
+	if(ImGui::CollapsingHeader("Waypoint Settings")) {
+		ImGui::Checkbox("Draw Waypoints", &m_DrawWaypoints);
+		ImGui::ColorEdit4("Waypoint Color", &m_WaypointRenderer->GetPointColor()[0], 0);
+		ImGui::SliderFloat("Waypoint Size", &m_WaypointRenderer->GetPointSize(), 0.0f, 20.0f);
+	}
 }
 
 void AtlasLayer::RenderLandmarkSettings()
@@ -322,6 +334,17 @@ void AtlasLayer::RenderVisualizationSettings()
 	ImGui::Checkbox("Draw Rays", &m_DrawRays);
 	ImGui::ColorEdit4("Ray Color", &m_RayRenderer->m_LineColor[0], 0);
 	ImGui::SliderFloat("Ray Width", &m_RayRenderer->m_LineWidth, 1.0f, 10.0f);
+}
+
+void AtlasLayer::RenderPathSettings()
+{
+	bool open = ImGui::CollapsingHeader("Path Settings");
+	if (!open) return;
+
+	ImGui::Checkbox("Draw Paths", &m_DrawPaths);
+	ImGui::SliderFloat("Path Width", &m_PathRenderer->m_LineWidth, 1.0f, 10.0f);
+	ImGui::ColorEdit4("Path Color", &m_PathRenderer->m_LineColor[0], 0);
+
 }
 
 void AtlasLayer::DrawHead()
@@ -366,12 +389,12 @@ void AtlasLayer::DrawCortex()
 
 void AtlasLayer::DrawManualLandmarks()
 {
-
-
+	m_LandmarkEditor->Render3D(m_FlatColorShader, m_SphereMesh);
 }
 
 void AtlasLayer::DrawPaths()
 {
+	m_PathRenderer->Draw();
 }
 
 void AtlasLayer::DrawLandmarks()
@@ -382,8 +405,6 @@ void AtlasLayer::DrawLandmarks()
 
 void AtlasLayer::DrawRays()
 {
-	// 
-
 	m_RayRenderer->Draw();
 }
 
@@ -402,9 +423,17 @@ void AtlasLayer::HandleCoordinateSystemGenerated() {
 
 	auto coordSystem = m_CoordController->GetCoordinateSystem();
 
+	auto* head = NIRS::AnatomyManager::Instance().GetHead();
+	auto worldVertices = head->GetWorldSpaceVertexPositions();
+
 	// --- RAYS ---
-	auto saggitalRays = coordSystem.GetSagittalPath().Rays;
-	auto coronalRays = coordSystem.GetCoronalPath().Rays;
+	auto& saggitalPath = coordSystem.GetSagittalPath();
+	auto& coronalPath = coordSystem.GetCoronalPath();
+	auto circumferencePaths = coordSystem.GetCircumferencePaths();
+	auto f3f4Paths = coordSystem.GetF3F4Path();
+	auto p3p4Paths = coordSystem.GetP3P4Path();
+	auto saggitalRays = saggitalPath.Rays;
+	auto coronalRays = coronalPath.Rays;
 
 	m_RayRenderer->Clear();
 	for (auto ray : saggitalRays) {
@@ -422,6 +451,28 @@ void AtlasLayer::HandleCoordinateSystemGenerated() {
 		m_RayRenderer->SubmitLine(line);
 	}
 
+	m_PathRenderer->Clear();
+	std::vector<std::vector<unsigned int>> allPaths = {
+		saggitalPath.FineVertexPath,
+		coronalPath.FineVertexPath
+	};
+
+	//allPaths.push_back( f3f4Paths.FineVertexPath );
+	//allPaths.push_back(p3p4Paths.FineVertexPath);
+
+	for(auto& circumferencePath : circumferencePaths) {
+		allPaths.push_back(circumferencePath.FineVertexPath);
+	}
+
+	for(auto& path : allPaths) {
+		for (size_t i = 0; i < path.size() - 1; i++) {
+			NIRS::Line line;
+			line.Start = worldVertices[path[i]];
+			line.End = worldVertices[path[i + 1]];
+			m_PathRenderer->SubmitLine(line);
+		}
+	}
+
 	// --- LANDMARKS ---
 	m_LandmarkRenderer->Clear();
 	auto landmarkRegistry = coordSystem.GetLandmarks();
@@ -435,13 +486,15 @@ void AtlasLayer::HandleCoordinateSystemGenerated() {
 	auto saggitalWaypoints = coordSystem.GetSagittalPath().RoughVertexPath;
 	auto coronalWaypoints = coordSystem.GetCoronalPath().RoughVertexPath;
 
-	auto* head = NIRS::AnatomyManager::Instance().GetHead();
-
-	auto worldVertices = head->GetWorldSpaceVertexPositions();
 	for (auto vertexIndex : saggitalWaypoints) {
 		m_WaypointRenderer->SubmitPoint(worldVertices[vertexIndex]);
 	}
 	for (auto vertexIndex : coronalWaypoints) {
 		m_WaypointRenderer->SubmitPoint(worldVertices[vertexIndex]);
+	}
+	for(auto& circumferencePath : circumferencePaths) {
+		for (auto vertexIndex : circumferencePath.FineVertexPath) {
+			m_WaypointRenderer->SubmitPoint(worldVertices[vertexIndex]);
+		}
 	}
 }

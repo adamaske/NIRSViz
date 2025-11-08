@@ -62,4 +62,6 @@ private:
 	void StartMouseControl();
 	void DoMouseControl(float dt);
 	void EndMouseControl();
+
+	void OnMouseScrolled(float yOffset);
 };

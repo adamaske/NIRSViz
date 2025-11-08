@@ -27,8 +27,14 @@ namespace NIRS {
 														const std::vector<unsigned int>& pathIndices, 
 														float percentage)
 	{
-		if (percentage == 0.0f) return vertices[pathIndices.front()];
-		if (percentage == 1.0f) return vertices[pathIndices.back()];
+		if(percentage == 0.0f)
+		{
+			return vertices[pathIndices.front()];
+		}
+		if(percentage == 1.0f)
+		{
+			return vertices[pathIndices.back()];
+		}
 
 		auto cumulativeDistances = CalculateCumulativeDistances(vertices, pathIndices);
 		auto totalDistance = cumulativeDistances.back();
@@ -57,6 +63,8 @@ namespace NIRS {
 				return glm::mix(v_start, v_end, ratio);
 			}
 		}
+
+		NVIZ_WARN("No point found at percentage: {:.2f}", percentage);
 
 		return glm::vec3(0.0f);
 	}

@@ -31,3 +31,9 @@
 [submodule "Vendor/stb"]
 	path = Vendor/stb
 	url = https://github.com/nothings/stb.git
+[submodule "Vendor/cppzmq"]
+	path = Vendor/cppzmq
+	url = https://github.com/zeromq/cppzmq.git
+[submodule "Vendor/evpp"]
+	path = Vendor/evpp
+	url = https://github.com/Qihoo360/evpp.git

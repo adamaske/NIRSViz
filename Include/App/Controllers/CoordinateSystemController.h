@@ -24,6 +24,8 @@ namespace App
         void GenerateSagittalPath(NIRS::Head* head);
         void GenerateCoronalPath(NIRS::Head* head);
         void GenerateCircumferencePaths(NIRS::Head* head);
+        void GenerateF3F4();
+        void GenerateP3P4();
 
         NIRS::CoordinateSystem m_CoordinateSystem;
         NIRS::RaycastSampler m_Sampler;

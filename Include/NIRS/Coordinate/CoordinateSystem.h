@@ -21,10 +21,15 @@ namespace NIRS {
         void SetSagittalPath(const PathData& path) { m_SagittalPath = path; }
         void SetCoronalPath(const PathData& path) { m_CoronalPath = path; }
         void SetCircumferencePaths(const std::vector<PathData>& paths) { m_CircumferencePaths = paths; }
+        void SetF3F4Paths(const PathData& path) { m_F3F4Path = path; }
+        void SetP3P4Paths(const PathData& path) { m_P3P4Path = path; }
+        
 
         const PathData& GetSagittalPath() const { return m_SagittalPath; }
         const PathData& GetCoronalPath() const { return m_CoronalPath; }
         const std::vector<PathData>& GetCircumferencePaths() const { return m_CircumferencePaths; }
+		const PathData& GetF3F4Path() const { return m_F3F4Path; }
+		const PathData& GetP3P4Path() const { return m_P3P4Path; }
 
         bool IsGenerated() const { return m_Generated; }
         void SetGenerated(bool generated) { m_Generated = generated; }
@@ -44,6 +49,8 @@ namespace NIRS {
         PathData m_SagittalPath;    // Nz -> Iz
         PathData m_CoronalPath;     // LPA -> RPA
         std::vector<PathData> m_CircumferencePaths;  // Circumference paths
+        PathData m_F3F4Path;    // F3
+		PathData m_P3P4Path;    // P4
 
         bool m_Generated = false;
 

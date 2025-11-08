@@ -75,6 +75,17 @@ void MainViewportLayer::OnImGuiRender()
 
 void MainViewportLayer::OnEvent(Event& event)
 {
+	EventDispatcher dispatcher(event);
+
+	dispatcher.Dispatch<MouseScrolledEvent>([this](MouseScrolledEvent& e) {
+		if (m_ViewportHovered) {
+			if (m_CameraMode == ORBIT) {
+				OnMouseScrolled(e.GetYOffset());
+				return true;
+			}
+		}
+		return false;
+		});
 }
 
 void MainViewportLayer::RenderMenuBar()
@@ -208,4 +219,13 @@ void MainViewportLayer::EndMouseControl()
 
 	// 4. Set cursor position
 	glfwSetCursorPos(m_Window->GetNativeWindow(), windowLocalX, windowLocalY);
+}
+
+void MainViewportLayer::OnMouseScrolled(float yOffset)
+{
+	if (m_CameraMode == ORBIT) {
+		auto newRadius = m_OrbitCamera->m_Radius - (yOffset * 0.5f);
+		if (newRadius < 1.0f) newRadius = 1.0f;
+		m_OrbitCamera->SetRadius(newRadius);
+	}
 }

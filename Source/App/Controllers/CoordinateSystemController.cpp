@@ -2,6 +2,8 @@
 #include "App/Controllers/CoordinateSystemController.h"
 #include "Core/Log.h"
 #include "Events/EventBus.h"
+
+#include "NIRS/Anatomy/AnatomyManager.h"
 namespace App {
 
 	CoordinateSystemController::CoordinateSystemController()
@@ -23,9 +25,10 @@ namespace App {
 	    // Generate each component
 	    GenerateSagittalPath(head);
 	    GenerateCoronalPath(head);
-	    //GenerateCircumferencePaths(head);
+	    GenerateCircumferencePaths(head);
+		GenerateF3F4();
+		GenerateP3P4();
 	    m_CoordinateSystem.SetGenerated(true);
-	    NVIZ_INFO("Coordinate system generation complete");
 
 		EventBus::Instance().Publish<OnCoordinateSystemGenerated>({});
 
@@ -37,6 +40,7 @@ namespace App {
 
 			NVIZ_INFO("[{}] : ( {:.2f}, {:.2f}, {:.2f} )", NIRS::LandmarkToString(type), position.x, position.y, position.z);
 		}
+		NVIZ_INFO("Coordinate system generation complete");
 	}
 
 	void CoordinateSystemController::GenerateSagittalPath(NIRS::Head* head)
@@ -66,10 +70,12 @@ namespace App {
 		);
 		
 		auto roughPath = m_Sampler.IntersectionsToVertexPath(intersections, worldVertices);
+		std::reverse(roughPath.begin(), roughPath.end());
+		roughPath.insert(roughPath.begin(), head->FindClosestVertex(naison.Position));
+		roughPath.push_back(head->FindClosestVertex(inion.Position));
 
 		auto finePath = PathFinder::RefinePath(*head->GetGraph(), roughPath);
-        finePath.insert(finePath.begin(), head->FindClosestVertex(naison.Position));
-        finePath.push_back(head->FindClosestVertex(inion.Position));
+
 
 		CoordinateSystem::PathData path;
 		path.Rays = rays;
@@ -80,11 +86,12 @@ namespace App {
 		m_CoordinateSystem.SetSagittalPath(path);
 
 		std::vector<Landmark> labels = { Nz, Fpz, Fz, Cz, Pz, Oz, Iz };
-		std::vector<float> percentages = { 0.0f, 0.10f, 0.30f, 0.50f, 0.70f, 0.90f, 1.0f };
+		std::vector<float> percentages = { 0.0f, 0.10f, 0.30f, 0.50f, 0.70f, 0.90f, 1.00f };
 
 		auto calculatedLandmarks = LandmarkCalculator::CalculateLandmarksAlongPath(
 			worldVertices, finePath, labels, percentages
 		);
+
 
 		auto& landmarks = m_CoordinateSystem.GetLandmarks();
 		for (auto& [label, position] : calculatedLandmarks) {
@@ -102,10 +109,10 @@ namespace App {
 	void CoordinateSystemController::GenerateCoronalPath(NIRS::Head* head)
 	{
 		using namespace NIRS;
-		auto landmarks = m_CoordinateSystem.GetLandmarks();
-		auto manualLandmarks = m_CoordinateSystem.GetManualLandmarks();
+		auto& landmarks = m_CoordinateSystem.GetLandmarks();
+		auto& manualLandmarks = m_CoordinateSystem.GetManualLandmarks();
 
-		auto worldVertices = head->GetWorldSpaceVertexPositions();
+		auto& worldVertices = head->GetWorldSpaceVertexPositions();
 
 		auto lpa = manualLandmarks.GetLandmark(ManualLandmarkType::LPA);
 		auto rpa = manualLandmarks.GetLandmark(ManualLandmarkType::RPA);
@@ -119,13 +126,11 @@ namespace App {
 		auto cz = GetCoordinateSystem().GetLandmarks().GetLandmark(NIRS::Cz)->Position;
 		cz.x = lpa_rpa_midpoint.x; // Ensure Cz is aligned with LPA-RPA midpoint
 
-		NVIZ_INFO("CORNOAL CZ POSITION : ( {:.2f}, {:.2f}, {:.2f} )", cz.x, cz.y, cz.z);
 		glm::vec3 up_vector				= glm::normalize(cz - lpa_rpa_midpoint);
 		glm::vec3 lpa_rpa_rotation_axis = glm::normalize(glm::cross(lpa_rpa_direction, up_vector));
 		glm::vec3 lpa_rpa_new_direction = glm::normalize(glm::cross(lpa_rpa_rotation_axis, -up_vector));
 	
 		auto rays = m_Sampler.GenerateSweepingArchRays(lpa_rpa_midpoint, lpa_rpa_new_direction, lpa_rpa_rotation_axis);
-		NVIZ_INFO("CORONAL RAYS : {}", rays.size());
 
 		auto intersections = m_Sampler.FindIntersections(
 			rays,
@@ -133,24 +138,12 @@ namespace App {
 			head->GetMesh()->GetIndices()
 		);
 
-		if (intersections.size() == 0) {
-						NVIZ_WARN("No intersections found for coronal path generation.");
-						CoordinateSystem::PathData path;
-						path.Rays = rays;
-
-						m_CoordinateSystem.SetCoronalPath(path);
-
-						return;
-		}
-
-		NVIZ_INFO("CORONAL INTERSECTIONS : {}", intersections.size());
 		auto roughPath = m_Sampler.IntersectionsToVertexPath(intersections, worldVertices);
-
-		NVIZ_INFO("CORONAL roughPath : {}", roughPath.size());
+		std::reverse(roughPath.begin(), roughPath.end());
+		roughPath.insert(roughPath.begin(), head->FindClosestVertex(lpa.Position));
+		roughPath.push_back(head->FindClosestVertex(rpa.Position));
 
 		auto finePath = PathFinder::RefinePath(*head->GetGraph(), roughPath);
-		finePath.insert(finePath.begin(), head->FindClosestVertex(lpa.Position));
-		finePath.push_back(head->FindClosestVertex(rpa.Position));
 
 
 		CoordinateSystem::PathData path;
@@ -180,139 +173,214 @@ namespace App {
     void CoordinateSystemController::GenerateCircumferencePaths(NIRS::Head* head)
     {
 		using namespace NIRS;
-		auto landmarkRegistry = m_CoordinateSystem.GetLandmarks();
-		auto worldVertices = head->GetWorldSpaceVertexPositions();
+		auto& landmarkRegistry = m_CoordinateSystem.GetLandmarks();
+		auto& worldVertices = head->GetWorldSpaceVertexPositions();
 
+		auto fpz = landmarkRegistry.GetLandmark(NIRS::Fpz);
+		auto t3 = landmarkRegistry.GetLandmark(NIRS::T3);
+		auto oz = landmarkRegistry.GetLandmark(NIRS::Oz);
+		auto t4 = landmarkRegistry.GetLandmark(NIRS::T4);
+		std::vector<unsigned int> leftRoughPath = {
+			fpz->ClosestVertexIndex, 
+			t3->ClosestVertexIndex, 
+			oz->ClosestVertexIndex, 
+		};
 
-		auto roughPath = std::vector<unsigned int>();//m_Sampler.IntersectionsToVertexPath(intersections, worldVertices);
+		std::vector<unsigned int> rightRoughPath = {
+			fpz->ClosestVertexIndex,
+			t4->ClosestVertexIndex,
+			oz->ClosestVertexIndex,
+		};
 
+		auto leftFinePath = PathFinder::RefinePath(*head->GetGraph(), leftRoughPath);
+		auto rightFinePath = PathFinder::RefinePath(*head->GetGraph(), rightRoughPath);
 
-		auto finePath = PathFinder::RefinePath(*head->GetGraph(), roughPath);
+		CoordinateSystem::PathData leftPath;
+		leftPath.FineVertexPath = leftFinePath;
+		leftPath.RoughVertexPath = leftRoughPath;
 
+		CoordinateSystem::PathData rightPath;
+		rightPath.FineVertexPath = rightFinePath;
+		rightPath.RoughVertexPath = rightRoughPath;
 
-		CoordinateSystem::PathData path;
-		path.FineVertexPath = finePath;
+		m_CoordinateSystem.SetCircumferencePaths({ leftPath, rightPath });
 
-		m_CoordinateSystem.SetCoronalPath(path);
+		{
+			std::vector<NIRS::Landmark> labels = { Fp1, F7, T5, O1 };
+			std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
+			auto calculatedLandmarks = LandmarkCalculator::CalculateLandmarksAlongPath(
+				worldVertices, leftFinePath, labels, percentages
+			);
 
-		std::vector<Landmark> labels = { LPA, T3, C3, C4, T4, RPA };
-		std::vector<float> percentages = { 0.0f, 0.10f, 0.30f, 0.70f, 0.90f, 1.0f };
-
-		auto calculatedLandmarks = LandmarkCalculator::CalculateLandmarksAlongPath(
-			worldVertices, finePath, labels, percentages
-		);
-
-		for (auto& [label, position] : calculatedLandmarks) {
-			LandmarkData data;
-			data.Type = label;
-			data.Position = position;
-			data.ClosestVertexIndex = head->FindClosestVertex(position);
-			data.IsVisible = true;
-			landmarkRegistry.SetLandmark(label, data);
+			for (auto& [label, position] : calculatedLandmarks) {
+				LandmarkData data;
+				data.Type = label;
+				data.Position = position;
+				data.ClosestVertexIndex = head->FindClosestVertex(position);
+				data.IsVisible = true;
+				landmarkRegistry.SetLandmark(label, data);
+			}
 		}
+		{
+			std::vector<NIRS::Landmark> labels = { Fp2, F8, T6, O2 };
+			std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
+			auto calculatedLandmarks = LandmarkCalculator::CalculateLandmarksAlongPath(
+				worldVertices, rightFinePath, labels, percentages
+			);
 
-        // Similar implementation for circumference paths
-        // ... (follow same pattern)
+			for (auto& [label, position] : calculatedLandmarks) {
+				LandmarkData data;
+				data.Type = label;
+				data.Position = position;
+				data.ClosestVertexIndex = head->FindClosestVertex(position);
+				data.IsVisible = true;
+				landmarkRegistry.SetLandmark(label, data);
+			}
+		}
+	}
 
-		// Step 3. 
-	// Now we have The saggital plane : Nz to Iz path
-	// And T3, C3, C4, T4.
-	// Now we can find { "FpZ", "T3", "Oz", "T4"};
+	void CoordinateSystemController::GenerateF3F4()
+	{
+		using namespace NIRS;
+		auto head = AnatomyManager::Instance().GetHead();
+		auto worldVertices = head->GetWorldSpaceVertexPositions();
+		  
 
-	// We may want to split this into two section
+		auto& landmarks = m_CoordinateSystem.GetLandmarks();
+		auto fz = landmarks.GetLandmark(NIRS::Fz);
 
-		//VertexPath m_LeftHorizontalRoughPath = { m_LandmarkClosestVertexIndexMap[NIRS::Fpz],
-		//											m_LandmarkClosestVertexIndexMap[NIRS::T3],
-		//											m_LandmarkClosestVertexIndexMap[NIRS::Oz]
-		//};
+		// F3 is in the point where F7-Fz meets Fp1-C3
+		auto f7 = landmarks.GetLandmark(NIRS::F7);
+		auto fp1 = landmarks.GetLandmark(NIRS::Fp1);
+		auto c3 = landmarks.GetLandmark(NIRS::C3);
 
+		// F4 is the point where F8-Fz meets Fp2-C4
+		auto f8 = landmarks.GetLandmark(NIRS::F8);
+		auto fp2 = landmarks.GetLandmark(NIRS::Fp2);
+		auto c4 = landmarks.GetLandmark(NIRS::C4);
 
-		//VertexPath m_RightHorizontalRoughPath = { m_LandmarkClosestVertexIndexMap[NIRS::Oz],
-		//											m_LandmarkClosestVertexIndexMap[NIRS::T4],
-		//											m_LandmarkClosestVertexIndexMap[NIRS::Fpz]
-		//};
+		using VertexPath = std::vector<unsigned int>;
+		VertexPath f7_fz_path = {
+			f7->ClosestVertexIndex,
+			fz->ClosestVertexIndex
+		};
 
-		//VertexPath m_LeftHorizontalFinePath;
-		//VertexPath m_RightHorizontalFinePath;
+		VertexPath fp1_c3_path = {
+			fp1->ClosestVertexIndex,
+			c3->ClosestVertexIndex
+		};
 
-		//for (unsigned int i = 0; i < m_LeftHorizontalRoughPath.size() - 1; i++)
-		//{
-		//	auto start = m_LeftHorizontalRoughPath[i];
-		//	auto end = m_LeftHorizontalRoughPath[i + 1];
-		//	auto path = DjikstraShortestPath(*m_Head->Graph, start, end);
+		VertexPath f8_fz_path = {
+			f8->ClosestVertexIndex,
+			fz->ClosestVertexIndex
+		};
+		VertexPath fp2_c4_path = {
+			fp2->ClosestVertexIndex,
+			c4->ClosestVertexIndex
+		};
 
-		//	for (auto& step : path) {
-		//		m_LeftHorizontalFinePath.push_back(step);
-		//	}
-		//}
+		auto f7_fz_fine = PathFinder::RefinePath(*head->GetGraph(), f7_fz_path);
+		auto fp1_c3_fine = PathFinder::RefinePath(*head->GetGraph(), fp1_c3_path);
 
-		//for (unsigned int i = 0; i < m_RightHorizontalRoughPath.size() - 1; i++)
-		//{
-		//	auto start = m_RightHorizontalRoughPath[i];
-		//	auto end = m_RightHorizontalRoughPath[i + 1];
-		//	auto path = DjikstraShortestPath(*m_Head->Graph, start, end);
-
-		//	for (auto& step : path) {
-		//		m_RightHorizontalFinePath.push_back(step);
-		//	}
-		//}
-		//// Invert finepath
-		////m_LeftHorizontalFinePath = std::vector<unsigned int>(m_LeftHorizontalFinePath.rbegin(), m_LeftHorizontalFinePath.rend());
-		////m_RightHorizontalFinePath = std::vector<unsigned int>(m_RightHorizontalFinePath.rbegin(), m_RightHorizontalFinePath.rend());
-
-		//std::vector<NIRS::Line> horizontal_path_lines;
-		//for (unsigned int i = 0; i < m_RightHorizontalFinePath.size() - 1; i++)
-		//{
-		//	auto start = world_space_vertices[m_RightHorizontalFinePath[i]];
-		//	auto end = world_space_vertices[m_RightHorizontalFinePath[i + 1]];
-		//	horizontal_path_lines.push_back({ start, end });
-		//}
-		//for (unsigned int i = 0; i < m_LeftHorizontalFinePath.size() - 1; i++)
-		//{
-		//	auto start = world_space_vertices[m_LeftHorizontalFinePath[i]];
-		//	auto end = world_space_vertices[m_LeftHorizontalFinePath[i + 1]];
-		//	horizontal_path_lines.push_back({ start, end });
-		//}
-		//m_CalculatedPathRenderer->SubmitLines(horizontal_path_lines);
-
-		//// We dont need to flip these
-		////m_HorizontalFinePath.insert(m_LPARPAFinePath.begin(), landmark_vertex_indices[ManualLandmarkType::LPA]);
-		////m_HorizontalFinePath.push_back(landmark_vertex_indices[ManualLandmarkType::RPA]);
+		auto f8_fz_fine = PathFinder::RefinePath(*head->GetGraph(), f8_fz_path);
+		auto fp2_c4_fine = PathFinder::RefinePath(*head->GetGraph(), fp2_c4_path);
 
 
-		//{ // Left Hemisphere
-		//	using namespace NIRS;
+		auto f7fz = LandmarkCalculator::FindPointAtPercentage(worldVertices, f7_fz_fine, 0.5f);
+		auto fp1c3 = LandmarkCalculator::FindPointAtPercentage(worldVertices, fp1_c3_fine, 0.5f);
 
-		//	//std::vector<NIRS::Landmark> labels = { Fp1, F7, T5, O1, O2, T6, F8, Fp2 };
-		//	//std::vector<float> percentages = { 0.05, 0.15, 0.35, 0.45, 0.55, 0.65, 0.85, 0.95 };
+		auto f8fz = LandmarkCalculator::FindPointAtPercentage(worldVertices, f8_fz_fine, 0.5f);
+		auto fp2c4 = LandmarkCalculator::FindPointAtPercentage(worldVertices, fp2_c4_fine, 0.5f);
 
-		//	std::vector<NIRS::Landmark> labels = { Fp1, F7, T5, O1 };
-		//	std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
+		//
+		auto f3 = (f7fz + fp1c3) / 2.0f;
+		auto f4 = (f8fz + fp2c4) / 2.0f;
 
-		//	auto coordinates = FindReferencePointsAlongPath(world_space_vertices, m_LeftHorizontalFinePath, labels, percentages);
-		//	for (auto& [label, position] : coordinates) {
-		//		m_Landmarks[label] = position;
-		//		m_LandmarkVisibility[label] = true;
-		//	};
-		//}
+		LandmarkData f3Data;
+		f3Data.Type = F3;
+		f3Data.Position = f3;
+		f3Data.ClosestVertexIndex = head->FindClosestVertex(fp1c3);
+		f3Data.IsVisible = true;
+		landmarks.SetLandmark(F3, f3Data);
+		LandmarkData f4Data;
+		f4Data.Type = F4;
+		f4Data.Position = f4;
+		f4Data.ClosestVertexIndex = head->FindClosestVertex(fp2c4);
+		f4Data.IsVisible = true;
+		landmarks.SetLandmark(F4, f4Data);
+		// Now generate the F3-F4 path
+	}
 
-		//{ // Right Hemisphere
-		//	using namespace NIRS;
+	void CoordinateSystemController::GenerateP3P4()
+	{
 
-		//	std::vector<NIRS::Landmark> labels = { O2, T6, F8, Fp2 };
-		//	std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
+		using namespace NIRS;
+		auto head = AnatomyManager::Instance().GetHead();
+		auto worldVertices = head->GetWorldSpaceVertexPositions();
+		auto& landmarks = m_CoordinateSystem.GetLandmarks();
 
-		//	auto coordinates = FindReferencePointsAlongPath(world_space_vertices, m_RightHorizontalFinePath, labels, percentages);
-		//	for (auto& [label, position] : coordinates) {
-		//		m_Landmarks[label] = position;
-		//		m_LandmarkVisibility[label] = true;
-		//	};
-		//}
+		auto pz = landmarks.GetLandmark(NIRS::Pz);
+		// P3 is where T5-Pz meets O1-C3
+		auto t5 = landmarks.GetLandmark(NIRS::T5);	
+		auto o1 = landmarks.GetLandmark(NIRS::O1);
+		auto c3 = landmarks.GetLandmark(NIRS::C3);
 
-		//m_LandmarkRenderer->Clear();
-		//for (auto& [label, position] : m_Landmarks) {
-		//	if (m_LandmarkVisibility[label]) m_LandmarkRenderer->SubmitPoint({ position });
-		//};
+		// P4 is where T6-Pz meets O2-C4
+		auto t6 = landmarks.GetLandmark(NIRS::T6);
+		auto o2 = landmarks.GetLandmark(NIRS::O2);
+		auto c4 = landmarks.GetLandmark(NIRS::C4);
+
+		using VertexPath = std::vector<unsigned int>;
+		VertexPath t5_Pz_path = {
+			t5->ClosestVertexIndex,
+			pz->ClosestVertexIndex
+		};
+
+		VertexPath o1_c3_path = {
+			o1->ClosestVertexIndex,
+			c3->ClosestVertexIndex
+		};
+
+		VertexPath t6_Pz_path = {
+			t6->ClosestVertexIndex,
+			pz->ClosestVertexIndex
+		};
+		VertexPath o2_c4_path = {
+			o2->ClosestVertexIndex,
+			c4->ClosestVertexIndex
+		};
+
+
+		auto t5_Pz_fine = PathFinder::RefinePath(*head->GetGraph(), t5_Pz_path);
+		auto o1_c3_fine = PathFinder::RefinePath(*head->GetGraph(), o1_c3_path);
+
+		auto t6_Pz_fine = PathFinder::RefinePath(*head->GetGraph(), t6_Pz_path);
+		auto o2_c4_fine = PathFinder::RefinePath(*head->GetGraph(), o2_c4_path);
+
+
+		auto t5pz = LandmarkCalculator::FindPointAtPercentage(worldVertices, t5_Pz_fine, 0.5f);
+		auto o1c3 = LandmarkCalculator::FindPointAtPercentage(worldVertices, o1_c3_fine, 0.5f);
+
+		auto t6pz = LandmarkCalculator::FindPointAtPercentage(worldVertices, t6_Pz_fine, 0.5f);
+		auto o2c4 = LandmarkCalculator::FindPointAtPercentage(worldVertices, o2_c4_fine, 0.5f);
+
+		//
+		auto p3 = (t5pz + o1c3) / 2.0f;
+		auto p4 = (t6pz + o2c4) / 2.0f;
+
+		LandmarkData p3Data;
+		p3Data.Type = P3;
+		p3Data.Position = p3;
+		p3Data.ClosestVertexIndex = head->FindClosestVertex(o1c3);
+		p3Data.IsVisible = true;
+		landmarks.SetLandmark(P3, p3Data);
+
+		LandmarkData p4Data;
+		p4Data.Type = P4;
+		p4Data.Position = p4;
+		p4Data.ClosestVertexIndex = head->FindClosestVertex(o2c4);
+		p4Data.IsVisible = true;
+		landmarks.SetLandmark(P4, p4Data);
 
 	}
 

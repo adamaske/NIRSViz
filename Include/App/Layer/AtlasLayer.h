@@ -41,9 +41,11 @@ private:
 	void RenderHeadSettings();
 	void RenderCortexSettings();
 	void RenderCoordinateSystemSettings();
+	void RenderWaypointSettings();
 	void RenderLandmarkSettings();
 	void RenderManualLandmarkSettings();
 	void RenderVisualizationSettings();
+	void RenderPathSettings();
 
 	// 3D Rendering
 	void DrawHead();
