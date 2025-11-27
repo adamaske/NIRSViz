@@ -14,13 +14,15 @@ public:
 	void RenderMenuBar() override;
 
 
-	void NewProject();
 	void OpenProject();
 
+	void RenderNewProjectEditor();
 	void RenderProjectExplorer();
 	
 	void RenderProjectDetails(bool standalone);
 private:
+
+	bool m_ShowNewProjectEditor = false;
 
 	Ref<NIRS::ProjectDatabase> m_ProjectDatabase;
 

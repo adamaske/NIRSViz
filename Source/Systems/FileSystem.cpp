@@ -22,6 +22,7 @@ void FileSystem::OnGUIRender()
 	RenderProjectDetails(true);
 	RenderProjectExplorer();
 
+	if(m_ShowNewProjectEditor) RenderNewProjectEditor();
 }
 
 void FileSystem::RenderMenuBar()
@@ -30,7 +31,8 @@ void FileSystem::RenderMenuBar()
 	if (ImGui::BeginMenu("File")) {
 		
 		if (ImGui::MenuItem("New Project")) {
-			NewProject();
+			m_ShowNewProjectEditor = true;
+
 		}
 
 		if (ImGui::MenuItem("Open Project")) {
@@ -52,22 +54,8 @@ void FileSystem::RenderMenuBar()
 	ImGui::PopID();
 }
 
-void FileSystem::NewProject()
-{
-	NVIZ_INFO("Creating new project...");
-
-	// Creates a SQLite database file to store the project data
-	// This is currently empty
-
-
-}
-
 void FileSystem::OpenProject()
 {
-	NVIZ_INFO("Opening existing project...");
-
-	// Open file dialog 
-
 	char filePath[MAX_PATH] = "";
 	OPENFILENAMEA ofn;
 	ZeroMemory(&ofn, sizeof(ofn));
@@ -83,12 +71,88 @@ void FileSystem::OpenProject()
 
 	std::string projectPath = std::string(filePath);
 
+	if (m_ProjectDatabase)
+		m_ProjectDatabase->CloseDatabase(); // Close existing database if any
+
 	m_ProjectDatabase = CreateRef<NIRS::ProjectDatabase>(projectPath);
+}
+
+static char projectName[256] = "";
+static char projectDescription[512] = "";
+void FileSystem::RenderNewProjectEditor()
+{
+	ImGui::Begin("New Project", &m_ShowNewProjectEditor);
+
+	ImGui::Columns(2, nullptr, false);
+	ImGui::SetColumnWidth(0, 150.0f);
+
+	ImGui::Text("Project Name:");
+	ImGui::NextColumn();
+	ImGui::InputTextWithHint("##projectName", "My NIRS Project", projectName, 256);
+	ImGui::Separator();
+	ImGui::NextColumn();
+
+	ImGui::Text("Description:");
+	ImGui::NextColumn();
+	ImGui::InputTextWithHint("##projectDescription", "A short description of the project", projectDescription, 512);
+
+	ImGui::Separator();
+
+	// Centered Create Button
+	ImGui::PushStyleColor(ImGuiCol_Button, std::string(projectName).empty() ? 
+		ImVec4(0.8f, 0.2f, 0.2f, 1.0f) : 
+		ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+	
+	if(std::string(projectName).empty()) {
+		ImGui::BeginDisabled();
+	}
+
+	if(ImGui::Button("Create Project")) {
+		m_ShowNewProjectEditor = false;
+		
+		// Use GetOpenFileNameA or W to select a location to save the project database
+		std::string previewPath = std::string(projectName) + ".db3";
+		char savePath[MAX_PATH] = "";
+        strncpy(savePath, previewPath.c_str(), sizeof(savePath) - 1);
+        savePath[sizeof(savePath) - 1] = '\0';
+        OPENFILENAMEA saveOfn;
+        ZeroMemory(&saveOfn, sizeof(saveOfn));
+        saveOfn.lStructSize = sizeof(saveOfn);
+        saveOfn.hwndOwner = NULL;
+        saveOfn.lpstrFile = savePath;
+        saveOfn.nMaxFile = sizeof(savePath);
+        saveOfn.lpstrFilter = "Database Files (*.db3)\0*.db3\0All Files (*.*)\0*.*\0";
+        saveOfn.nFilterIndex = 1;
+        saveOfn.lpstrTitle = "Save Project Database";
+        saveOfn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+        
+        if (GetSaveFileNameA(&saveOfn)) {
+			NVIZ_INFO("Save Location: {}", savePath);
+        }
+
+	}
+
+	if (std::string(projectName).empty()) {
+		ImGui::EndDisabled();
+	}
+
+	ImGui::PopStyleColor();
+
+	ImGui::End();
+
 }
 
 void FileSystem::RenderProjectExplorer()
 {
 	ImGui::Begin("Project Explorer");
+
+	if (!m_ProjectDatabase) {
+		ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "No project loaded");
+		ImGui::Text("Create or open a project to begin.");
+		ImGui::End();
+		return;
+	}
+
 
 	// We have several files in the project
 	// We want to list all the loaded files here in a scrollable list
@@ -98,6 +162,14 @@ void FileSystem::RenderProjectExplorer()
 	// If we press on a file, we select it and show its properties in the properties panel (handled elsewhere)
 	// We can also drag and drop files to reorder them in the project
 	
+	// For each subject in project
+	//		For each file in subject
+	//			Show file name
+
+	// If we have files wihtout a subject, we show them in a separate section
+
+
+
 	ImGui::End();
 }
 
@@ -106,28 +178,50 @@ void FileSystem::RenderProjectDetails(bool standalone)
 	if(standalone)
 		ImGui::Begin("Project Details");
 
+	auto end = [standalone]() { if (standalone) ImGui::End(); };
+
+
 	if(!m_ProjectDatabase) {
-		ImGui::Text("No project loaded.");
-		if(standalone)
-			ImGui::End();
+		ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "No project loaded");
+		ImGui::Text("Create or open a project to begin.");
+		end();
 		return;
 	}
 
 	auto projectInfo = m_ProjectDatabase->GetProjectInfo();
 	if(!projectInfo.has_value()) {
 		ImGui::Text("No project loaded.");
-		if(standalone)
-			ImGui::End();
+		end();
 		return;
 	}
 
-	// Show project details
-	ImGui::Text("Project Name: %s", projectInfo->name.c_str());
-	ImGui::Text("Description: %s", projectInfo->description.c_str());
-	ImGui::Text("Created At: %s", projectInfo->created_at.c_str());
-	ImGui::Text("Last Modified: %s", projectInfo->last_modified.c_str());
+	ImGui::Columns(2, nullptr, false);
+	ImGui::SetColumnWidth(0, 150.0f);
+
+	ImGui::Text("Project Name:");
+	ImGui::NextColumn();
+	ImGui::Text("%s", projectInfo->name.c_str());
+	ImGui::Separator();
+	ImGui::NextColumn();
+
+	ImGui::Text("Description:");
+	ImGui::NextColumn();
+	ImGui::Text("%s", projectInfo->description.c_str());
+
+	ImGui::Separator();
+	ImGui::NextColumn();
 
 
-	if(standalone)
-		ImGui::End();
+	ImGui::Text("Created At:");
+	ImGui::NextColumn();
+	ImGui::Text("%s", projectInfo->created_at.c_str());
+
+	ImGui::Separator();
+	ImGui::NextColumn();
+
+	ImGui::Text("Last Modified:");
+	ImGui::NextColumn();
+	ImGui::Text("%s", projectInfo->last_modified.c_str());
+
+	end();
 }
