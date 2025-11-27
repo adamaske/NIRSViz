@@ -8,7 +8,7 @@
 static NIRS::WavelengthType projectedWavelength = NIRS::WavelengthType::HBO;
 static bool isProjecting = false;
 
-ControlPanelLayer::ControlPanelLayer(const EntityID& settingsID) : Layer(settingsID)
+ControlPanelLayer::ControlPanelLayer() 
 {
 }
 

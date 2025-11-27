@@ -56,7 +56,8 @@ namespace Utils {
 	}
 }
 
-ProjectionLayer::ProjectionLayer(const EntityID& settingsID) : Layer(settingsID) {}
+ProjectionLayer::ProjectionLayer() {
+}
 
 ProjectionLayer::~ProjectionLayer() {}
 

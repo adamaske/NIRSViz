@@ -25,7 +25,7 @@
 
 #include "NIRS/Anatomy/AnatomyManager.h"
 
-ProbeLayer::ProbeLayer(const EntityID& settingsID) : Layer(settingsID)
+ProbeLayer::ProbeLayer()
 {
 }
 
@@ -72,15 +72,15 @@ void ProbeLayer::OnUpdate(float dt)
 
 		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
+	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) m_LineRenderer2D->Draw();
+	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) m_LineRenderer3D->Draw();
+	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) m_ProjLineRenderer3D->Draw();
+
 	if (m_DrawChannelProjections3D || m_DrawChannels3D || m_DrawChannels2D ||
 		m_DrawProbes2D || m_DrawProbes3D) {
 		UpdateProbeVisuals();
 		UpdateChannelVisuals();
 	}
-
-	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) m_LineRenderer2D->Draw();
-	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) m_LineRenderer3D->Draw(); 
-	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) m_ProjLineRenderer3D->Draw();
 
 	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) { // Currently we dont apply any transform to 2D probes
 		for (const auto& cmd : m_SourceVisuals) {

@@ -10,7 +10,7 @@
 
 #include "GUI/GUI.h"
 
-PlottingLayer::PlottingLayer(const EntityID& settingsID) : Layer(settingsID)
+PlottingLayer::PlottingLayer() 
 {
 }
 

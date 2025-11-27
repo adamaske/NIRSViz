@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 
+
 Application* Application::s_Instance = nullptr;
 Application::Application(const ApplicationSpecification& spec) : m_Specification(spec)
 {
@@ -21,7 +22,7 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	}
 	NVIZ_INFO("Application : {}", m_Specification.Name);
 	NVIZ_INFO("\tWorking Directory : {}", m_Specification.WorkingDirectory.c_str());
-			
+
 
 	WindowSpecification window_spec;
 	window_spec.title = spec.Name;
@@ -33,12 +34,10 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	m_Window = CreateRef<Window>(window_spec);
 	m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 
-	// --- ECS Setup ---
-	m_Coordinator = CreateRef<Coordinator>();
-	m_Coordinator->registerComponent<ApplicationSettingsComponent>();
-	// --- General Settings ---
-	auto settingsEntity = m_Coordinator->createEntity();
-	m_Coordinator->addComponent(settingsEntity, ApplicationSettingsComponent{false});
+
+	// ECS Setup
+
+	// DI Container
 
 	EventBus::Instance().Subscribe<ExitApplicationCommand>([this](const ExitApplicationCommand& cmd) {
 		this->Close();
@@ -47,25 +46,35 @@ Application::Application(const ApplicationSpecification& spec) : m_Specification
 	Renderer::Init();
 	ViewportManager::Init();
 
-	// Add Layers
-	m_ImGuiLayer		= CreateRef<ImGuiLayer>(settingsEntity);
+	// --- Systems 
+	if (!m_SystemManager) m_SystemManager = CreateRef<SystemManager>();
 
-	m_MainViewportLayer = CreateRef<MainViewportLayer>(settingsEntity);
-	m_ProbeLayer		= CreateRef<ProbeLayer>(settingsEntity);
-	m_AtlasLayer		= CreateRef<AtlasLayer>(settingsEntity);
-	m_PlottingLayer		= CreateRef<PlottingLayer>(settingsEntity);
-	m_ProjectionLayer	= CreateRef<ProjectionLayer>(settingsEntity);
-	m_FileLayer			= CreateRef<FileLayer>(settingsEntity);
-	m_ChannelSelectorLayer = CreateRef<ChannelSelectorLayer>(settingsEntity);
-	m_ControlPanelLayer = CreateRef<ControlPanelLayer>(settingsEntity);
+	// File System
+	m_SystemManager->AddSystem(CreateRef<FileSystem>());
+
+
+
+	// In Application constructor:
+
+	// Add Layers
+	m_ImGuiLayer = CreateRef<ImGuiLayer>(); // Renders the ImGUI interface
+
+	m_MainViewportLayer = CreateRef<MainViewportLayer>(); // handles the main viewport, gets the correct framebuffer and displays it in a imgui window
+	m_ProbeLayer = CreateRef<ProbeLayer>(); // when snirf file is loaded this handles the loading and displaying of the probe / channel layout
+	m_AtlasLayer = CreateRef<AtlasLayer>(); // The atlas refers to the physical head and brain model which is rendered, addtionally coordiate system generation
+	m_PlottingLayer = CreateRef<PlottingLayer>(); // Handles data plotting and time series visualization
+	m_ProjectionLayer = CreateRef<ProjectionLayer>(); // Handles projection of channel data onto the cortex model
+	m_FileLayer = CreateRef<FileLayer>(); // Handles file loading (SNIRF, head anatomy, cortex anatomy)
+	m_ChannelSelectorLayer = CreateRef<ChannelSelectorLayer>(); // Displays the 2D channel layout and allows selection of channels
+	m_ControlPanelLayer = CreateRef<ControlPanelLayer>(); // Control panel for the most common settings
 
 	PushOverlay(m_ImGuiLayer.get());
 	PushLayer(m_FileLayer.get());
 	PushLayer(m_MainViewportLayer.get());
+	PushLayer(m_ProjectionLayer.get());
 	PushLayer(m_ProbeLayer.get());
 	PushLayer(m_AtlasLayer.get());
 	PushLayer(m_PlottingLayer.get());
-	PushLayer(m_ProjectionLayer.get());
 	PushLayer(m_ChannelSelectorLayer.get());
 	PushLayer(m_ControlPanelLayer.get());
 
@@ -89,6 +98,9 @@ void Application::Run()
 		{
 			Renderer::BeginScene();
 
+			for (auto& system : *m_SystemManager.get())
+				system->OnUpdate(delta_time);
+
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate(delta_time);
 
@@ -97,6 +109,9 @@ void Application::Run()
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
 				layer->OnImGuiRender();
+
+			for (auto& system : *m_SystemManager.get())
+				system->OnGUIRender();
 			m_ImGuiLayer->End();
 		}
 
@@ -111,7 +126,7 @@ void Application::Close()
 
 void Application::OnEvent(Event& e)
 {
-	EventDispatcher dispatcher(e);
+	EventDispatcher dispatcher(e); // This event is called from the window when an event occurs
 	dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClose));
 	dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
 

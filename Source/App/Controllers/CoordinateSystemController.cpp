@@ -30,6 +30,8 @@ namespace App {
 		GenerateP3P4();
 	    m_CoordinateSystem.SetGenerated(true);
 
+		Generate1010SystemBasedOn1020System();
+
 		EventBus::Instance().Publish<OnCoordinateSystemGenerated>({});
 
 
@@ -382,6 +384,27 @@ namespace App {
 		p4Data.IsVisible = true;
 		landmarks.SetLandmark(P4, p4Data);
 
+	}
+
+	void CoordinateSystemController::Generate1010SystemBasedOn1020System()
+	{
+		auto& landmarks = m_CoordinateSystem.GetLandmarks().GetAllLandmarkMap();
+
+
+		// --- Frontal Lobe ---
+
+
+		// Between Fpz Fz -> Afz
+
+		// Between Fp1 F7 -> Af7
+		// Between F7 F3 -> F5
+
+		// Between F3 Fz -> F1
+		// Between Fz F4 -> F2
+
+		// Between F8 F4 -> F6
+
+		//
 	}
 
 } // namespace App

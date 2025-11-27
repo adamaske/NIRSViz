@@ -16,7 +16,7 @@
 #define DETECTOR_OFFSET 1024
 #define CHANNEL_OFFSET 2048
 
-ChannelSelectorLayer::ChannelSelectorLayer(const EntityID& settingsID) : Layer(settingsID)
+ChannelSelectorLayer::ChannelSelectorLayer() 
 {
 }
 ChannelSelectorLayer::~ChannelSelectorLayer()

@@ -37,3 +37,9 @@
 [submodule "Vendor/evpp"]
 	path = Vendor/evpp
 	url = https://github.com/Qihoo360/evpp.git
+[submodule "Vendor/SQLiteCpp"]
+	path = Vendor/SQLiteCpp
+	url = https://github.com/SRombauts/SQLiteCpp.git
+[submodule "Vendor/entt"]
+	path = Vendor/entt
+	url = https://github.com/skypjack/entt.git

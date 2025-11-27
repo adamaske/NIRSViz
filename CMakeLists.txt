@@ -1,28 +1,57 @@
 cmake_minimum_required(VERSION 3.15)
+project(NIRSViz VERSION 1.0 LANGUAGES CXX)
 
-project(NIRSViz VERSION 1.0)
-
+# =============================================================================
+# Project Configuration
+# =============================================================================
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+# =============================================================================
+# Directory Structure
+# =============================================================================
 set(VENDOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Vendor")
+set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Include")
-set(SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Source")
-
-
-find_package( OpenGL REQUIRED )
-include_directories( ${OPENGL_INCLUDE_DIRS} )
-
-include_directories("${GLFW_SOURCE_DIR}/deps")
-    set( GLAD_GL "${GLFW_SOURCE_DIR}/deps/glad/gl.h" )
+set(DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Data")
+set(ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
+# =============================================================================
+# Platform-Specific Configuration
+# =============================================================================
 if(MSVC)
-    add_compile_options("/utf-8")
-    SET( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup" )
+    add_compile_options(/utf-8)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup")
 endif()
-add_subdirectory( vendor/glfw )
 
+# =============================================================================
+# External Dependencies
+# =============================================================================
+
+# OpenGL
+find_package(OpenGL REQUIRED)
+
+# HDF5
+set(HDF5_ROOT "C:/Program Files/HDF_Group/HDF5/1.14.6")
+find_package(HDF5 REQUIRED)
+
+# GLFW
+add_subdirectory(${VENDOR_DIR}/glfw)
+
+# SQLiteCpp
+add_subdirectory(${VENDOR_DIR}/SQLiteCpp)
+
+# spdlog
+add_subdirectory(${VENDOR_DIR}/spdlog)
+
+# Native File Dialog Extended
+add_subdirectory(${VENDOR_DIR}/nativefiledialog-extended)
+
+# =============================================================================
+# ImGui Library
+# =============================================================================
 set(IMGUI_SOURCES
-    ${VENDOR_DIR}/imgui/imgui.cpp   
+    ${VENDOR_DIR}/imgui/imgui.cpp
     ${VENDOR_DIR}/imgui/imgui_draw.cpp
     ${VENDOR_DIR}/imgui/imgui_tables.cpp
     ${VENDOR_DIR}/imgui/imgui_widgets.cpp
@@ -34,57 +63,63 @@ set(IMGUI_SOURCES
     ${VENDOR_DIR}/implot/implot_items.cpp
 )
 
+# =============================================================================
+# Main Executable
+# =============================================================================
 
-set(HDF5_ROOT "C:/Program Files/HDF_Group/HDF5/1.14.6")
-find_package(HDF5 REQUIRED)
+# Collect all source files recursively
+file(GLOB_RECURSE PROJECT_SOURCES "${SRC_DIR}/*.cpp")
+file(GLOB_RECURSE PROJECT_HEADERS "${SRC_DIR}/*.h")
 
-add_subdirectory(${VENDOR_DIR}/nativefiledialog-extended)
-add_subdirectory( ${VENDOR_DIR}/spdlog)
-
-set(DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/data")
-file(GLOB_RECURSE DATA_SHARE "${DATA_DIR}/*")
-set(INSTALL_FILES ${DATA_SHARE})
-
-install(
-    FILES ${INSTALL_FILES}
-    DESTINATION "share/my_project_name/data"
+# Create executable
+add_executable(${PROJECT_NAME}
+    ${PROJECT_SOURCES}
+    ${IMGUI_SOURCES}
+    ${VENDOR_DIR}/glad/src/glad.cpp
 )
 
-
-file(GLOB_RECURSE INCS "${INCLUDE_DIR}/*.h")
-file(GLOB_RECURSE SRCS "${SOURCE_DIR}/*.cpp")
-
-add_executable( ${PROJECT_NAME} 
-                ${SRCS} 
-                ${IMGUI_SOURCES} 
-                ${VENDOR_DIR}/glad/src/glad.cpp
-)
-
+# Precompiled headers (if you have pch.h in src/)
 target_precompile_headers(${PROJECT_NAME} PRIVATE ${INCLUDE_DIR}/pch.h)
 
-target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
-)
-
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-    ${INCLUDE_DIR}
-    ${VENDOR_DIR}/glfw/include
-    ${VENDOR_DIR}/spdlog/include
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${SRC_DIR}                           # Your source files can now find each other
+    ${INCLUDE_DIR}                       # Your own include directory
     ${VENDOR_DIR}/glad/include
     ${VENDOR_DIR}/glm
-    ${VENDOR_DIR}/imgui 
+    ${VENDOR_DIR}/imgui
     ${VENDOR_DIR}/implot
+    ${VENDOR_DIR}/stb
+    ${VENDOR_DIR}/entt/src
     ${VENDOR_DIR}/HighFive/include
     ${VENDOR_DIR}/Eigen/include
-    ${VENDOR_DIR}/stb
 )
 
+# Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${OPENGL_LIBRARIES} 
-    glfw 
-    $<$<BOOL:${MINGW}>:ws2_32> 
-    spdlog::spdlog 
+    OpenGL::GL
+    glfw
+    spdlog::spdlog
     HDF5::HDF5
     nfd
+    SQLiteCpp
+    $<$<BOOL:${MINGW}>:ws2_32>
+)
+
+# =============================================================================
+# Installation
+# =============================================================================
+file(GLOB_RECURSE DATA_SHARE "${DATA_DIR}/*")
+file(GLOB_RECURSE ASSET_SHARE "${ASSET_DIR}/*")
+
+install(FILES ${DATA_SHARE}
+    DESTINATION "share/${PROJECT_NAME}/Data"
+)
+
+install(FILES ${ASSET_SHARE}
+    DESTINATION "share/${PROJECT_NAME}/Assets"  # Change destination for asset share
+)
+
+install(TARGETS ${PROJECT_NAME}
+    RUNTIME DESTINATION bin
 )

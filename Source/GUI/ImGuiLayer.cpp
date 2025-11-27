@@ -12,7 +12,7 @@
 
 #include "Core/Application.h"
 
-ImGuiLayer::ImGuiLayer(const EntityID& settingsID) : Layer(settingsID)
+ImGuiLayer::ImGuiLayer()
 {
 }
 ImGuiLayer::~ImGuiLayer()
@@ -86,8 +86,11 @@ void ImGuiLayer::Begin()
 	ImGui::ShowDemoWindow();
 
 	auto& layerStack = Application::Get().GetLayerStack();
-
+	auto& systemManager = Application::Get().GetSystemManager();
 	if (ImGui::BeginMainMenuBar()) {
+
+		for(auto& system : *systemManager.get())
+			system->RenderMenuBar();
 
 		for (auto* layer : layerStack)
 			layer->RenderMenuBar();
