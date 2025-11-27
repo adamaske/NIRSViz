@@ -146,21 +146,21 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
 
     if (IsValid) {
         ValidationErrorMessages.clear();
-        ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Border);
+        ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Borders);
         ImGui::TextWrapped("File is valid. Ready for loading.");
         ImGui::EndChild();
     }
     else {
 
         if (ValidationErrorMessages.empty()) {
-            ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Border);
+            ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Borders);
             ImGui::TextWrapped("No messages...");
             ImGui::EndChild();
         }
         else {
 
             // The second parameter sets the size: 0 width (full width) and 4 lines high.
-            if (ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Border)) {
+            if (ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Borders)) {
                 for (const auto& msg : ValidationErrorMessages) {
                     // Use ImGui::TextWrapped for better display of long error messages
                     ImGui::TextWrapped("- %s", msg.message.c_str());
