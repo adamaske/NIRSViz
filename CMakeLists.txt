@@ -16,6 +16,7 @@ set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Include")
 set(DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Data")
 set(ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
+
 # =============================================================================
 # Platform-Specific Configuration
 # =============================================================================
@@ -70,6 +71,7 @@ set(IMGUI_SOURCES
 # Collect all source files recursively
 file(GLOB_RECURSE PROJECT_SOURCES "${SRC_DIR}/*.cpp")
 file(GLOB_RECURSE PROJECT_HEADERS "${SRC_DIR}/*.h")
+
 
 # Create executable
 add_executable(${PROJECT_NAME}
