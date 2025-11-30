@@ -17,6 +17,5 @@ class SNIRF;
 
 class SNIRFFactory {
 public:
-	static Ref<SNIRF> CreateSNIRF(SNIRFType type);
-	static Ref<SNIRF> CreateSNIRF(SNIRFType type, std::string filepath);
+	const SNIRF& CreateSNIRF(SNIRFType type, std::filesystem::path path);
 };

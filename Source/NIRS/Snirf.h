@@ -16,9 +16,9 @@
 #include "NIRS/SNIRFValidator.h"
 #include "NIRS/SNIRFChannelDataRegistry.h"
 
+
 class SNIRF {
 public:
-	SNIRF();
 	SNIRF(const std::filesystem::path& filepath);
 
 	void Print();
@@ -28,10 +28,11 @@ public:
 	void ParseMetadataTags(const HighFive::Group& metadata);
 	void ParseProbe(const HighFive::Group& probe);
 	void ParseData1(const HighFive::Group& data1);
+	void ParseStims(const HighFive::Group& nirs);
 
-	std::string GetFilepath() { return m_Filepath.string(); };
+	std::string GetFilepath() { return filepath_.string(); };
 
-	bool IsFileLoaded() { return !m_Filepath.empty(); };
+	bool IsFileLoaded() { return !filepath_.empty(); };
 
 
 	//std::vector<NIRS::Landmark> GetLandmarks() { return m_ManualLandmarks; };
@@ -68,7 +69,7 @@ public:
 
 	double GetDurationSeconds() { return m_DurationSeconds; };
 private:
-	std::filesystem::path m_Filepath = std::filesystem::path("");
+	std::filesystem::path filepath_;
 
 	Eigen::Matrix<double,
 		Eigen::Dynamic,
@@ -95,5 +96,10 @@ private:
 	std::vector<int> m_Wavelengths			 = {};
 
 	Ref<ChannelDataRegistry> m_ChannelDataRegistry = nullptr;
+
+
+	// --- Events ---
+	std::vector<NIRS::Event> events_;
+	std::map<std::string, NIRS::Event> event_map_;
 
 };

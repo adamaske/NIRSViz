@@ -7,6 +7,8 @@
 #include <highfive/H5DataSpace.hpp>
 #include <highfive/H5Easy.hpp>
 
+#include <NIRS/SNIRFValidator.h>
+
 using namespace HighFive;
 using namespace NIRS;
 
@@ -121,22 +123,16 @@ namespace Utils {
     }
 }
 
-SNIRF::SNIRF()
-{
-	m_ChannelDataRegistry = CreateRef<ChannelDataRegistry>();
-}
-
-SNIRF::SNIRF(const std::filesystem::path& filepath)
+SNIRF::SNIRF(const std::filesystem::path& filepath) : filepath_(filepath)
 {
     m_ChannelDataRegistry = CreateRef<ChannelDataRegistry>();
+
 	LoadFile(filepath);
 }
 
-
-
 void SNIRF::Print()
 {
-    NVIZ_INFO("SNIRF File       : {}", m_Filepath.string());
+    NVIZ_INFO("SNIRF File       : {}", filepath_.string());
 	NVIZ_INFO("Sample Rate : {} Hz", m_SamplingRate);
     NVIZ_INFO("     Sources     : {}", m_Sources2D.size());
     NVIZ_INFO("     Detectors   : {}", m_Detectors2D.size());
@@ -152,6 +148,18 @@ void SNIRF::Print()
     NVIZ_INFO("Wavelengths : {}, {}", m_Wavelengths[0], m_Wavelengths[1]);
 
     NVIZ_INFO("Channel Data : {} channels, {} time points", m_ChannelData.rows(), m_ChannelData.cols());
+
+    // Print Events
+    for(auto& event : events_)
+    {
+		NVIZ_INFO("Event : {}", event.name);
+
+        int i = 0;
+        for (auto& marker : event.markers)
+        {
+			NVIZ_INFO("    {} : Onset: {}, Duration: {}, Value: {}", i++, marker.onset, marker.duration, marker.value);
+        }
+	}
 }
 
 void SNIRF::LoadFile(const std::filesystem::path& filepath)
@@ -160,34 +168,25 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
         NVIZ_ERROR("File does not exist: {0}", filepath.string().c_str());
         return;
 	}
-    m_Source2DMap.clear();
-    m_Detector2DMap.clear();
-    m_Source3DMap.clear();
-    m_Detector3DMap.clear();
-    m_Sources2D.clear();
-    m_Detectors2D.clear();
-    m_Sources3D.clear();
-    m_Detectors3D.clear();
-    //m_Landmarks.clear();
-    m_ChannelMap.clear();
-    m_Channels.clear();
-    m_Wavelengths.clear();
-    m_ChannelData.resize(0, 0);
-    m_ChannelDataRegistry->Clear();
 
-    m_Filepath = filepath;
-    File file(filepath.string(), File::ReadOnly); //Utils::ParseHDF5(filepath.string());
+    File file(filepath.string(), File::ReadOnly); 
 
-	Group root_group = file.getGroup("/");
-    Group nirs = root_group.getGroup("/nirs");
-    Group data1 = nirs.getGroup("data1");
+	//Utils::ParseHDF5(filepath.string());
 
-	Group metadata = nirs.getGroup("metaDataTags");
-    Group probe = nirs.getGroup("probe");
 
-    ParseMetadataTags(metadata);
-	ParseProbe(probe); // THIS MUST BE FIRST
-    ParseData1(data1);
+	Group root = file.getGroup("/");
+
+    Group nirs = root.getGroup("nirs");
+
+
+    ParseMetadataTags(nirs.getGroup("metaDataTags"));
+	ParseProbe(nirs.getGroup("probe")); // THIS MUST BE FIRST
+    ParseData1(nirs.getGroup("data1"));
+    
+    // Parse stims
+    ParseStims(nirs);
+
+
 
     Print();
 }
@@ -422,18 +421,78 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 
 		m_Channels.push_back(channel);
         m_ChannelMap[channel.ID] = channel;
-
-        if (i == 1) {
-            NVIZ_INFO("Measurement List : {0}", name);
-            NVIZ_INFO("    dataType         : {0}", dataType);
-            NVIZ_INFO("    dataTypeIndex    : {0}", dataTypeIndex);
-            NVIZ_INFO("    dataTypeLabel    : {0}", dataTypeLabel); // Either raw-DC, or conc or something else
-            NVIZ_INFO("    Channel          : ");
-            NVIZ_INFO("    Source ID        : {0}", channel.SourceID);
-            NVIZ_INFO("    Detector ID      : {0}", channel.DetectorID);
-            NVIZ_INFO("    HBO Data Index   : {0}", channel.HBODataIndex);
-            NVIZ_INFO("    HBR Data Index   : {0}", channel.HBRDataIndex);
-        }
     }
+}
+
+void SNIRF::ParseStims(const HighFive::Group& nirs)
+{
+	size_t max_stims = 1000; // Arbitrary large number to avoid infinite loops
+    for (size_t i = 1; i < max_stims; i++)
+    {
+		// Create the stim name
+        std::string stim_name = "stim" + std::to_string(i);
+
+        if (!nirs.exist(stim_name))
+            break;
+
+        auto stim = nirs.getGroup(stim_name);
+
+        NIRS::Event event;
+
+        // 1. Name
+        std::string name;
+        stim.getDataSet("name").read(name);
+
+        std::vector<std::vector<double>> data;
+        try {
+            stim.getDataSet("data").read(data);
+        }
+        catch (const HighFive::Exception& e) {
+            NVIZ_ERROR("Failed to read 'data' for {}: {}", stim_name, e.what());
+            continue; // Skip this stimulus group
+        }
+
+		event.name = name;
+
+
+        // 2. Markers
+        event.markers.reserve(data.size());
+
+        for (const auto& row : data) {
+
+            if (row.size() < 3) {
+                NVIZ_ERROR("Stim '{}' data row is malformed ({} columns). Skipping row.", name, row.size());
+                continue;
+            }
+
+            event.markers.emplace_back(EventMarker{
+                row[0], // onset
+                row[1], // duration
+                row[2]  // value
+                });
+        }
+
+        std::sort(event.markers.begin(), event.markers.end(), [](const NIRS::EventMarker& a, const NIRS::EventMarker& b) {
+            return a.onset < b.onset;
+        });
+
+		// 3. Data Labels (optional)
+        if (stim.exist("dataLabels")) {
+            std::vector<std::string> dataLabels;
+            try {
+                stim.getDataSet("dataLabels").read(dataLabels);
+                for (const auto& label : dataLabels)
+                {
+                    NVIZ_INFO("    Stim Label : {}", label);
+                }
+            }
+            catch (const HighFive::Exception& e) {
+                NVIZ_ERROR("Failed to read 'dataLabels' for {}: {}", stim_name, e.what());
+            }
+        }
+
+        // Sort markers by onset going from smallest to largest       
+		events_.push_back(std::move(event));
+	}
 }
 

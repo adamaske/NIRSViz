@@ -1,10 +1,10 @@
 #pragma once
-
+#include "GUI/Panel.h"
 
 enum SNIRFType;
 struct SNIRFValidationError;
 
-class SNIRFFileLoaderPanel {
+class SNIRFFileLoaderPanel : public ImGuiPanel {
 public:
 	SNIRFFileLoaderPanel();
 
@@ -12,7 +12,7 @@ public:
 
 private:
 
-	bool IsValid = false; // Example placeholder, replace with member variable
+	bool IsValid = false; 
 
 	SNIRFType SelectedType;
 

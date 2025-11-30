@@ -203,8 +203,10 @@ void FileLayer::LoadSNIRFFile()
 
 	if (!GetOpenFileNameA(&ofn)) return;
 	
-	auto snirf = CreateRef<SNIRF>(std::string(filePath));
-	AssetManager::Register<SNIRF>("SNIRF", snirf);
+    auto path = std::filesystem::path(filePath);
+	SNIRF snirf(path);
+
+	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(snirf));
 
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }

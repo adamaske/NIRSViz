@@ -28,6 +28,22 @@ namespace NIRS {
         glm::vec4 Color;
     };
 
+
+	// --- EVENTS ---
+    struct EventMarker {
+        double onset;
+        double duration;
+        double value;
+    };
+
+    struct Event {
+        std::string name;
+
+        std::vector<EventMarker> markers;
+        // TODO : Data label support
+    };
+
+
 	// --- Wavelengths ---
     enum class WavelengthType {
         HBR = 0,

@@ -23,7 +23,9 @@ set(ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
 if(MSVC)
     add_compile_options(/utf-8)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup")
+
 endif()
+
 
 # =============================================================================
 # External Dependencies

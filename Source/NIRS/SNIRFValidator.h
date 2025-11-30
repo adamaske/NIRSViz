@@ -13,5 +13,9 @@ struct SNIRFValidationError {
 
 class SNIRFValidator {
 public:
-    static bool Validate(std::string filepath, SNIRFType type, std::vector<SNIRFValidationError>& errors);
+    bool Validate(std::string filepath, SNIRFType type, std::vector<SNIRFValidationError>& errors);
+
+private:
+
+	bool ValidateSatoriSNIRF(std::string filepath, std::vector<SNIRFValidationError>& errors);
 };

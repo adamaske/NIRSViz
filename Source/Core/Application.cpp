@@ -7,8 +7,6 @@
 #include "Renderer/ViewportManager.h"
 #include <GLFW/glfw3.h>
 
-
-
 Application* Application::sInstance = nullptr;
 Application::Application(const ApplicationSpecification& spec) : specification_(spec)
 {

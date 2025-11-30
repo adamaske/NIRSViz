@@ -128,7 +128,8 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
 
         if (CanValidate) {
 
-            IsValid = SNIRFValidator::Validate(UserSelectedFilepath, SelectedType, ValidationErrorMessages);
+            auto validator = SNIRFValidator();
+            IsValid = validator.Validate(UserSelectedFilepath, SelectedType, ValidationErrorMessages);
 
         }
         else {
@@ -196,9 +197,12 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
     // The button takes up the remaining width (-1)
     if (ImGui::Button("Open File", ImVec2(-1, 0))) {
 
+		auto factory = SNIRFFactory();
+        auto snirf = factory.CreateSNIRF(SelectedType, UserSelectedFilepath);
 
-        auto snirf = SNIRFFactory::CreateSNIRF(SelectedType, UserSelectedFilepath);
-        AssetManager::Register<SNIRF>("SNIRF", snirf);
+        AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(snirf));
+
+
         EventBus::Instance().Publish<OnSNIRFLoaded>({});
 
         if (!IsValid || !CanValidate) { // We opened an invalid file, dont close window and show warning

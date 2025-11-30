@@ -17,7 +17,8 @@ bool SNIRFValidator::Validate(std::string filepath, SNIRFType type, std::vector<
         break;
     case SNIRFType::SNIRF_TYPE_SATORI:
         // Implement Satori validation logic here
-        return true;
+
+        return ValidateSatoriSNIRF(filepath, errors);
         break;
     case SNIRFType::SNIRF_TYPE_AURORA:
         // Implement Aurora validation logic here
@@ -43,6 +44,18 @@ bool SNIRFValidator::Validate(std::string filepath, SNIRFType type, std::vector<
     }
     errors.clear();
     errors.push_back({ "Test", "This is a test error message." });
+
+    return true;
+}
+
+bool SNIRFValidator::ValidateSatoriSNIRF(std::string filepath, std::vector<SNIRFValidationError>& errors)
+{
+    // We want to check for root/nris
+    // nirs/probe
+		// nirs/data1
+    // nirs/metadatatags
+    // nirs/any amount of stimX
+
 
     return true;
 }
