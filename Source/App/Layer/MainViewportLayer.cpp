@@ -2,6 +2,7 @@
 #include "App/Layer/MainViewportLayer.h"
 
 #include <imgui.h>
+
 #include "Core/Application.h"
 #include "Core/Input.h"
 #include "Events/MouseCodes.h"
@@ -31,7 +32,7 @@ void MainViewportLayer::OnAttach()
 	m_Framebuffer = CreateRef<Framebuffer>(fbSpec);
 
 	//Renderer::RegisterView(m_ViewTargetID, )
-	ViewportManager::RegisterViewport({ "MainViewport", m_ViewTargetID, GetActiveCamera(), m_Framebuffer });
+	ViewportManager::RegisterViewport( ViewportType::MainViewport, { GetActiveCamera().get(), m_Framebuffer.get()});
 
 
 	m_RoamCamera->SetPosition({ -14.0f, 5.0f, -15.0f });
@@ -114,7 +115,7 @@ void MainViewportLayer::RenderCameraSettings(bool standalone) {
 			if (ImGui::Selectable("Free Roam", m_CameraMode == ROAM)) {
 				m_CameraMode = ROAM;
 
-				ViewportManager::RegisterViewport({ "MainViewport", m_ViewTargetID, GetActiveCamera(), m_Framebuffer });
+				ViewportManager::RegisterViewport(ViewportType::MainViewport, { GetActiveCamera().get(), m_Framebuffer.get() });
 			}
 
 			if (m_CameraMode == ROAM)
@@ -126,7 +127,7 @@ void MainViewportLayer::RenderCameraSettings(bool standalone) {
 				// Set the orbit distance equal to the distance from the roam camera to the origin
 				m_OrbitCamera->SetRadius(glm::distance(m_RoamCamera->GetPosition(), glm::vec3(0.0f)));
 
-				ViewportManager::RegisterViewport({ "MainViewport", m_ViewTargetID, GetActiveCamera(), m_Framebuffer });
+				ViewportManager::RegisterViewport(ViewportType::MainViewport, { GetActiveCamera().get(), m_Framebuffer.get() });
 			}
 
 			if (m_CameraMode != ROAM)
@@ -171,7 +172,7 @@ void MainViewportLayer::RenderMainViewport() {
 		}
 	}
 
-	ViewportManager::GetViewport("MainViewport").CameraPtr->SetViewportSize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+	ViewportManager::GetViewport(ViewportType::MainViewport).Camera->SetViewportSize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
 
 	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));

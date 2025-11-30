@@ -8,7 +8,7 @@ namespace Utils {
     static constexpr uint32_t MAX_VERTICES = 2000;
 }
 
-LineRenderer::LineRenderer(ViewID viewTargetID, glm::vec4 color, float size) : m_ViewTargetID(viewTargetID), m_LineColor(color), m_LineWidth(size)
+LineRenderer::LineRenderer(ViewportType type, glm::vec4 color, float size) : viewport_type_(type), m_LineColor(color), m_LineWidth(size)
 {
     m_Shader = CreateRef<Shader>(
         "C:/dev/NIRSViz/Assets/Shaders/Line.vert",
@@ -93,7 +93,7 @@ void LineRenderer::Draw() {
     cmd.VAOPtr = m_VAO.get();
     cmd.Transform = glm::mat4(1.0f);
     cmd.Mode = DRAW_ARRAYS;
-    cmd.ViewTargetID = m_ViewTargetID;
+    cmd.target_viewport = viewport_type_;
     cmd.UniformCommands = { color };
     cmd.APICalls = {
         RendererAPICall{ [lineWidth = m_LineWidth]() { Renderer::SetLineWidth(lineWidth); } }

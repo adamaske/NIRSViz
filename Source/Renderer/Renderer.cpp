@@ -3,9 +3,10 @@
 
 #include "glad/glad.h"
 
-Scope<RendererData> Renderer::s_Data = CreateScope<RendererData>();
-Ref<Framebuffer> Renderer::m_CurrentBoundFBO = nullptr;
-Ref<Camera> Renderer::m_CurrentBoundCamera = nullptr;
+RendererData Renderer::sRendererData = {};
+Framebuffer* Renderer::sCurrentBoundFBO = nullptr;
+Camera* Renderer::sCurrentBoundCamera = nullptr;
+
 void Renderer::Init()
 {
 	glEnable(GL_BLEND);
@@ -23,8 +24,8 @@ void Renderer::Shutdown()
 
 void Renderer::BeginScene()
 {
-	s_Data->CommandQueue.clear();
-	//s_Data->ActiveViews.clear();
+	sRendererData.CommandQueue.clear();
+	//sRendererData.ActiveViews.clear();
 }
 
 void Renderer::EndScene()
@@ -33,38 +34,40 @@ void Renderer::EndScene()
  
 void Renderer::ExecuteQueue()
 {
-	if (s_Data->CommandQueue.empty()) {
+	if (sRendererData.CommandQueue.empty()) {
 		return;
 	}
 
-	std::sort(s_Data->CommandQueue.begin(), s_Data->CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
-		return a.ViewTargetID < b.ViewTargetID;
+	std::sort(sRendererData.CommandQueue.begin(), sRendererData.CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
+		return static_cast<ViewID>(a.target_viewport) < static_cast<ViewID>(b.target_viewport);
 	});
 
-	ViewID currentViewID = (ViewID)-1; // An invalid ID to force the first bind
+	// First 
+	ViewportType current_viewport = ViewportType::NONE;
 
-	for (const auto& command : s_Data->CommandQueue) {
-		if (command.ViewTargetID != currentViewID)
+	for (const auto& command : sRendererData.CommandQueue) {
+		if (command.target_viewport != current_viewport)
 		{
-			auto it = s_Data->ActiveViews.find(command.ViewTargetID);
-			if (it == s_Data->ActiveViews.end())
-			{
-				NVIZ_ERROR("Render command requested non-existent ViewTargetID: {0}", command.ViewTargetID);
-				continue;
-			}
+			// TODO : Handle missing viewports more gracefully, error
+			//auto it = sRendererData.ActiveViews.find(command.ViewTargetID);
+			//if (it == sRendererData.ActiveViews.end())
+			//{
+			//	NVIZ_ERROR("Render command requested non-existent ViewTargetID: {0}", command.ViewTargetID);
+			//	continue;
+			//}
 
-			currentViewID = command.ViewTargetID;
+			current_viewport = command.target_viewport;
 
-			const RenderView& currentView = it->second;
+			const RenderView& currentView = sRendererData.ActiveViews.at(current_viewport);
 			
-			m_CurrentBoundCamera = currentView.Camera;
+			sCurrentBoundCamera = currentView.Camera;
 
-			if (m_CurrentBoundFBO) {
-				m_CurrentBoundFBO->Unbind();
+			if (sCurrentBoundFBO) {
+				sCurrentBoundFBO->Unbind();
 			}
 
-			m_CurrentBoundFBO = currentView.TargetFBO;
-			m_CurrentBoundFBO->Bind();
+			sCurrentBoundFBO = currentView.TargetFBO;
+			sCurrentBoundFBO->Bind();
 
 			Renderer::SetClearColor({ 0.45f, 0.55f, 0.60f, 1.00f });
 			Renderer::Clear();
@@ -78,8 +81,8 @@ void Renderer::ExecuteQueue()
 
 		auto shader = command.ShaderPtr;
 		shader->Bind();
-		shader->SetUniformMat4f("u_ViewMatrix", m_CurrentBoundCamera->GetViewMatrix());
-		shader->SetUniformMat4f("u_ProjectionMatrix", m_CurrentBoundCamera->GetProjectionMatrix());
+		shader->SetUniformMat4f("u_ViewMatrix", sCurrentBoundCamera->GetViewMatrix());
+		shader->SetUniformMat4f("u_ProjectionMatrix", sCurrentBoundCamera->GetProjectionMatrix());
 		shader->SetUniformMat4f("u_Transform", command.Transform);
 
 		for (const auto& binding : command.TextureBindings)
@@ -142,17 +145,17 @@ void Renderer::ExecuteQueue()
 			glBindTexture(GL_TEXTURE_1D, 0);
 		}
 	}
-	m_CurrentBoundFBO->Unbind();
+	sCurrentBoundFBO->Unbind();
 }
 
 void Renderer::Submit(const RenderCommand& command)
 {
-	s_Data->CommandQueue.push_back(command);
+	sRendererData.CommandQueue.push_back(command);
 }
 
-void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewID viewId, DrawMode mode)
+void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewportType view, DrawMode mode)
 {
-	s_Data->CommandQueue.push_back(RenderCommand{ &shader, &va, transform, viewId,  mode});
+	sRendererData.CommandQueue.push_back(RenderCommand{ &shader, &va, transform, view,  mode});
 }
 
 void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)

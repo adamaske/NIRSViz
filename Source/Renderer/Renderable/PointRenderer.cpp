@@ -3,7 +3,7 @@
 #include "Renderer/ViewportManager.h"
 static int MAX_POINTS = 2000;
 
-PointRenderer::PointRenderer(ViewID viewTargetID, glm::vec4 color, float size) : m_ViewTargetID(viewTargetID), m_PointColor(color), m_PointSize(size)
+PointRenderer::PointRenderer(ViewportType type, glm::vec4 color, float size) : viewport_type_(type), m_PointColor(color), m_PointSize(size)
 {
     m_Shader = CreateRef<Shader>(
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
@@ -35,7 +35,7 @@ void PointRenderer::Draw() {
     RenderCommand cmd3D_template;
     cmd3D_template.ShaderPtr = m_Shader.get();
     cmd3D_template.VAOPtr = m_SphereMesh->GetVAO().get();
-    cmd3D_template.ViewTargetID = m_ViewTargetID;
+    cmd3D_template.target_viewport = viewport_type_;
     cmd3D_template.Mode = DRAW_ELEMENTS;
 
     UniformData flatColor;

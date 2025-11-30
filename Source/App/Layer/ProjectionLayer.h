@@ -78,6 +78,8 @@ private:
 
 	NIRS::WavelengthType m_ProjectionWavelength = NIRS::WavelengthType::HBO;
 
+	ViewportType viewport_type_ = ViewportType::MainViewport;
+
 	void SetupVertexBasedProjection();
 	void UpdateVerticiesInfluencedByChannel();
 	void UpdateVertexBasedProjection();

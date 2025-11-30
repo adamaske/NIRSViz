@@ -3,7 +3,9 @@
 
 
 ViewportManager* ViewportManager::s_Instance = nullptr;
-std::unordered_map<ViewID, Viewport> ViewportManager::m_Viewports = {};
+
+std::map<ViewportType, Viewport> ViewportManager::sViewports = {};
+
 ViewportManager::ViewportManager()
 {
 	s_Instance = this;

@@ -12,7 +12,7 @@
 
 class LineRenderer {
 public:
-    LineRenderer(ViewID viewTargetID, glm::vec4 color, float size);
+    LineRenderer(ViewportType type, glm::vec4 color, float size);
     ~LineRenderer();
 
     void SubmitLine(const NIRS::Line& line);
@@ -25,7 +25,7 @@ public:
     glm::vec4 m_LineColor = glm::vec4(1.0f);
     float m_LineWidth = 2.0f;
 private:
-    ViewID m_ViewTargetID;
+    ViewportType viewport_type_;
     std::vector<NIRS::LineVertex> m_Vertices = {};
 
     Ref<VertexArray> m_VAO;

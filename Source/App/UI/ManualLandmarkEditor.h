@@ -14,7 +14,7 @@ namespace App {
     public:
         ManualLandmarkEditor(
             NIRS::ManualLandmarkRegistry& registry,
-            ViewID viewportID
+            ViewportType type
         );
 
         // --- UI Rendering ---
@@ -35,7 +35,7 @@ namespace App {
         void RenderGuideLines();
 
         NIRS::ManualLandmarkRegistry& m_Registry;
-        ViewID m_ViewportID;
+        ViewportType viewport_type_;
 
         // Rendering
         Ref<LineRenderer> m_GuideLineRenderer;

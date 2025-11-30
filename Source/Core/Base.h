@@ -27,10 +27,30 @@ constexpr Ref<T> CreateRef(Args&& ... args)
 	return std::make_shared<T>(std::forward<Args>(args)...);
 }
 
-#define MAIN_VIEWPORT 1
-#define ALTAS_VIEWPORT 2
-#define PROBE_EDITOR 3
-#define CHANNEL_SELECTOR 4
+using DeltaTime = double;
+
+namespace Viewports {
+
+    // 1. Define the underlying type (uint32_t) for efficiency
+    enum class ID : uint32_t
+    {
+        // 2. Define the constants within the enum class scope
+        AnatomyViewport = 1,
+        MainViewport = 2,
+        AltasViewport = 3,
+        ProbeEditor = 4,
+        ChannelSelector = 5
+    };
+
+    using ViewportID = ID;
+
+    constexpr uint32_t GetID(ID viewport)
+    {
+        return static_cast<uint32_t>(viewport);
+    }
+
+}
+
 
 #define MAX_HITS 256
 

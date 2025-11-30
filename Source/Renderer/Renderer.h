@@ -5,12 +5,36 @@
 #include "Renderer/Camera/Camera.h"
 #include "Renderer/Renderable/Shader.h"
 #include "Renderer/Renderable/Texture.h"
+
 using ViewID = uint32_t;
 
+
+enum class ViewportType : uint32_t
+{
+	NONE = 0,
+	MainViewport = 1,
+	AnatomyViewport = 2,
+	AtlasViewport = 3,
+	ProbeEditor = 4,
+	ChannelSelector = 5
+};
+
+// Now this is a little more complicated than it needs to be, we can just use a enum instead of having these ID's and such
+
+constexpr uint32_t MAIN_VIEWPORT = static_cast<uint32_t>(ViewportType::MainViewport);
+constexpr uint32_t ANATOMY_VIEWPORT = static_cast<uint32_t>(ViewportType::AnatomyViewport);
+constexpr uint32_t ATLAS_VIEWPORT = static_cast<uint32_t>(ViewportType::AtlasViewport);
+constexpr uint32_t PROBE_EDITOR_VIEWPORT = static_cast<uint32_t>(ViewportType::ProbeEditor);
+constexpr uint32_t CHANNEL_SELECTOR_VIEWPORT = static_cast<uint32_t>(ViewportType::ChannelSelector);
+
+constexpr uint32_t GetViewportTypeID(ViewportType type) {
+	return static_cast<uint32_t>(type);
+}
+
+
 struct RenderView {
-	Ref<Camera> Camera = nullptr;
-	Ref<Framebuffer> TargetFBO = nullptr;
-	// You could add global shader uniform data here if needed (e.g., global light direction)
+	Camera* Camera = nullptr;
+	Framebuffer* TargetFBO = nullptr;
 };
 
 enum DrawMode {
@@ -54,8 +78,7 @@ struct RenderCommand {
 	VertexArray* VAOPtr = nullptr;
 	glm::mat4 Transform = glm::mat4(1.0f);
 
-	// NEW: Which target this command should draw into
-	ViewID ViewTargetID = 0;
+	ViewportType target_viewport = ViewportType::MainViewport;
 	DrawMode Mode = DRAW_ELEMENTS;
 
 	std::vector<TextureBinding> TextureBindings = {};
@@ -67,7 +90,7 @@ struct RendererData
 {
 	// The queue where systems submit their draw requests
 	std::vector<RenderCommand> CommandQueue;
-	std::unordered_map<ViewID, RenderView> ActiveViews;
+	std::unordered_map<ViewportType, RenderView> ActiveViews;
 };
 
 class Renderer {
@@ -78,14 +101,14 @@ public:
 	static void BeginScene();
 	static void EndScene();
 
-	static void RegisterView(ViewID id, Ref<Camera> camera, Ref<Framebuffer> framebuffer) {
-		s_Data->ActiveViews[id] = { camera, framebuffer };
+	static void RegisterView(ViewportType type, const RenderView& rview) {
+		sRendererData.ActiveViews[type] = rview;
 	}
 
 	static void ExecuteQueue();
 
 	static void Submit(const RenderCommand& command);
-	static void Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewID viewId, DrawMode mode);
+	static void Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewportType view, DrawMode mode);
 
 	static void DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount = 0);
 	static void DrawLines(const VertexArray* vertexArray, uint32_t vertexCount);
@@ -102,8 +125,8 @@ public:
 
 	static void SetDepthMask(bool write);
 private:
-	static Scope<RendererData> s_Data;
+	static RendererData sRendererData;
 
-	static Ref<Framebuffer> m_CurrentBoundFBO;
-	static Ref<Camera> m_CurrentBoundCamera;
+	static Framebuffer* sCurrentBoundFBO;
+	static Camera* sCurrentBoundCamera;
 };

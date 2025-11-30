@@ -16,7 +16,7 @@
 using Point = glm::vec3;
 class PointRenderer {
 public:
-    PointRenderer(ViewID viewTargetID, glm::vec4 color, float size);
+    PointRenderer(ViewportType type, glm::vec4 color, float size);
     ~PointRenderer();
 
     void Draw();
@@ -42,7 +42,7 @@ private:
     Ref<Shader> m_Shader;
 	Ref<Mesh> m_SphereMesh;
 
-    ViewID m_ViewTargetID;
+    ViewportType viewport_type_;
 
     
 };

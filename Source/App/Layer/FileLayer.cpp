@@ -132,6 +132,8 @@ void FileLayer::OnAttach()
     {
         std::cout << "Query exception: " << e.what() << std::endl;
     }
+
+    PostInit();
 }
 void FileLayer::OnDetach()
 {

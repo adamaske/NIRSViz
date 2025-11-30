@@ -213,7 +213,7 @@ void ProjectionLayer::RenderWorldSpaceMode()
 	UniformData lightPos;
 	lightPos.Type = UniformDataType::FLOAT3;
 	lightPos.Name = "u_LightPos";
-	lightPos.Data.f3 = ViewportManager::GetViewport("MainViewport").CameraPtr->GetPosition();
+	lightPos.Data.f3 = ViewportManager::GetViewport(viewport_type_).Camera->GetPosition();
 
 	UniformData objectColor;
 	objectColor.Type = UniformDataType::FLOAT4;
@@ -221,7 +221,7 @@ void ProjectionLayer::RenderWorldSpaceMode()
 	objectColor.Data.f4 = { 0.8f, 0.8f, 0.8f, 1.0f };
 
 	RenderCommand cmd;
-	cmd.ViewTargetID = MAIN_VIEWPORT;
+	cmd.target_viewport = viewport_type_;
 	cmd.ShaderPtr = m_ProjectionShader.get();
 	cmd.VAOPtr = cortex->GetMesh()->GetVAO().get();
 	cmd.Transform = cortex->GetTransform()->GetMatrix();
@@ -329,7 +329,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
-	m_VertexModeRenderCmd.ViewTargetID = MAIN_VIEWPORT;
+	m_VertexModeRenderCmd.target_viewport = viewport_type_;
 	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 }
@@ -339,7 +339,7 @@ void ProjectionLayer::RenderVertexMode()
 	UniformData lightPos;
 	lightPos.Type = UniformDataType::FLOAT3;
 	lightPos.Name = "u_LightPos";
-	lightPos.Data.f3 = ViewportManager::GetViewport("MainViewport").CameraPtr->GetPosition();
+	lightPos.Data.f3 = ViewportManager::GetViewport(viewport_type_).Camera->GetPosition();
 
 	UniformData objectColor;
 	objectColor.Type = UniformDataType::FLOAT4;
@@ -364,7 +364,7 @@ void ProjectionLayer::RenderVertexMode()
 	// Fill render command temporarily
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
-	m_VertexModeRenderCmd.ViewTargetID = MAIN_VIEWPORT;
+	m_VertexModeRenderCmd.target_viewport = viewport_type_;
 	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 	m_VertexModeRenderCmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };

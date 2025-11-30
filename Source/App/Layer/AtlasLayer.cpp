@@ -76,17 +76,16 @@ void AtlasLayer::OnAttach()
 
 	m_LandmarkEditor = CreateScope<App::ManualLandmarkEditor>(
 		m_CoordController->GetCoordinateSystem().GetManualLandmarks(),
-		MAIN_VIEWPORT
+		ViewportType::MainViewport
 	);
 
 
 	// Setup renderers
-	auto mainID = ViewportManager::GetViewport("MainViewport").ID;
-	m_PathRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(1, 0.2, 0.2, 1), 2.0f);
-	m_RayRenderer = CreateRef<LineRenderer>(mainID, glm::vec4(0, 1, 0, 1), 2.0f);
-	m_ManualLandmarkRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(0.3, 0, 1, 1), 0.8);
-	m_LandmarkRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(0, 1, 0.3, 1), 1.5);
-	m_WaypointRenderer = CreateRef<PointRenderer>(mainID, glm::vec4(1, 0, 0.3, 1), 0.8);
+	m_PathRenderer = CreateRef<LineRenderer>(ViewportType::MainViewport, glm::vec4(1, 0.2, 0.2, 1), 2.0f);
+	m_RayRenderer = CreateRef<LineRenderer>(ViewportType::MainViewport, glm::vec4(0, 1, 0, 1), 2.0f);
+	m_ManualLandmarkRenderer = CreateRef<PointRenderer>(ViewportType::MainViewport, glm::vec4(0.3, 0, 1, 1), 0.8);
+	m_LandmarkRenderer = CreateRef<PointRenderer>(ViewportType::MainViewport, glm::vec4(0, 1, 0.3, 1), 1.5);
+	m_WaypointRenderer = CreateRef<PointRenderer>(ViewportType::MainViewport, glm::vec4(1, 0, 0.3, 1), 0.8);
 
 	// Setup uniforms
 	m_LightPosUniform.Type = UniformDataType::FLOAT3;
@@ -134,8 +133,8 @@ void AtlasLayer::OnDetach()
 void AtlasLayer::OnUpdate(float dt)
 {
 	// Update light position
-	auto viewport = ViewportManager::GetViewport("MainViewport");
-	m_LightPosUniform.Data.f3 = viewport.CameraPtr->GetPosition();
+	auto viewport = ViewportManager::GetViewport(ViewportType::MainViewport);
+	m_LightPosUniform.Data.f3 = viewport.Camera->GetPosition();
 
 	// Draw everything
 	if (m_DrawPaths) DrawPaths();
@@ -336,7 +335,7 @@ void AtlasLayer::DrawHead()
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_PhongShader.get();
 	cmd.VAOPtr = head->GetMesh()->GetVAO().get();
-	cmd.ViewTargetID = MAIN_VIEWPORT;
+	cmd.target_viewport = ViewportType::MainViewport;
 	cmd.Transform = head->GetTransform()->GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
@@ -357,7 +356,7 @@ void AtlasLayer::DrawCortex()
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_PhongShader.get();
 	cmd.VAOPtr = cortex->GetMesh()->GetVAO().get();
-	cmd.ViewTargetID = MAIN_VIEWPORT;
+	cmd.target_viewport = ViewportType::MainViewport;
 	cmd.Transform = cortex->GetTransform()->GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 

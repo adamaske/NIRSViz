@@ -16,28 +16,28 @@ public:
 	~SystemManager() = default;
 
 	void AddSystem(Ref<System> system) {
-		m_Systems.push_back(system);
+		systems_.push_back(system);
 		system->OnAttach();
 	}
 
 	void RemoveSystem(Ref<System> system) {
-		auto it = std::find(m_Systems.begin(), m_Systems.end(), system);
-		if (it != m_Systems.end()) {
+		auto it = std::find(systems_.begin(), systems_.end(), system);
+		if (it != systems_.end()) {
 			(*it)->OnDetach();
-			m_Systems.erase(it);
+			systems_.erase(it);
 		}
 	}
 
 	void Clear() {
-		for (auto& system : m_Systems) {
+		for (auto& system : systems_) {
 			system->OnDetach();
 		}
-		m_Systems.clear();
+		systems_.clear();
 	}
 
 	template<typename T>
 	Ref<T> GetSystem() {
-		for (auto& system : m_Systems) {
+		for (auto& system : systems_) {
 			if (auto casted = std::dynamic_pointer_cast<T>(system)) {
 				return casted;
 			}
@@ -47,7 +47,7 @@ public:
 
 	template<typename T>
 	bool HasSystem() const {
-		for (const auto& system : m_Systems) {
+		for (const auto& system : systems_) {
 			if (std::dynamic_pointer_cast<T>(system)) {
 				return true;
 			}
@@ -55,17 +55,17 @@ public:
 		return false;
 	}
 
-	size_t GetSystemCount() const { return m_Systems.size(); }
+	size_t GetSystemCount() const { return systems_.size(); }
 
 	// Iterator support for range-based for loops
-	auto begin() { return m_Systems.begin(); }
-	auto end() { return m_Systems.end(); }
-	auto begin() const { return m_Systems.begin(); }
-	auto end() const { return m_Systems.end(); }
+	auto begin() { return systems_.begin(); }
+	auto end() { return systems_.end(); }
+	auto begin() const { return systems_.begin(); }
+	auto end() const { return systems_.end(); }
 
 	// Iterator overload, so we can do range based for loops on mSystems
 private:
-	std::vector<Ref<System>> m_Systems;
+	std::vector<Ref<System>> systems_;
 };
 
 // --- INCLUDE ALL SYSTEM HEADERS HERE ---

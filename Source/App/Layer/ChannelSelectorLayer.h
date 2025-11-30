@@ -98,4 +98,6 @@ private:
 	void DrawBackground();
 	void DrawSourcesAndDetectors();
 	void DrawChannels();
+
+	ViewportType viewport_type_ = ViewportType::ChannelSelector;
 };

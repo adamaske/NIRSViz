@@ -33,9 +33,9 @@ struct ApplicationCommandLineArgs
 
 struct ApplicationSpecification
 {
-	std::string Name = "NIRS Viz";
-	std::string WorkingDirectory;
-	ApplicationCommandLineArgs CommandLineArgs;
+	std::string name = "NIRS Viz";
+	std::string working_directory;
+	ApplicationCommandLineArgs args;
 };
 
 struct ApplicationSettingsComponent
@@ -53,7 +53,8 @@ public:
 	Application(const ApplicationSpecification& spec);
 	~Application();
 
-	static Application& Get() { return *s_Instance; }
+	static Application& Get() { return *sInstance; }
+	static Application* Instance() { return sInstance; }
 
 	void Shutdown();
 
@@ -69,32 +70,26 @@ public:
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
 
-	Ref<Window> GetWindow() { return m_Window; }
-	const ApplicationSpecification& GetSpecification() const { return m_Specification; }
+	Ref<Window> GetWindow() { return window_; }
+	const ApplicationSpecification& GetSpecification() const { return specification_	; }
 
-	LayerStack& GetLayerStack() { return m_LayerStack; }
-	Ref<SystemManager> GetSystemManager() { return m_SystemManager; }
+	LayerStack& GetLayerStack() { return layer_stack_; }
+	SystemManager& GetSystemManager() { return system_manager_; }
+
 private:
-	static Application* s_Instance;
+	static Application* sInstance;
 
-	ApplicationSpecification m_Specification;
-	bool m_Running = true;
-	bool m_Minimized = false;
-	float m_LastTime = 0.0f;
+	ApplicationSpecification specification_;
+	bool running_ = true;
+	bool minimized_ = false;
+	float last_time_ = 0.0f;
 
 	//Ref<Coordinator> m_Coordinator;
-	Ref<Window> m_Window;
+	Ref<Window> window_;
 
-	Ref<SystemManager> m_SystemManager = CreateRef<SystemManager>();
+	SystemManager system_manager_;
 
-	LayerStack m_LayerStack;
-	Ref<ImGuiLayer> m_ImGuiLayer;
-	Ref<MainViewportLayer> m_MainViewportLayer;
-	Ref<FileLayer> m_FileLayer;
-	Ref<ProbeLayer> m_ProbeLayer;
-	Ref<AtlasLayer> m_AtlasLayer;
-	Ref<PlottingLayer> m_PlottingLayer;
-	Ref<ProjectionLayer> m_ProjectionLayer;
-	Ref<ChannelSelectorLayer> m_ChannelSelectorLayer;
-	Ref<ControlPanelLayer> m_ControlPanelLayer;
+
+	LayerStack layer_stack_;
+	Ref<ImGuiLayer> imgui_layer_; // Store it for special functionaliyy
 };

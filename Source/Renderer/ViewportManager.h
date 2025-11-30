@@ -6,13 +6,13 @@
 #include "Renderer/Camera/Camera.h"
 #include "Renderer/Buffer/Framebuffer.h"
 
+#include <map>
 
-struct Viewport {
-	std::string Name;
-	ViewID ID;
-	Ref<Camera> CameraPtr;
-	Ref<Framebuffer> FramebufferPtr;
+struct Viewport { // A viewport is just a container for pointer to a camera and framebuffer.
+	Camera* Camera;
+	Framebuffer*Framebuffer;
 };
+
 
 class ViewportManager {
 public:
@@ -20,34 +20,26 @@ public:
 	~ViewportManager();
 
 	static void Init() {
-
+		
 	};
 
-	// For example, we register a viewport, called "MainViewport", it has ViewID = 1
-	// Then maybe we register "Probe Editor", it has ViewID = 2
-	// Then "Atlas Editor", it has ViewID = 3
-	static void RegisterViewport(const Viewport& viewport) {
-		m_Viewports[viewport.ID] = viewport;
-		Renderer::RegisterView(viewport.ID, viewport.CameraPtr, viewport.FramebufferPtr);	
+	static void RegisterViewport(const ViewportType& type, const Viewport& viewport) {
+		sViewports[type] = viewport;
+
+		Renderer::RegisterView(type, { viewport.Camera, viewport.Framebuffer });
 	}
 
-	static Viewport& GetViewport(ViewID id) { // 
+	static Viewport& GetViewport(ViewportType type) {
+		// We need to ensure the type is in the map, otherwise crash the application. 
+
 		auto& instance = Get();
-		if (instance.m_Viewports.find(id) != instance.m_Viewports.end()) {
-			return instance.m_Viewports.at(id);
+		if (sViewports.find(type) != sViewports.end()) {
+			return sViewports.at(type);
 		}
-		NVIZ_ERROR("Viewport ID '{}' not found!", id);
-		static Viewport dummy;
-		return dummy;
-	}
-
-	static Viewport& GetViewport(const std::string& name) {
-		for (auto& [id, viewport] : m_Viewports) {
-			if (viewport.Name == name)
-				return viewport;
+		else {
+			throw std::out_of_range("Viewport Type not found in ViewportManager");
 		}
-		NVIZ_ERROR("Viewport Name '{}' not found!", name);
-		static Viewport dummy;
+		Viewport dummy;
 		return dummy;
 	}
 
@@ -59,5 +51,5 @@ public:
 private:
 	static ViewportManager* s_Instance;
 
-	static std::unordered_map<ViewID, Viewport> m_Viewports;
+	static std::map<ViewportType, Viewport> sViewports;
 };

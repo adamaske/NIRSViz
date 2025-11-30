@@ -34,7 +34,7 @@ void ChannelSelectorLayer::OnAttach()
 	
 	m_OrthoCamera = CreateRef<OrthogonalCamera>(glm::vec3{ 0, 0, -10 }, glm::vec3{ 0, 0, 1 });
 	m_OrthoCamera->SetZoomLevel(5.0f);
-	ViewportManager::RegisterViewport({ "ChannelSelectorViewport", CHANNEL_SELECTOR, m_OrthoCamera, m_Framebuffer });
+	ViewportManager::RegisterViewport(viewport_type_, { m_OrthoCamera.get(), m_Framebuffer.get() });
 
 	m_TextureShader = CreateRef<Shader>("C:/dev/NIRSViz/Assets/Shaders/Texture.vert",
 										"C:/dev/NIRSViz/Assets/Shaders/Texture.frag");
@@ -130,7 +130,7 @@ void ChannelSelectorLayer::OnImGuiRender()
 		}
 	}
 
-	ViewportManager::GetViewport("ChannelSelectorViewport").CameraPtr->SetViewportSize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+	ViewportManager::GetViewport(viewport_type_).Camera->SetViewportSize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
 
 	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
 	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
@@ -263,7 +263,7 @@ void ChannelSelectorLayer::GenerateSourceRenderCommands()
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.target_viewport = viewport_type_;
 	cmd.VAOPtr = m_PlateMesh->GetVAO().get();
 	cmd.Mode = DRAW_ELEMENTS;
 
@@ -298,7 +298,7 @@ void ChannelSelectorLayer::GenerateDetectorRenderCommands()
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.target_viewport = viewport_type_;
 	cmd.VAOPtr = m_PlateMesh->GetVAO().get();
 	cmd.Mode = DRAW_ELEMENTS;
 
@@ -333,7 +333,7 @@ void ChannelSelectorLayer::GenerateChannelRenderCommands()
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.target_viewport = viewport_type_;
 	cmd.VAOPtr = m_QuadMesh->GetVAO().get();
 	cmd.Mode = DRAW_ELEMENTS;
 
@@ -379,7 +379,7 @@ void ChannelSelectorLayer::GenerateBackgroundRenderCommands()
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.ViewTargetID = CHANNEL_SELECTOR;
+	cmd.target_viewport = viewport_type_;
 	cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(100));
 	cmd.VAOPtr = m_QuadMesh->GetVAO().get();
 	cmd.Mode = DRAW_ELEMENTS;

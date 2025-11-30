@@ -5,8 +5,8 @@ int main(int argc, char** argv){
 	Log::Init();
 	
 	ApplicationSpecification spec;
-	spec.Name = "NIRS VIZ";
-	spec.CommandLineArgs = { argc, argv };
+	spec.name = "NIRS VIZ";
+	spec.args = { argc, argv };
 
 	auto app = CreateRef<Application>(spec);
 	app->Run();

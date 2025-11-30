@@ -3,10 +3,10 @@
 #include <imgui.h>
 
 namespace App {
-	ManualLandmarkEditor::ManualLandmarkEditor(NIRS::ManualLandmarkRegistry& registry, ViewID viewportID) : m_Registry(registry), m_ViewportID(viewportID)
+	ManualLandmarkEditor::ManualLandmarkEditor(NIRS::ManualLandmarkRegistry& registry, ViewportType type) : m_Registry(registry), viewport_type_(type)
 	{
 		m_GuideLineRenderer = CreateRef<LineRenderer>(
-			viewportID,
+			type,
 			glm::vec4(0.3f, 1.0f, 0.3f, 1.0f),
 			2.0f
 		);
@@ -73,7 +73,7 @@ namespace App {
             RenderCommand cmd;
             cmd.ShaderPtr = shader.get();
             cmd.VAOPtr = sphereMesh->GetVAO().get();
-            cmd.ViewTargetID = m_ViewportID;
+			cmd.target_viewport = viewport_type_;
             cmd.Mode = DRAW_ELEMENTS;
 
             // Transform to landmark position
