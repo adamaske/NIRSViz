@@ -123,7 +123,7 @@ void Texture::SetData(void* data, uint32_t size)
     // Simple check: make sure the provided size matches width * height * bytes per pixel
     if (bpp != 0 && size < (m_Width * m_Height * bpp))
     {
-        NVIZ_ERROR("Texture: Data size mismatch. Provided: [}, Expected: {}, Expected: {}", size, (m_Width * m_Height * bpp));
+        NVIZ_ERROR("Texture: Data size mismatch. Provided: {}, Expected: {}", size, (m_Width * m_Height * bpp));
         return;
     }
 

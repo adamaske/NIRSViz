@@ -114,7 +114,7 @@ namespace App {
 		auto& landmarks = m_CoordinateSystem.GetLandmarks();
 		auto& manualLandmarks = m_CoordinateSystem.GetManualLandmarks();
 
-		auto& worldVertices = head->GetWorldSpaceVertexPositions();
+		auto worldVertices = head->GetWorldSpaceVertexPositions();
 
 		auto lpa = manualLandmarks.GetLandmark(ManualLandmarkType::LPA);
 		auto rpa = manualLandmarks.GetLandmark(ManualLandmarkType::RPA);
@@ -176,7 +176,7 @@ namespace App {
     {
 		using namespace NIRS;
 		auto& landmarkRegistry = m_CoordinateSystem.GetLandmarks();
-		auto& worldVertices = head->GetWorldSpaceVertexPositions();
+		auto worldVertices = head->GetWorldSpaceVertexPositions();
 
 		auto fpz = landmarkRegistry.GetLandmark(NIRS::Fpz);
 		auto t3 = landmarkRegistry.GetLandmark(NIRS::T3);

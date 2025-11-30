@@ -27,7 +27,7 @@ namespace App {
     {
         // Get mutable reference to landmarks
 		ImGui::PushID("##LandmarkControls");
-        auto& landmarks = m_Registry.GetLandmarks();
+        auto landmarks = m_Registry.GetLandmarks();
 
         for(auto& [type, _] : landmarks) {
 			auto& landmark = m_Registry.GetLandmark(type);
@@ -96,7 +96,7 @@ namespace App {
 
     void ManualLandmarkEditor::RenderGuideLines()
     {
-        auto& landmarks = m_Registry.GetLandmarks();
+        auto landmarks = m_Registry.GetLandmarks();
 
         auto nasion = landmarks[NIRS::ManualLandmarkType::Nasion];
         auto inion= landmarks[NIRS::ManualLandmarkType::Inion];

@@ -223,8 +223,8 @@ void FileLayer::LoadHeadAnatomy()
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
 	if (!GetOpenFileNameA(&ofn)) return;
-
-	NIRS::AnatomyManager::Instance().LoadHead(std::string(filePath));
+	auto path = std::string(filePath);
+	NIRS::AnatomyManager::Instance().LoadHead(path);
 }
 
 void FileLayer::LoadCortexAnatomy()
@@ -244,6 +244,7 @@ void FileLayer::LoadCortexAnatomy()
 
 	if (!GetOpenFileNameA(&ofn)) return;
 
-	NIRS::AnatomyManager::Instance().LoadCortex(std::string(filePath));
+    auto path = std::string(filePath);
+    NIRS::AnatomyManager::Instance().LoadCortex(path);
 }
 

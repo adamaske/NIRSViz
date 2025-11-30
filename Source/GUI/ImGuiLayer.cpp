@@ -86,7 +86,7 @@ void ImGuiLayer::Begin()
 	ImGui::ShowDemoWindow();
 
 	auto& layerStack = Application::Get().GetLayerStack();
-	auto& systemManager = Application::Get().GetSystemManager();
+	auto systemManager = Application::Get().GetSystemManager();
 	if (ImGui::BeginMainMenuBar()) {
 
 		for(auto& system : *systemManager.get())
