@@ -98,13 +98,18 @@ void AtlasLayer::OnAttach()
 	m_OpacityUniform.Name = "u_Opacity";
 
 	// Subscribe to Events
-	EventBus::Instance().Subscribe<OnHeadAnatomyLoaded>([this](const OnHeadAnatomyLoaded& e) {
-		OnHeadLoaded();
+	EventBus::Instance().Subscribe<OnAnatomyLoaded>([this](const OnAnatomyLoaded& e) {
+		switch (e.Type) {
+			case OnAnatomyLoaded::AnatomyTpye::Head:
+				OnHeadLoaded();
+				break;
+			case OnAnatomyLoaded::AnatomyTpye::Cortex:
+				OnCortexLoaded();
+				break;
+
+		}
 	});
 
-	EventBus::Instance().Subscribe<OnCortexAnatomyLoaded>([this](const OnCortexAnatomyLoaded& e) {
-		OnCortexLoaded();
-	});
 
 	EventBus::Instance().Subscribe<OnCoordinateSystemGenerated>([this](const OnCoordinateSystemGenerated& e) {
 

@@ -9,7 +9,7 @@
 #include "App/Layer/ProbeLayer.h"
 #include "App/Layer/AtlasLayer.h"
 #include "App/Layer/PlottingLayer.h"
-#include "App/Layer/MainViewportLayer.h"
+#include "App/Layer/AnatomyViewportLayer.h"
 #include "App/Layer/ProjectionLayer.h"
 #include "App/Layer/FileLayer.h"
 #include "App/Layer/ChannelSelectorLayer.h"

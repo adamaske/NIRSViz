@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "App/Layer/MainViewportLayer.h"
+#include "App/Layer/AnatomyViewportLayer.h"
 
 #include <imgui.h>
 
@@ -8,15 +8,15 @@
 #include "Events/MouseCodes.h"
 #include "Renderer/ViewportManager.h"
 
-MainViewportLayer::MainViewportLayer()
+AnatomyViewportLayer::AnatomyViewportLayer()
 {
 }
 
-MainViewportLayer::~MainViewportLayer()
+AnatomyViewportLayer::~AnatomyViewportLayer()
 {
 }
 
-void MainViewportLayer::OnAttach()
+void AnatomyViewportLayer::OnAttach()
 {
 	auto& app = Application::Get();
 
@@ -43,11 +43,11 @@ void MainViewportLayer::OnAttach()
 	m_RoamCamera->UpdateProjectionMatrix();
 }
 
-void MainViewportLayer::OnDetach()
+void AnatomyViewportLayer::OnDetach()
 {
 }
 
-void MainViewportLayer::OnUpdate(float dt)
+void AnatomyViewportLayer::OnUpdate(float dt)
 {
 
 	if (m_ViewportHovered)
@@ -63,18 +63,18 @@ void MainViewportLayer::OnUpdate(float dt)
 		if (m_CameraControlActive) EndMouseControl();
 }
 
-void MainViewportLayer::OnRender()
+void AnatomyViewportLayer::OnRender()
 {
 }
 
-void MainViewportLayer::OnImGuiRender()
+void AnatomyViewportLayer::OnImGuiRender()
 {
 	// Render Main Viewport
 	RenderMainViewport();
 	RenderCameraSettings(true);
 }
 
-void MainViewportLayer::OnEvent(Event& event)
+void AnatomyViewportLayer::OnEvent(Event& event)
 {
 	EventDispatcher dispatcher(event);
 
@@ -89,7 +89,7 @@ void MainViewportLayer::OnEvent(Event& event)
 		});
 }
 
-void MainViewportLayer::RenderMenuBar()
+void AnatomyViewportLayer::RenderMenuBar()
 {
 	if (ImGui::BeginMenu("View"))
 	{
@@ -98,7 +98,7 @@ void MainViewportLayer::RenderMenuBar()
 	}
 }
 
-void MainViewportLayer::RenderCameraSettings(bool standalone) {
+void AnatomyViewportLayer::RenderCameraSettings(bool standalone) {
 
 	if (standalone) ImGui::Begin("Camera Settings");
 
@@ -145,12 +145,12 @@ void MainViewportLayer::RenderCameraSettings(bool standalone) {
 	if (standalone) ImGui::End();
 }
 
-void MainViewportLayer::RenderMainViewport() {
+void AnatomyViewportLayer::RenderMainViewport() {
 	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 	bool visible = true;
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_None; // Removed NoResize flag for testing
-	ImGui::Begin("Viewport", &visible, window_flags);
+	ImGui::Begin("Anatomy Viewport", &visible, window_flags);
 
 	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
@@ -181,7 +181,7 @@ void MainViewportLayer::RenderMainViewport() {
 	ImGui::PopStyleVar();
 }
 
-void MainViewportLayer::StartMouseControl()
+void AnatomyViewportLayer::StartMouseControl()
 {
 	m_CameraControlActive = true;
 
@@ -191,7 +191,7 @@ void MainViewportLayer::StartMouseControl()
 	glfwSetInputMode(m_Window->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
-void MainViewportLayer::DoMouseControl(float dt)
+void AnatomyViewportLayer::DoMouseControl(float dt)
 {
 	if (m_CameraMode == ROAM) {
 		m_RoamCamera->OnControlled(dt);
@@ -200,7 +200,7 @@ void MainViewportLayer::DoMouseControl(float dt)
 	glfwSetCursorPos(m_Window->GetNativeWindow(), m_InitialMousePos.x, m_InitialMousePos.y);
 }
 
-void MainViewportLayer::EndMouseControl()
+void AnatomyViewportLayer::EndMouseControl()
 {
 	m_CameraControlActive = false;
 
@@ -222,7 +222,7 @@ void MainViewportLayer::EndMouseControl()
 	glfwSetCursorPos(m_Window->GetNativeWindow(), windowLocalX, windowLocalY);
 }
 
-void MainViewportLayer::OnMouseScrolled(float yOffset)
+void AnatomyViewportLayer::OnMouseScrolled(float yOffset)
 {
 	if (m_CameraMode == ORBIT) {
 		auto newRadius = m_OrbitCamera->m_Radius - (yOffset * 0.5f);

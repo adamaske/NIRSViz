@@ -14,12 +14,12 @@ struct ExitApplicationCommand {
 struct OnSNIRFLoaded {
 };
 
-struct OnHeadAnatomyLoaded {
-
-};
-
-struct OnCortexAnatomyLoaded {
-
+struct OnAnatomyLoaded {
+	enum AnatomyTpye {
+		Head,
+		Cortex
+	};
+	AnatomyTpye Type;
 };
 
 // --- PROBE ---

@@ -76,8 +76,9 @@ void ProjectionLayer::OnAttach(){
 
 
 
-	EventBus::Instance().Subscribe<OnCortexAnatomyLoaded>([this](const OnCortexAnatomyLoaded& event) {
-		SetupVertexBasedProjection(); // Ready the mesh for vertex-based projection
+	EventBus::Instance().Subscribe<OnAnatomyLoaded>([this](const OnAnatomyLoaded& event) {
+		if (event.Type == OnAnatomyLoaded::AnatomyTpye::Cortex)
+			SetupVertexBasedProjection(); // Ready the mesh for vertex-based projection
 	});
 
 	EventBus::Instance().Subscribe<OnChannelIntersectionsUpdated>([this](const OnChannelIntersectionsUpdated& event) {

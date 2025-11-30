@@ -13,10 +13,10 @@ enum CameraMode {
 	ROAM
 };
 
-class MainViewportLayer : public Layer {
+class AnatomyViewportLayer : public Layer {
 public:
-	MainViewportLayer();
-	~MainViewportLayer();
+	AnatomyViewportLayer();
+	~AnatomyViewportLayer();
 
 
 	void OnAttach() override;
