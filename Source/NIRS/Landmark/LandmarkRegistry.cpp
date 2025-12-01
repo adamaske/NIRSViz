@@ -4,6 +4,7 @@
 namespace NIRS {
 
 
+    using namespace NIRS::Landmarks;
 
     void LandmarkRegistry::SetLandmark(Landmark type, const LandmarkData& data) {
 		m_Landmarks[type] = data;

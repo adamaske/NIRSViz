@@ -8,7 +8,7 @@ class SNIRFFileLoaderPanel : public ImGuiPanel {
 public:
 	SNIRFFileLoaderPanel();
 
-	void OnImGuiRender(bool standalone, bool& open);
+	void OnImGuiRender(bool standalone, bool& open) override;
 
 private:
 

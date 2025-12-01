@@ -166,13 +166,15 @@ void GUI::RenderPointRendererSettings(LineRenderer* renderer, bool& show, const 
 
 void GUI::RenderSNIRFInfo(SNIRF* snirf)
 {
+	auto& probe = snirf->GetProbe();
+
 	ImGui::PushID("snirf_info");
 	ImGui::TextDisabled("SNIRF File Info:");
 	ImGui::Separator();
 	ImGui::TextDisabled("Filepath: %s", snirf->GetFilepath().c_str());
-	ImGui::TextDisabled("Sources: %d", snirf->GetSource2DMap().size());
-	ImGui::TextDisabled("Detectors: %d", snirf->GetDetector2DMap().size());
-	ImGui::TextDisabled("Channels: %d", snirf->GetChannelMap().size());
+	ImGui::TextDisabled("Sources: %d", probe.sources.size());
+	ImGui::TextDisabled("Detectors: %d", probe.detectors.size());
+	ImGui::TextDisabled("Channels: %d", probe.channels.size()); // Updated to use 'probe.channels.size()'
 	ImGui::TextDisabled("Wavelengths: %d", snirf->GetWavelengths().size());
 	ImGui::TextDisabled("Sampling Rate: %.2f Hz", snirf->GetSamplingRate());
 	ImGui::TextDisabled("Duration: %.2f seconds", snirf->GetDurationSeconds());

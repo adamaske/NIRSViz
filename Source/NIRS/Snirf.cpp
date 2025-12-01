@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "NIRS/Snirf.h"
-#include "NIRS/SNIRFProcessor.h"
 
 #include <HighFive/H5File.hpp>
 #include <highfive/H5DataSet.hpp>
@@ -16,13 +15,7 @@ namespace Utils {
     using namespace HighFive;
     using namespace NIRS;
 
-    std::string ProbeTypeToString(ProbeType type) {
-        switch (type) {
-        case SOURCE: return "SOURCE";
-        case DETECTOR: return "DETECTOR";
-        }
-        return "INVALID";
-    }
+    
 
     template <typename T>
     std::vector<T> read_vector(const Group& group, const std::string& name) {
@@ -125,17 +118,25 @@ namespace Utils {
 
 SNIRF::SNIRF(const std::filesystem::path& filepath) : filepath_(filepath)
 {
-    m_ChannelDataRegistry = CreateRef<ChannelDataRegistry>();
-
-	LoadFile(filepath);
+    if (!std::filesystem::exists(filepath)) {
+        NVIZ_ERROR("SNIRF file does not exist: {0}", filepath.string().c_str());
+        return;
+    }
+ 
+    try {
+        LoadFile(filepath);
+    }
+    catch (const HighFive::Exception& e) {
+        NVIZ_ERROR("SNIRF : Failed to load file {0} : {1}", filepath.string(), e.what());
+	}
 }
 
 void SNIRF::Print()
 {
     NVIZ_INFO("SNIRF File       : {}", filepath_.string());
 	NVIZ_INFO("Sample Rate : {} Hz", m_SamplingRate);
-    NVIZ_INFO("     Sources     : {}", m_Sources2D.size());
-    NVIZ_INFO("     Detectors   : {}", m_Detectors2D.size());
+    NVIZ_INFO("     Sources     : {}", GetSourceAmount());
+    NVIZ_INFO("     Detectors   : {}", GetDetectorAmount());
 
     //NVIZ_INFO("Landmarks : 3D{}", m_Landmarks.size());
     //auto print_count = std::min((size_t)3, m_Landmarks.size());
@@ -164,29 +165,16 @@ void SNIRF::Print()
 
 void SNIRF::LoadFile(const std::filesystem::path& filepath)
 {
-    if(!std::filesystem::exists(filepath)) {
-        NVIZ_ERROR("File does not exist: {0}", filepath.string().c_str());
-        return;
-	}
-
     File file(filepath.string(), File::ReadOnly); 
-
 	//Utils::ParseHDF5(filepath.string());
 
-
 	Group root = file.getGroup("/");
-
     Group nirs = root.getGroup("nirs");
-
 
     ParseMetadataTags(nirs.getGroup("metaDataTags"));
 	ParseProbe(nirs.getGroup("probe")); // THIS MUST BE FIRST
     ParseData1(nirs.getGroup("data1"));
-    
-    // Parse stims
     ParseStims(nirs);
-
-
 
     Print();
 }
@@ -205,93 +193,92 @@ void SNIRF::ParseMetadataTags(const HighFive::Group& metadata)
 
 void SNIRF::ParseProbe(const HighFive::Group& probe)
 {
+    using namespace NIRS::Probe;
+
     std::vector<std::string> object_names = probe.listObjectNames();
 
     using Map_RM = Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
 
-    NIRS::ProbeID source2D = 0;
-    NIRS::ProbeID source3D = 0;
 
-    NIRS::ProbeID detector2D = 0;
-    NIRS::ProbeID detector3D = 0;
 
-    auto detectorPos2D = probe.getDataSet("detectorPos2D");
+    OptodeID source2D = 0;
+    OptodeID source3D = 0;
+    
+    OptodeID detector2D = 0;
+    OptodeID detector3D = 0;
+
     {
-        auto dims = detectorPos2D.getDimensions();
-        auto nd_array = std::vector<double>(dims[0] * dims[1]);
-        detectorPos2D.read_raw<double>(nd_array.data());
-        auto detectors = Map_RM(nd_array.data(), dims[0], dims[1]);
+        auto detectors_2D = probe.getDataSet("detectorPos2D");
+        auto detectors_3D = probe.getDataSet("detectorPos3D");
 
-        for (int i = 0; i < detectors.rows(); i++) {
-            auto row_vector = detectors.row(i);
 
-            // Process the data for the i-th detector
-            double x = row_vector(0);
-            double y = row_vector(1);
+        auto dims_2D = detectors_2D.getDimensions();
+        auto dims_3D = detectors_3D.getDimensions();
 
-            m_Detectors2D.push_back({ glm::vec2(x, y), DETECTOR, detector2D });
-			m_Detector2DMap[detector2D] = { glm::vec2(x, y), DETECTOR, detector2D };
-            detector2D++;
+        NVIZ_ASSERT(dims_2D[0] == dims_3D[0], "Source count mismatch between 2D and 3D positions in SNIRF probe.");
+
+		std::vector<ChannelValue> data_2D(dims_2D[0] * dims_2D[1]);
+		std::vector<ChannelValue> data_3D(dims_3D[0] * dims_3D[1]);
+
+		detectors_2D.read_raw<ChannelValue>(data_2D.data());
+		detectors_3D.read_raw<ChannelValue>(data_3D.data());
+
+        int num_detectors = dims_2D[0];
+        for (int i = 0; i < num_detectors; i++)
+        {
+            double x2D = data_2D[i * 2 + 0];
+            double y2D = data_2D[i * 2 + 1];
+
+            double x3D = data_3D[i * 3 + 0];
+            double y3D = data_3D[i * 3 + 1];
+            double z3D = data_3D[i * 3 + 2];
+
+            Optode optode;
+            optode.type = OptodeType::DETECTOR;
+            optode.id = i + 1;
+
+            optode.position_2D = glm::vec2(x2D, y2D);
+            optode.position_3D = glm::vec3(x3D, y3D, z3D);
+
+			probe_.detectors[optode.id] = optode;
         }
     }
-    auto detectorPos3D = probe.getDataSet("detectorPos3D"); 
+
     {
-        auto dims = detectorPos3D.getDimensions();
-        auto nd_array = std::vector<double>(dims[0] * dims[1]);
-        detectorPos3D.read_raw<double>(nd_array.data());
-        auto detectors = Map_RM(nd_array.data(), dims[0], dims[1]);
+		auto sources_2D = probe.getDataSet("sourcePos2D");
+		auto sources_3D = probe.getDataSet("sourcePos3D");
 
-        for (int i = 0; i < detectors.rows(); i++) {
-            auto row_vector = detectors.row(i);
+		auto dims_2D = sources_2D.getDimensions();
+		auto dims_3D = sources_3D.getDimensions();
 
-            // Process the data for the i-th detector
-            double x = row_vector(0);
-            double y = row_vector(1);
-            double z = row_vector(2);
+		NVIZ_ASSERT(dims_2D[0] == dims_3D[0], "Source count mismatch between 2D and 3D positions in SNIRF probe.");
 
-            m_Detectors3D.push_back({ glm::vec3(x, z, y), DETECTOR, detector3D });
-			m_Detector3DMap[detector3D] = { glm::vec3(x, z, y), DETECTOR, detector3D };
-            detector3D++;
-        }
-    }
+		std::vector<ChannelValue> data_2D(dims_2D[0] * dims_2D[1]);
+		std::vector<ChannelValue> data_3D(dims_3D[0] * dims_3D[1]);
+        
+		sources_2D.read_raw<ChannelValue>(data_2D.data());
+		sources_3D.read_raw<ChannelValue>(data_3D.data());
 
-    auto sourcePos2D = probe.getDataSet("sourcePos2D");
-    {
-        auto dims = sourcePos2D.getDimensions();
-        auto nd_array = std::vector<double>(dims[0] * dims[1]);
-        sourcePos2D.read_raw<double>(nd_array.data());
-        auto detectors = Map_RM(nd_array.data(), dims[0], dims[1]);
+		// Now populate the probe_ structure
 
-        for (int i = 0; i < detectors.rows(); i++) {
-            auto row_vector = detectors.row(i);
+		int num_sources = dims_2D[0];
+        for (int i = 0; i < num_sources; i++)
+        {
+			double x2D = data_2D[(i * 2) + 0];
+			double y2D = data_2D[(i * 2) + 1];
 
-            // Process the data for the i-th detectorc
-            double x = row_vector(0);
-            double y = row_vector(1);
+			double x3D = data_3D[(i * 3) + 0];
+			double y3D = data_3D[(i * 3) + 1];
+			double z3D = data_3D[(i * 3) + 2];
 
-            m_Sources2D.push_back({ glm::vec2(x, y), SOURCE, source2D });
-			m_Source2DMap[source2D] = { glm::vec2(x, y), SOURCE, source2D };
-            source2D++;
-        }
-    }
-    auto sourcePos3D = probe.getDataSet("sourcePos3D"); 
-    {
-        auto dims = sourcePos3D.getDimensions();
-        auto nd_array = std::vector<double>(dims[0] * dims[1]);
-        sourcePos3D.read_raw<double>(nd_array.data());
-        auto detectors = Map_RM(nd_array.data(), dims[0], dims[1]);
+            Optode optode;
+			optode.type = OptodeType::SOURCE;
+            optode.id = i + 1;
 
-        for (int i = 0; i < detectors.rows(); i++) {
-            auto row_vector = detectors.row(i);
+			optode.position_2D = glm::vec2(x2D, y2D);
+			optode.position_3D = glm::vec3(x3D, y3D, z3D);
 
-            // Process the data for the i-th detector
-            double x = row_vector(0);
-            double y = row_vector(1);
-            double z = row_vector(2);
-
-            m_Sources3D.push_back({ glm::vec3(x, z, y), SOURCE, source3D });
-			m_Source3DMap[source3D] = { glm::vec3(x, z, y), SOURCE, source3D };
-            source3D++;
+			probe_.sources[optode.id] = optode;
         }
     }
 
@@ -332,6 +319,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
 
 void SNIRF::ParseData1(const HighFive::Group& data1)
 {
+	using namespace NIRS::Probe;
 
     DataSet time = data1.getDataSet("time");
     {
@@ -345,12 +333,10 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         size_t num_intervals = time_data.size() - 1;
         float avg_dt = total_duration / num_intervals;
         float sampling_rate = 1.0f / avg_dt;
+
         m_SamplingRate = sampling_rate;
 		m_DurationSeconds = total_duration;
-        NVIZ_INFO("Sampling Rate (Fs): {} Hz", sampling_rate);
-        NVIZ_INFO("Duration (Seconds): {} ", total_duration);
     }
-
 
     using Map_RM = Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
     auto dataTimeSeries = data1.getDataSet("dataTimeSeries");
@@ -361,10 +347,8 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         m_ChannelData = Map_RM(nd_array.data(), dims[0], dims[1]).transpose();
 	}
 
-    // --- CREATES CHANNELS ---
-
 	// The first half is hbr, the second half is hbo
-    NVIZ_ASSERT((m_ChannelData.rows() % 2) == 0, "CHANNEL NUM MUST BE EVEN, NOT ODD");
+    NVIZ_ASSERT((m_ChannelData.rows() % 2) == 0, "Snirf file must have even amount of channels");
 
 	std::string base_name = "measurementList";
     for (size_t i = 0; i < m_ChannelData.rows() / 2; i++)
@@ -372,14 +356,16 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         int hbr_index = i;
 		int hbo_index = hbr_index + (m_ChannelData.rows() / 2);
 
-		auto name = base_name + std::to_string(i+1);
+		auto name = base_name + std::to_string(i+1); // measurementList is 1 indexed
 
 		auto measurementList = data1.getGroup(name);
 
         auto dataType = 0;
         measurementList.getDataSet("dataType").read(dataType);
+
 		auto dataTypeIndex = 0;
         measurementList.getDataSet("dataTypeIndex").read(dataTypeIndex);
+
         std::string dataTypeLabel = "";
         measurementList.getDataSet("dataTypeLabel").read(dataTypeLabel);
 
@@ -392,10 +378,10 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
         int wavelengthIndex = 0;
         measurementList.getDataSet("wavelengthIndex").read(wavelengthIndex);
         
-		NIRS::Channel channel;
-		channel.ID = i; // As long as its unique this should be fine
-		channel.SourceID = sourceIndex; // These are 1-indexed, TODO : Fix 
-		channel.DetectorID = detectorIndex;
+        Channel channel;
+		channel.id = i; // As long as its unique this should be fine
+		channel.source_id = sourceIndex; // These are 1-indexed, TODO : Fix 
+		channel.detector_id = detectorIndex;
        
         { // Load HBR
             auto channel_row = m_ChannelData.row(hbr_index);
@@ -405,7 +391,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
             std::vector<double> processed;
             //PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
 
-            channel.HBRDataIndex = m_ChannelDataRegistry->SubmitChannelData(channel_data_vec);
+            channel.hbr_data = channel_data_vec;
         };
         
         { // Load HBO
@@ -416,28 +402,27 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
             std::vector<double> processed;
             //PreprocessHemodynamicData(channel_data_vec, processed, m_SamplingRate);
 
-            channel.HBODataIndex = m_ChannelDataRegistry->SubmitChannelData(channel_data_vec);
+            channel.hbo_data = channel_data_vec;
         };
 
-		m_Channels.push_back(channel);
-        m_ChannelMap[channel.ID] = channel;
+        probe_.channels[channel.id] = channel;
     }
 }
 
 void SNIRF::ParseStims(const HighFive::Group& nirs)
 {
+    using namespace NIRS::Events;
+
 	size_t max_stims = 1000; // Arbitrary large number to avoid infinite loops
     for (size_t i = 1; i < max_stims; i++)
     {
-		// Create the stim name
         std::string stim_name = "stim" + std::to_string(i);
-
         if (!nirs.exist(stim_name))
             break;
 
         auto stim = nirs.getGroup(stim_name);
 
-        NIRS::Event event;
+        Event event;
 
         // 1. Name
         std::string name;
@@ -472,7 +457,7 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
                 });
         }
 
-        std::sort(event.markers.begin(), event.markers.end(), [](const NIRS::EventMarker& a, const NIRS::EventMarker& b) {
+        std::sort(event.markers.begin(), event.markers.end(), [](const EventMarker& a, const EventMarker& b) {
             return a.onset < b.onset;
         });
 
@@ -490,8 +475,7 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
                 NVIZ_ERROR("Failed to read 'dataLabels' for {}: {}", stim_name, e.what());
             }
         }
-
-        // Sort markers by onset going from smallest to largest       
+    
 		events_.push_back(std::move(event));
 	}
 }

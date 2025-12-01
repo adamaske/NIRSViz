@@ -1,9 +1,11 @@
 #include "pch.h"
+
 #include "App/Controllers/CoordinateSystemController.h"
-#include "Core/Log.h"
+
 #include "Events/EventBus.h"
 
 #include "NIRS/Anatomy/AnatomyManager.h"
+
 namespace App {
 
 	CoordinateSystemController::CoordinateSystemController()
@@ -40,7 +42,7 @@ namespace App {
 			auto type = landmark.Type;
 			auto position = landmark.Position;
 
-			NVIZ_INFO("[{}] : ( {:.2f}, {:.2f}, {:.2f} )", NIRS::LandmarkToString(type), position.x, position.y, position.z);
+			NVIZ_INFO("[{}] : ( {:.2f}, {:.2f}, {:.2f} )", NIRS::Landmarks::LandmarkToString(type), position.x, position.y, position.z);
 		}
 		NVIZ_INFO("Coordinate system generation complete");
 	}
@@ -125,7 +127,7 @@ namespace App {
 		glm::vec3 lpa_rpa_midpoint = glm::vec3((lpa_pos + rpa_pos) / 2.0f);
 		glm::vec3 lpa_rpa_direction = glm::normalize(rpa_pos - lpa_pos);
 
-		auto cz = GetCoordinateSystem().GetLandmarks().GetLandmark(NIRS::Cz)->Position;
+		auto cz = GetCoordinateSystem().GetLandmarks().GetLandmark(NIRS::Landmarks::Landmark::Cz)->Position;
 		cz.x = lpa_rpa_midpoint.x; // Ensure Cz is aligned with LPA-RPA midpoint
 
 		glm::vec3 up_vector				= glm::normalize(cz - lpa_rpa_midpoint);
@@ -178,10 +180,10 @@ namespace App {
 		auto& landmarkRegistry = m_CoordinateSystem.GetLandmarks();
 		auto worldVertices = head->GetWorldSpaceVertexPositions();
 
-		auto fpz = landmarkRegistry.GetLandmark(NIRS::Fpz);
-		auto t3 = landmarkRegistry.GetLandmark(NIRS::T3);
-		auto oz = landmarkRegistry.GetLandmark(NIRS::Oz);
-		auto t4 = landmarkRegistry.GetLandmark(NIRS::T4);
+		auto fpz = landmarkRegistry.GetLandmark(NIRS::Landmarks::Landmark::Fpz);
+		auto t3 = landmarkRegistry.GetLandmark(	NIRS::Landmarks::Landmark::T3);
+		auto oz = landmarkRegistry.GetLandmark(	NIRS::Landmarks::Landmark::Oz);
+		auto t4 = landmarkRegistry.GetLandmark(	NIRS::Landmarks::Landmark::T4);
 		std::vector<unsigned int> leftRoughPath = {
 			fpz->ClosestVertexIndex, 
 			t3->ClosestVertexIndex, 
@@ -208,7 +210,7 @@ namespace App {
 		m_CoordinateSystem.SetCircumferencePaths({ leftPath, rightPath });
 
 		{
-			std::vector<NIRS::Landmark> labels = { Fp1, F7, T5, O1 };
+			std::vector<NIRS::Landmarks::Landmark> labels = { Fp1, F7, T5, O1 };
 			std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
 			auto calculatedLandmarks = LandmarkCalculator::CalculateLandmarksAlongPath(
 				worldVertices, leftFinePath, labels, percentages
@@ -224,7 +226,7 @@ namespace App {
 			}
 		}
 		{
-			std::vector<NIRS::Landmark> labels = { Fp2, F8, T6, O2 };
+			std::vector<NIRS::Landmarks::Landmark> labels = { Fp2, F8, T6, O2 };
 			std::vector<float> percentages = { 0.10, 0.30, 0.70, 0.90 };
 			auto calculatedLandmarks = LandmarkCalculator::CalculateLandmarksAlongPath(
 				worldVertices, rightFinePath, labels, percentages
@@ -244,22 +246,23 @@ namespace App {
 	void CoordinateSystemController::GenerateF3F4()
 	{
 		using namespace NIRS;
+		using namespace NIRS::Landmarks;
 		auto head = AnatomyManager::Instance().GetHead();
 		auto worldVertices = head->GetWorldSpaceVertexPositions();
 		  
 
 		auto& landmarks = m_CoordinateSystem.GetLandmarks();
-		auto fz = landmarks.GetLandmark(NIRS::Fz);
+		auto fz = landmarks.GetLandmark(Fz);
 
 		// F3 is in the point where F7-Fz meets Fp1-C3
-		auto f7 = landmarks.GetLandmark(NIRS::F7);
-		auto fp1 = landmarks.GetLandmark(NIRS::Fp1);
-		auto c3 = landmarks.GetLandmark(NIRS::C3);
+		auto f7 = landmarks.GetLandmark(F7);
+		auto fp1 = landmarks.GetLandmark(Fp1);
+		auto c3 = landmarks.GetLandmark(C3);
 
 		// F4 is the point where F8-Fz meets Fp2-C4
-		auto f8 = landmarks.GetLandmark(NIRS::F8);
-		auto fp2 = landmarks.GetLandmark(NIRS::Fp2);
-		auto c4 = landmarks.GetLandmark(NIRS::C4);
+		auto f8 = landmarks.GetLandmark(F8);
+		auto fp2 = landmarks.GetLandmark(Fp2);
+		auto c4 = landmarks.GetLandmark(C4);
 
 		using VertexPath = std::vector<unsigned int>;
 		VertexPath f7_fz_path = {
@@ -317,20 +320,22 @@ namespace App {
 	{
 
 		using namespace NIRS;
+		using namespace Landmarks;
+
 		auto head = AnatomyManager::Instance().GetHead();
 		auto worldVertices = head->GetWorldSpaceVertexPositions();
 		auto& landmarks = m_CoordinateSystem.GetLandmarks();
 
-		auto pz = landmarks.GetLandmark(NIRS::Pz);
+		auto pz = landmarks.GetLandmark(Pz);
 		// P3 is where T5-Pz meets O1-C3
-		auto t5 = landmarks.GetLandmark(NIRS::T5);	
-		auto o1 = landmarks.GetLandmark(NIRS::O1);
-		auto c3 = landmarks.GetLandmark(NIRS::C3);
+		auto t5 = landmarks.GetLandmark(T5);	
+		auto o1 = landmarks.GetLandmark(O1);
+		auto c3 = landmarks.GetLandmark(C3);
 
 		// P4 is where T6-Pz meets O2-C4
-		auto t6 = landmarks.GetLandmark(NIRS::T6);
-		auto o2 = landmarks.GetLandmark(NIRS::O2);
-		auto c4 = landmarks.GetLandmark(NIRS::C4);
+		auto t6 = landmarks.GetLandmark(T6);
+		auto o2 = landmarks.GetLandmark(O2);
+		auto c4 = landmarks.GetLandmark(C4);
 
 		using VertexPath = std::vector<unsigned int>;
 		VertexPath t5_Pz_path = {

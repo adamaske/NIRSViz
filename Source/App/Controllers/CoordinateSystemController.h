@@ -1,4 +1,7 @@
 #pragma once
+
+#include "Core/Base.h"
+
 #include "NIRS/Coordinate/CoordinateSystem.h"
 #include "NIRS/Coordinate/RaycastSampler.h"
 #include "NIRS/Coordinate/PathFinder.h"

@@ -18,6 +18,7 @@ uniform mat4 u_ProjectionMatrix;
 void main()
 {
     vActivityLevel = aActivityLevel;
+
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_Transform * vec4(aPos, 1.0);
     Normal = mat3(transpose(inverse(u_ViewMatrix * u_Transform))) * aNormal;
     FragPos = vec3(u_ViewMatrix * u_Transform * vec4(aPos, 1.0));

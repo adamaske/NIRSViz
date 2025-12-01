@@ -39,9 +39,11 @@ struct OnCoordinateSystemGenerated {
 struct OnStartProjection {
 	NIRS::WavelengthType Wavelength;
 };
+
 struct OnStopProjection {
 
 };
+
 
 struct OnChannelIntersectionsUpdated {
 };
@@ -54,26 +56,25 @@ struct OnProjectionSettingsChanged {
 	NIRS::ProjectionSettings Settings;
 
 };
+
+// 
 struct OnProjectionDataChanged {
-	NIRS::ProjectionData Data;
+	NIRS::ProjectionData data;
 };
 
+// From Plotting Layer -> To Projection Layer
+struct OnProjectionTimeChanged {
+	unsigned int time_index;
+	double time_seconds;
+};
 
-namespace NIRS {
-	using ChannelID = uint32_t;
-	using ChannelValue = double;
-}
 struct OnChannelValuesUpdated {
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> HBOValues;
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> HBRValues;
+
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> HBOValues;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> HBRValues;
 };
 
 struct OnChannelsSelected {
-	std::vector<uint32_t> selectedIDs;
+	std::vector<NIRS::Probe::ChannelID> selectedIDs;
 };
 
-// --- TIME ----
-struct OnTimeChanged {
-	size_t NewTimeIndex;
-	double NewTime;
-};

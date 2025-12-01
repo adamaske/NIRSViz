@@ -49,7 +49,7 @@ void ProbeLayer::OnAttach()
 	InitHitDataTexture();
 
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
-		this->LoadSNIRF();
+		this->HandleSNIRFLoaded();
 
 	});
 
@@ -66,12 +66,14 @@ void ProbeLayer::OnDetach()
 void ProbeLayer::OnUpdate(float dt)
 {
 
-	if (!m_InitalProjectionToCortex) {
+	if (!m_InitalProjectionToCortex) { // TODO : Handle differently
 		this->ProjectChannelsToCortex();
 		m_InitalProjectionToCortex = true;
 
 		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
+
+
 	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) m_LineRenderer2D->Draw();
 	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) m_LineRenderer3D->Draw();
 	if (m_DrawChannelProjections3D && m_SNIRF->IsFileLoaded()) m_ProjLineRenderer3D->Draw();
@@ -83,20 +85,20 @@ void ProbeLayer::OnUpdate(float dt)
 	}
 
 	if (m_DrawProbes2D && m_SNIRF->IsFileLoaded()) { // Currently we dont apply any transform to 2D probes
-		for (const auto& cmd : m_SourceVisuals) {
+		for (const auto& [id, cmd] : source_visuals_) {
 			Renderer::Submit(cmd.RenderCmd2D);
 		}
-		for (const auto& cmd : m_DetectorVisuals) {
+		for (const auto& [id, cmd] : detector_visuals_) {
 			Renderer::Submit(cmd.RenderCmd2D);
 		}
 	}
 
 	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
-		for (auto& pv : m_SourceVisuals) {
+		for (auto& [id, pv] : source_visuals_) {
 			RenderCommand cmd = pv.RenderCmd3D;
 			Renderer::Submit(cmd);
 		}
-		for (auto& pv : m_DetectorVisuals) {
+		for (auto& [id, pv] : detector_visuals_) {
 			RenderCommand cmd = pv.RenderCmd3D;
 			Renderer::Submit(cmd);
 		}
@@ -252,28 +254,38 @@ void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 	ImGui::Separator();
 }
 
-void ProbeLayer::LoadSNIRF()
+void ProbeLayer::HandleSNIRFLoaded()
 {
 	m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
 
-	m_Channels = m_SNIRF->GetChannels();
-	m_ChannelMap = m_SNIRF->GetChannelMap();
+	auto& snirf = *m_SNIRF.get();
+	
+	channel_map_ = snirf.GetChannels();
+
+
 	m_ChannelProjectionIntersections.clear(); // Init it
 
-	for (size_t i = 0; i < m_Channels.size(); ++i) {
-		m_ChannelProjectionIntersections[i] = glm::vec3(0.0f);
+	for(auto& [id, channel] : channel_map_) {
+		m_Channels.push_back(channel);
+
+		m_ChannelProjectionIntersections[id] = glm::vec3(0.0f);
 	}
 
+	source_visuals_.clear();
+	detector_visuals_.clear();
 
-	CreateProbeVisuals<NIRS::Probe2D, NIRS::Probe3D>(
-		m_SNIRF->GetSources2D(),
-		m_SNIRF->GetSources3D(),
-		m_SourceVisuals);
+	for(auto& [id, optode] : snirf.GetProbe().sources) {
 
-	CreateProbeVisuals<NIRS::Probe2D, NIRS::Probe3D>(
-		m_SNIRF->GetDetectors2D(),
-		m_SNIRF->GetDetectors3D(),
-		m_DetectorVisuals);
+		ProbeVisual pv;
+		pv.optode = optode;
+		source_visuals_[id] = pv;
+	}
+
+	for(auto& [id, optode] : snirf.GetProbe().detectors) {
+		ProbeVisual pv;
+		pv.optode = optode;
+		detector_visuals_[id] = pv;
+	}
 
 	UpdateProbeVisuals();
 	UpdateChannelVisuals();
@@ -302,18 +314,18 @@ glm::mat4 ProbeLayer::CalculateProbeRotationMatrix(const glm::vec3& worldPos) co
 	return localRotation;
 }
 
-void ProbeLayer::UpdateProbeVisual(ProbeVisual& pv,
-	const RenderCommand& cmd2D_template,
-	const RenderCommand& cmd3D_template,
-	UniformData& flatColor,
-	const glm::mat4& base3DTransform)
+void ProbeLayer::UpdateProbeVisual(	ProbeVisual& pv,
+									const RenderCommand& cmd2D_template,
+									const RenderCommand& cmd3D_template,
+									UniformData& flatColor,
+									const glm::mat4& base3DTransform)
 {
 	// --- 3D Calculations ---
-	auto worldPos = pv.Probe3D.Position * m_Probe3DSpreadFactor;
+	auto worldPos = pv.optode.position_3D * m_Probe3DSpreadFactor;
 	glm::mat4 localRotation = CalculateProbeRotationMatrix(worldPos);
 	glm::mat4 translation = glm::translate(glm::mat4(1.0f), worldPos);
 
-	flatColor.Data.f4 = (pv.Probe2D.Type == NIRS::SOURCE) ? NIRS::SourceColor : NIRS::DetectorColor;
+	flatColor.Data.f4 = (pv.optode.type == NIRS::Probe::SOURCE) ? NIRS::SourceColor : NIRS::DetectorColor;
 
 	pv.RenderCmd3D = cmd3D_template;
 	// Combine transforms: Offset * Rotation * Translation * LocalRotation * Scale
@@ -322,7 +334,7 @@ void ProbeLayer::UpdateProbeVisual(ProbeVisual& pv,
 
 	// --- 2D Calculations ---
 	pv.RenderCmd2D = cmd2D_template;
-	pv.RenderCmd2D.Transform = glm::translate(glm::mat4(1.0f), glm::vec3(pv.Probe2D.Position.x, pv.Probe2D.Position.y, 0));
+	pv.RenderCmd2D.Transform = glm::translate(glm::mat4(1.0f), glm::vec3(pv.optode.position_2D.x, pv.optode.position_2D.y, 0));
 	pv.RenderCmd2D.UniformCommands = { flatColor };
 }
 
@@ -354,13 +366,15 @@ void ProbeLayer::UpdateProbeVisuals()
 	glm::mat4 base3DTransform = offset * rotation * scale;
 
 	// --- 3. Update All Visuals ---
-	for (auto& pv : m_SourceVisuals) {
+	for (auto& [id, pv] : source_visuals_) {
 		UpdateProbeVisual(pv, cmd2D_template, cmd3D_template, flatColor, base3DTransform);
 	}
 
-	for (auto& pv : m_DetectorVisuals) {
+	for (auto& [id, pv] : detector_visuals_) {
 		UpdateProbeVisual(pv, cmd2D_template, cmd3D_template, flatColor, base3DTransform);
 	}
+
+	UpdateChannelVisuals();					
 }
 
 void ProbeLayer::UpdateChannelVisuals()
@@ -370,19 +384,17 @@ void ProbeLayer::UpdateChannelVisuals()
 	m_ProjLineRenderer3D->Clear();
 
 	m_ChannelVisualsMap.clear();
-	for (const auto& [idx, channel] : m_ChannelMap) {
+	for (const auto& [idx, channel] : channel_map_) {
 
-		int sourceIndex = channel.SourceID - 1;
-		int detectorIndex = channel.DetectorID - 1;
 
 		NIRS::ChannelVisualization cv;
-		cv.ChannelID = channel.ID;
+		cv.ChannelID = channel.id;
 
-		auto start2D = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd2D.Transform[3];
-		auto end2D = m_SourceVisuals[channel.SourceID - 1].RenderCmd2D.Transform[3];
+		auto start2D = detector_visuals_[channel.detector_id ].RenderCmd2D.Transform[3];
+		auto end2D	= source_visuals_	[channel.source_id].RenderCmd2D.Transform[3];
 
-		auto start3D = m_DetectorVisuals[channel.DetectorID - 1].RenderCmd3D.Transform[3];
-		auto end3D = m_SourceVisuals[channel.SourceID - 1].RenderCmd3D.Transform[3];
+		auto start3D = detector_visuals_[channel.detector_id].RenderCmd3D.Transform[3];
+		auto end3D	= source_visuals_	[channel.source_id].RenderCmd3D.Transform[3];
 
 		cv.Line2D = NIRS::Line{
 				start2D,
@@ -396,6 +408,7 @@ void ProbeLayer::UpdateChannelVisuals()
 
 		auto projStart3D = (start3D + end3D) / 2.0f; 
 		auto projEnd3D = m_TargetProbePosition;
+
 		cv.ProjectionLine3D = NIRS::Line{
 			projStart3D,
 			projEnd3D
@@ -429,7 +442,7 @@ void ProbeLayer::ProjectChannelsToCortex()
 	// It is already intialized to 0, therefore we dont need to clear it
 	//m_ChannelProjectionIntersections.clear(); 
 
-	for (const auto& [idx, channel] : m_ChannelMap) {
+	for (const auto& [idx, channel] : channel_map_) {
 		const auto& cv = m_ChannelVisualsMap[idx];
 
 		auto line = cv.ProjectionLine3D;
@@ -470,7 +483,7 @@ void ProbeLayer::InitHitDataTexture()
 {
 	glGenTextures(1, &m_HitDataTextureID);
 	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
-
+	
 	// Set texture parameters
 	// GL_NEAREST for fetching exact hit data, no interpolation needed
 	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -497,7 +510,7 @@ void ProbeLayer::UpdateHitDataTexture()
 	std::vector<glm::vec4> textureData(MAX_HITS, glm::vec4(0.0f));
 
 	int idx = 0;
-	for(auto& [ID, channel] : m_ChannelMap){
+	for(auto& [ID, channel] : channel_map_){
 
 		auto intersectionPoint = m_ChannelProjectionIntersections[ID];
 

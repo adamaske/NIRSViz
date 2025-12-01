@@ -75,8 +75,7 @@ void PlottingLayer::OnImGuiRender()
 	auto fs = m_SNIRF->GetSamplingRate();
 	auto time = m_SNIRF->GetTime();
 
-	auto channelMap = m_SNIRF->GetChannelMap();
-	auto channelRegistry = m_SNIRF->GetChannelDataRegistry();
+	auto channelMap = m_SNIRF->GetChannels();
 
 	size_t channel_num = m_SelectedChannels.size();
 
@@ -131,23 +130,23 @@ void PlottingLayer::OnImGuiRender()
 			switch (m_PlottingWavelength) {
 				case(HBO_ONLY):
 					label = "Channel " + std::to_string(channelID) + " - HbO";
-					data = channelRegistry->GetChannelData(channel.HBODataIndex);
+					data = channel.hbo_data;
 					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 					break;
 
 				case(HBR_ONLY):
 					label = "Channel " + std::to_string(channelID) + " - HbR";
-					data = channelRegistry->GetChannelData(channel.HBRDataIndex);
+					data = channel.hbr_data;
 					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 					break;
 
 				case(HBO_AND_HBR):
 					label = "Channel " + std::to_string(channelID) + " - HbO";
-					data = channelRegistry->GetChannelData(channel.HBODataIndex);
+					data = channel.hbo_data;
 					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 
 					label = "Channel " + std::to_string(channelID) + " - HbR";
-					data = channelRegistry->GetChannelData(channel.HBRDataIndex);
+					data = channel.hbr_data;
 					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 					break;
 			}
@@ -170,6 +169,9 @@ void PlottingLayer::OnImGuiRender()
 
 			if (timeIndex != m_TimeIndex) { // A change was made
 				SetChannelValuesAtTimeIndex(timeIndex);
+
+				// 
+				EventBus::Instance().Publish<OnProjectionTimeIndexChanged>()
 			}
 
 			m_TimeIndex = timeIndex;
@@ -235,7 +237,7 @@ void PlottingLayer::RenderMenuBar()
 	}
 }
 
-void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& selectedIDs)
+void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs)
 {
 	m_SelectedChannels = selectedIDs;
 
@@ -245,8 +247,7 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& s
 
 	// Get necessary data
 	auto time = m_SNIRF->GetTime();
-	auto channelMap = m_SNIRF->GetChannelMap();
-	auto channelRegistry = m_SNIRF->GetChannelDataRegistry();
+	auto channelMap = m_SNIRF->GetChannels();
 
 	if (time.empty()) {
 		NVIZ_WARN("PlottingLayer::HandleSelectedChannels: Time data is empty.");
@@ -266,7 +267,7 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& s
 
 		// Check HbO data if needed
 		if (m_PlottingWavelength == HBO_ONLY || m_PlottingWavelength == HBO_AND_HBR) {
-			auto hboData = channelRegistry->GetChannelData(channel.HBODataIndex);
+			auto hboData = channel.hbo_data;
 			if (!hboData.empty()) {
 				auto [minIt, maxIt] = std::minmax_element(hboData.begin(), hboData.end());
 				minY = std::min(minY, *minIt);
@@ -276,7 +277,7 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& s
 
 		// Check HbR data if needed
 		if (m_PlottingWavelength == HBR_ONLY || m_PlottingWavelength == HBO_AND_HBR) {
-			auto hbrData = channelRegistry->GetChannelData(channel.HBRDataIndex);
+			auto hbrData = channel.hbr_data;
 			if (!hbrData.empty()) {
 				auto [minIt, maxIt] = std::minmax_element(hbrData.begin(), hbrData.end());
 				minY = std::min(minY, *minIt);
@@ -303,13 +304,12 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::ChannelID>& s
 
 void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
 {
-	auto channelMap = m_SNIRF->GetChannelMap();
-	auto channelRegistry = m_SNIRF->GetChannelDataRegistry();
+	auto channelMap = m_SNIRF->GetChannels();
 
 	size_t timeIndex = static_cast<size_t>(index);
 
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> hboValues; // Your map to store results
-	std::map<NIRS::ChannelID, NIRS::ChannelValue> hbrValues; // Your map to store results
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hboValues; // Your map to store results
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbrValues; // Your map to store results
 
 	for (auto& [ID, channel] : channelMap) {
 		hboValues[ID] = 0.0;
@@ -317,9 +317,9 @@ void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
 	}
 
 	for (auto& ID : m_SelectedChannels) {
-		
-		std::vector<double> hbo = channelRegistry->GetChannelData(channelMap[ID].HBODataIndex);
-		std::vector<double> hbr = channelRegistry->GetChannelData(channelMap[ID].HBRDataIndex);
+		auto& channel = channelMap[ID];
+		std::vector<double> hbo = channel.hbo_data;
+		std::vector<double> hbr = channel.hbr_data;
 
 		if (timeIndex >= 0 && timeIndex < hbo.size()) { // Within bounds
 			hboValues[ID] = hbo[timeIndex];
@@ -331,6 +331,6 @@ void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
 	projData->HBOChannelValues = hboValues;
 	projData->HBRChannelValues = hbrValues;
 
-	EventBus::Instance().Instance().Publish<OnChannelValuesUpdated>({ hboValues, hbrValues });
+	EventBus::Instance().Publish<OnChannelValuesUpdated>({ hboValues, hbrValues });
 }
 

@@ -70,7 +70,7 @@ private:
 
 	std::vector<ProjectionVertex> m_VertexModeProjectionVertices;
 	// index to ProjectionVertex, indices of influenced vertices
-	std::map<NIRS::ChannelID, std::vector<int>> m_VerticesInfluencedByChannel; // For each channel, which vertices does it influence
+	std::map<NIRS::Probe::ChannelID, std::vector<int>> m_VerticesInfluencedByChannel; // For each channel, which vertices does it influence
 
 	std::vector<Vertex> m_VertexModeVertices;
 	std::vector<unsigned int> m_VertexModeIndices;
@@ -80,8 +80,11 @@ private:
 
 	ViewportType viewport_type_ = ViewportType::MainViewport;
 
+	void HandleOnProjectionDataChanged(const NIRS::ProjectionData& data);
+
 	void SetupVertexBasedProjection();
 	void UpdateVerticiesInfluencedByChannel();
+	void UpdateVertexBasedProjection(const NIRS::ProjectionData& data);
 	void UpdateVertexBasedProjection();
 	void RenderVertexMode();
 };

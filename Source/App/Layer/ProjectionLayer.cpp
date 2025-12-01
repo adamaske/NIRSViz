@@ -89,12 +89,14 @@ void ProjectionLayer::OnAttach(){
 		UpdateVertexBasedProjection();
 	});
 
+
 	EventBus::Instance().Subscribe<OnStartProjection>([this](const OnStartProjection& event) {
 		this->StartProjection();
 	});
 	EventBus::Instance().Subscribe<OnStopProjection>([this](const OnStopProjection& event) {
 		this->EndProjection();
 	});
+
 
 	EventBus::Instance().Subscribe<OnProjectionWavelengthChanged>([this](const OnProjectionWavelengthChanged& event) {
 		m_ProjectionWavelength = event.Wavelength;
@@ -106,9 +108,8 @@ void ProjectionLayer::OnAttach(){
 	});
 
 	EventBus::Instance().Subscribe<OnProjectionDataChanged>([this](const OnProjectionDataChanged& event) {
-		
+		this->HandleOnProjectionDataChanged(event.data);
 	});
-
 
 }
 
@@ -240,12 +241,18 @@ void ProjectionLayer::RenderWorldSpaceMode()
 }
 
 
+void ProjectionLayer::HandleOnProjectionDataChanged(const NIRS::ProjectionData& data)
+{
+	// What do we do when projection data changed
+
+}
+
 void ProjectionLayer::SetupVertexBasedProjection()
 { 
 	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	// A new Cortex mesh is loaded, we need to setup the buffers for vertex-based projection
-	auto vertices = cortex->GetMesh()->GetVertices();
-	auto indices = cortex->GetMesh()->GetIndices();
+
+	const auto& vertices = cortex->GetMesh()->GetVertices();
+	const auto& indices = cortex->GetMesh()->GetIndices();
 
 	// Create projection vertices 
 	m_VertexModeProjectionVertices.resize(vertices.size());
@@ -267,6 +274,7 @@ void ProjectionLayer::SetupVertexBasedProjection()
 	BufferElement norms = { ShaderDataType::Float3, "aNormal", false };
 	BufferElement cords = { ShaderDataType::Float2, "aTexCoord", false };
 	BufferElement activity = { ShaderDataType::Float, "aActivityLevel", false };
+
 	BufferLayout layout = BufferLayout{ pos, norms, cords, activity };
 	m_VertexModeVBO->SetLayout(layout);
 
@@ -281,6 +289,7 @@ void ProjectionLayer::UpdateVerticiesInfluencedByChannel()
 
 	// For each channel intersection point, find the vertices which are within the effect radius
 	auto intersection_points = projectionData->ChannelProjectionIntersections;
+
 	for (auto& [ID, pos] : projectionData->ChannelProjectionIntersections) {
 		std::vector<int> influencedVertices;
 
@@ -296,20 +305,19 @@ void ProjectionLayer::UpdateVerticiesInfluencedByChannel()
 	}
 }
 
-void ProjectionLayer::UpdateVertexBasedProjection()
+void ProjectionLayer::UpdateVertexBasedProjection(const NIRS::ProjectionData& data)
 {
 	for(auto& vertex : m_VertexModeProjectionVertices) {
 		vertex.ActivityLevel = 0.0f; // Reset all activity levels
 	}
 
-	auto projectionData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
 	auto settings = m_VertexBasedProjectionSettings;
 
 	// We need to identifity each vertex 's activity level
-	auto intersection_points = projectionData->ChannelProjectionIntersections;
-	auto channel_values = m_ProjectionWavelength == NIRS::WavelengthType::HBO ? projectionData->HBOChannelValues : projectionData->HBRChannelValues;
+	auto intersection_points = data.ChannelProjectionIntersections;
+	auto channel_values = m_ProjectionWavelength == NIRS::WavelengthType::HBO ? data.HBOChannelValues : data.HBRChannelValues;
 
-	for (auto& [ID, pos] : projectionData->ChannelProjectionIntersections) {
+	for (auto& [ID, pos] : data.ChannelProjectionIntersections) {
 		
 		auto influencedVertices = m_VerticesInfluencedByChannel[ID];
 

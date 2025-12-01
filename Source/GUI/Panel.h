@@ -10,10 +10,10 @@ public:
 
 class ImGuiPanel : public IPanel {
 public:
-	virtual void OnImGUIRender(bool standalone, bool& open) = 0;
+	virtual void OnImGuiRender(bool standalone, bool& open) = 0;
 
 	virtual void OnGUIRender(bool standalone, bool& open) override {
-		OnImGUIRender(standalone, open);
+		OnImGuiRender(standalone, open);
 	};
 };
 

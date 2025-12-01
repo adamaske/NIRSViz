@@ -6,8 +6,11 @@
 
 namespace NIRS {
 
+    using namespace NIRS::Landmarks;
+
     class LandmarkRegistry {
     public:
+
         void SetLandmark(Landmark type, const LandmarkData& data);
         std::optional<LandmarkData> GetLandmark(Landmark type);
 

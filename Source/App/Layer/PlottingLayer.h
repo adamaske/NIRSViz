@@ -37,7 +37,7 @@ public:
 
 	void RenderMenuBar() override;
 
-	void HandleSelectedChannels(const std::vector<NIRS::ChannelID>& selectedIDs);
+	void HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs);
 
 	void SetChannelValuesAtTimeIndex(int index);
 
@@ -63,7 +63,7 @@ private:
 	bool m_NeedAxisFit = false;
 
 	PlottingWavelength m_PlottingWavelength = HBO_ONLY; // Plotting however can show both at the same time. 
-	std::vector<NIRS::ChannelID> m_SelectedChannels;
+	std::vector<NIRS::Probe::ChannelID> m_SelectedChannels;
 
 	// For playback mode
 	Ref<TimeController> m_TimeController;

@@ -18,8 +18,7 @@
 #include "NIRS/Snirf.h"
 
 struct ProbeVisual {
-	NIRS::Probe3D Probe3D;
-	NIRS::Probe2D Probe2D;
+	NIRS::Probe::Optode optode;
 
 	RenderCommand RenderCmd3D;
 	RenderCommand RenderCmd2D;
@@ -45,7 +44,7 @@ public:
 	void Render2DProbeTransformControls(bool standalone);
 	void Render3DProbeTransformControls(bool standalone);
 
-	void LoadSNIRF();
+	void HandleSNIRFLoaded();
 
 	glm::mat4 CalculateProbeRotationMatrix(const glm::vec3& worldPos) const;
 	void UpdateProbeVisual(ProbeVisual& pv, const RenderCommand& cmd2D_template, const RenderCommand& cmd3D_template, UniformData& flatColor, const glm::mat4& base3DTransform);
@@ -69,15 +68,19 @@ private:
 	Ref<Mesh> m_ProbeMesh = nullptr;
 	Ref<SNIRF> m_SNIRF = nullptr;
 
+	std::map<NIRS::Probe::OptodeID, ProbeVisual> source_visuals_;
+	std::map<NIRS::Probe::OptodeID, ProbeVisual> detector_visuals_;
+
+
 	std::vector<ProbeVisual> m_SourceVisuals;
 	std::vector<ProbeVisual> m_DetectorVisuals;
 
-	std::vector<NIRS::Channel> m_Channels; // Copy of sNIRF channels, the timeseries data is seperatetly stored, so this is fine. 
-	std::map<NIRS::ChannelID, NIRS::Channel> m_ChannelMap; // The idientifer is artificial, just an index to correlate visuals to the correct channel
-	std::map<NIRS::ChannelID, NIRS::ChannelVisualization> m_ChannelVisualsMap;
+	std::vector<NIRS::Probe::Channel> m_Channels; // Copy of sNIRF channels, the timeseries data is seperatetly stored, so this is fine. 
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Channel> channel_map_; // The idientifer is artificial, just an index to correlate visuals to the correct channel
+	std::map<NIRS::Probe::ChannelID, NIRS::ChannelVisualization> m_ChannelVisualsMap;
 
 	// Uses a vector because its not sure every channel actually hits the cortex.
-	std::map<NIRS::ChannelID, glm::vec3> m_ChannelProjectionIntersections; // Channel index to intersection point on cortex
+	std::map<NIRS::Probe::ChannelID, glm::vec3> m_ChannelProjectionIntersections; // Channel index to intersection point on cortex
 
 	Ref<LineRenderer> m_LineRenderer2D = nullptr;
 	Ref<LineRenderer> m_LineRenderer3D = nullptr;
@@ -97,26 +100,6 @@ private:
 	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	uint32_t m_HitDataTextureID = 0;
-
-	// In ProbeLayer.h (or private section of .cpp)
-	template <typename T2D, typename T3D>
-	void CreateProbeVisuals(const std::vector<T2D>& probes2D,
-		const std::vector<T3D>& probes3D,
-		std::vector<ProbeVisual>& visuals)
-	{
-		// Clear the destination vector first, as done in original code
-		visuals.clear();
-		size_t numProbes = probes2D.size();
-		NVIZ_ASSERT(numProbes == probes3D.size(), "Mismatch in number of 2D and 3D probes");
-
-		for (size_t i = 0; i < numProbes; i++)
-		{
-			ProbeVisual pv;
-			pv.Probe2D = probes2D[i];
-			pv.Probe3D = probes3D[i];
-			visuals.push_back(pv);
-		}
-	}
 
 	bool m_InitalProjectionToCortex = false;
 };

@@ -57,14 +57,18 @@ void ChannelSelectorLayer::OnAttach()
 
 void ChannelSelectorLayer::OnDetach()
 {
+
 }
 
+static bool inital_selction = false;
 void ChannelSelectorLayer::OnUpdate(float dt)
 {
-	if (!m_InitalSelection) {
-		SelectAllChannels(); 
-		m_InitalSelection = true;
+	if(!inital_selction) {
+		SelectAllChannels();
+		inital_selction = true;
 	}
+	// TODO : Camera controls -> Move freely 
+
 	m_OrthoCamera->UpdateProjectionMatrix();
 	m_OrthoCamera->UpdateViewMatrix();
 
@@ -215,16 +219,22 @@ void ChannelSelectorLayer::HandleSNIRFLoaded()
 	auto snirf = AssetManager::Get<SNIRF>("SNIRF");
 	m_ChannelVisuals.clear(); 
 	m_SelectedChannels.clear();
-	m_Channels = snirf->GetChannelMap();
-	m_Sources = snirf->GetSource2DMap();
-	m_Detectors = snirf->GetDetector2DMap();
 
-	for (auto& [ID, channel] : m_Channels) {
-		auto source = m_Sources[channel.SourceID - 1];
-		auto detector = m_Detectors[channel.DetectorID - 1];
+	const auto& probe = snirf->GetProbe();
 
-		auto startPos = source.Position;
-		auto endPos = detector.Position;
+	auto& channels = probe.channels;
+	m_Channels = channels;
+
+	sources_ = probe.sources;
+	detectors_ = probe.detectors;
+
+	
+	for (auto& [ID, channel] : channels) {
+		auto source = sources_[channel.source_id];
+		auto detector = detectors_[channel.detector_id ];
+
+		auto startPos = source.position_2D;
+		auto endPos = detector.position_2D;
 
 		m_ChannelVisuals[ID] = Channel2DVisual{
 			glm::vec3(-startPos.x, startPos.y, 0.0f),
@@ -233,7 +243,6 @@ void ChannelSelectorLayer::HandleSNIRFLoaded()
 		};
 
 		m_SelectedChannels.push_back(ID); // Select all channels by default
-		NVIZ_INFO("Channel: {}, Source {} Detector {} Wavelength {}", ID, channel.SourceID, channel.DetectorID, 0);
 	}
 
 	GenerateBackgroundRenderCommands();
@@ -281,11 +290,12 @@ void ChannelSelectorLayer::GenerateSourceRenderCommands()
 	id.Name = "u_ID";
 	id.Type = UniformDataType::INT1;
 
-	for (auto& [ID, source] : m_Sources) {
-		auto pos = glm::vec3(-source.Position.x, source.Position.y, 0.0f) * (m_GridScale * 0.1f);
+	for (auto& [ID, source] : sources_) {
+
+		auto pos = glm::vec3(-source.position_2D.x, source.position_2D.y, 0.0f) * (m_GridScale * 0.1f);
 		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
 
-		id.Data.i1 = source.ID + SOURCE_OFFSET;
+		id.Data.i1 = source.id + SOURCE_OFFSET;
 		cmd.UniformCommands = { texUnifrom, id };
 
 		m_SourceRenderCommands.push_back(cmd);
@@ -316,11 +326,12 @@ void ChannelSelectorLayer::GenerateDetectorRenderCommands()
 	id.Name = "u_ID";
 	id.Type = UniformDataType::INT1;
 
-	for (auto& [ID, source] : m_Detectors) {
-		auto pos = glm::vec3(-source.Position.x, source.Position.y, 0.0f) * (m_GridScale * 0.1f);
+	for (auto& [ID, detector] : detectors_) {
+
+		auto pos = glm::vec3(-detector.position_2D.x, detector.position_2D.y, 0.0f) * (m_GridScale * 0.1f);
 		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
 
-		id.Data.i1 = source.ID + DETECTOR_OFFSET;
+		id.Data.i1 = detector.id + DETECTOR_OFFSET;
 		cmd.UniformCommands = { texUnifrom, id };
 
 		m_DetectorRenderCommands.push_back(cmd);
@@ -426,10 +437,10 @@ void ChannelSelectorLayer::DrawSourcesAndDetectors()
 	// And place the ortho camera there
 	glm::vec3 centerSum(0.0f);
 
-	for (auto& [ID, source] : m_Sources) {
-		centerSum += glm::vec3(source.Position.x, source.Position.y, 0);
+	for (auto& [ID, source] : sources_) {
+		centerSum += glm::vec3(source.position_2D.x, source.position_2D.y, 0);
 	}
-	glm::vec3 centerPos = centerSum / (float)m_Sources.size();
+	glm::vec3 centerPos = centerSum / (float)sources_.size();
 	centerPos = glm::vec3(-centerPos.x, centerPos.y, 0.0f) * (m_GridScale * 0.1f);
 
 	m_OrthoCamera->SetPosition(glm::vec3(centerPos.x, centerPos.y, -10.0f));
@@ -456,16 +467,16 @@ void ChannelSelectorLayer::DrawSourcesAndDetectors()
 	// Apply scaling to source positions if you applied a scale to centerPos
 	float positionScale = m_GridScale * 0.1f;
 
-	for (auto& [ID, source] : m_Sources) {
+	for (auto& [ID, source] : sources_) {
 		// Assuming source.Position is the *original* position
-		glm::vec3 scaledPos = glm::vec3(-source.Position.x * positionScale,
-			source.Position.y * positionScale,
+		glm::vec3 scaledPos = glm::vec3(-source.position_2D.x * positionScale,
+			source.position_2D.y * positionScale,
 			0.0f);
 		calculateMaxExtent(scaledPos);
 	}
 
 	// Don't forget the detectors!
-	// for (auto& [ID, detector] : m_Detectors) {
+	// for (auto& [ID, detector] : detectors_) {
 	//     glm::vec3 scaledPos = glm::vec3(-detector.Position.x * positionScale, 
 	//                                      detector.Position.y * positionScale, 
 	//                                      0.0f);

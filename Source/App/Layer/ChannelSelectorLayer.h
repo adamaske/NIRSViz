@@ -19,7 +19,7 @@ struct Channel2DVisual {
 	glm::vec3 Start;
 	glm::vec3 End;
 
-	NIRS::ChannelID ChannelID;
+	NIRS::Probe::ChannelID ChannelID;
 };
 
 class ChannelSelectorLayer : public Layer 
@@ -68,16 +68,15 @@ private:
 
 	// --- Channel Data ---
 	glm::vec2 m_MousePosition;
-	std::map<NIRS::ChannelID, Channel2DVisual> m_ChannelVisuals;
-	std::map<NIRS::ChannelID, NIRS::Channel> m_Channels;
+	std::map<NIRS::Probe::ChannelID, Channel2DVisual> m_ChannelVisuals;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Channel> m_Channels;
 
-	std::vector<NIRS::ChannelID> m_SelectedChannels = {};
+	std::vector<NIRS::Probe::ChannelID> m_SelectedChannels = {};
 
-	std::map<NIRS::ProbeID, NIRS::Probe2D> m_Sources;
-	std::map<NIRS::ProbeID, NIRS::Probe2D> m_Detectors;
+	std::map<NIRS::Probe::OptodeID, NIRS::Probe::Optode> sources_;
+	std::map<NIRS::Probe::OptodeID, NIRS::Probe::Optode> detectors_;
 
 	// --- Viewport Settings
-	bool m_InitalSelection = false;
 
 	bool m_ViewportHovered = false;
 	bool m_ViewportFocused = false;
@@ -93,7 +92,6 @@ private:
 	void GenerateDetectorRenderCommands();
 	void GenerateChannelRenderCommands();
 	void GenerateBackgroundRenderCommands();
-
 
 	void DrawBackground();
 	void DrawSourcesAndDetectors();
