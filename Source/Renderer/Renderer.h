@@ -64,8 +64,14 @@ struct UniformData {
 };
 struct TextureBinding
 {
-	Texture* TexturePtr = nullptr;
+	// TODO : Implement cleaner solution
+	// Temporary solution : If texture == nullptr, use texture_id instead. 
+	// Else use TexturePtr->Bind();
+
+	unsigned int texture_id = 0;
 	uint32_t Slot = 0; // The texture unit slot to bind to (GL_TEXTURE0 + Slot)
+
+	Texture* TexturePtr = nullptr;	
 };
 
 // Renderer:: has a bunch of static functions for API calls

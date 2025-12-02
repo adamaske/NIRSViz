@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Layer.h"
+#include "Systems/System.h"
 
 #include "Core/Window/Window.h"
 
@@ -25,18 +25,18 @@ struct ProbeVisual {
 };
 
 
-class ProbeLayer : public Layer {
+
+class ProbeSystem : public System {
 public:
-	ProbeLayer();
-	~ProbeLayer();
+	ProbeSystem();
+	~ProbeSystem();
 
 	void OnAttach() override;
 	void OnDetach() override;
 
-	void OnUpdate(float dt) override;
-	void OnRender() override;
+	void OnUpdate(DeltaTime dt) override;
 
-	void OnImGuiRender()override;
+	void OnGUIRender()override;
 
 	void OnEvent(Event& event) override;
 	void RenderMenuBar() override;
@@ -55,6 +55,8 @@ public:
 	void InitHitDataTexture();
 	void UpdateHitDataTexture();
 
+	const NIRS::Probe::Probe& GetProbe() const { return m_SNIRF->GetProbe(); };
+	NIRS::Probe::Probe& GetProbeMutable() { return m_SNIRF->GetProbe(); };
 private:
 
 	bool m_DrawProbes2D = false;

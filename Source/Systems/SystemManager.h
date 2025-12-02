@@ -15,9 +15,16 @@ public:
 	SystemManager() = default;
 	~SystemManager() = default;
 
-	void AddSystem(Ref<System> system) {
+	template<typename T, typename... args>
+	T* AddSystem(args&&... parameters) {
+		if (HasSystem<T>()) {
+			NVIZ_RUNTIME_ERROR("SystemManager: System of type {} already exists.", typeid(T).name());
+		}
+
+		Ref<T> system = CreateRef<T>(std::forward<args>(parameters)...);
 		systems_.push_back(system);
 		system->OnAttach();
+		return system.get();
 	}
 
 	void RemoveSystem(Ref<System> system) {
@@ -42,7 +49,8 @@ public:
 				return casted;
 			}
 		}
-		return nullptr;
+
+		NVIZ_RUNTIME_ERROR("SystemManager: Requested system of type {} not found.", typeid(T).name());
 	}
 
 	template<typename T>
@@ -70,3 +78,5 @@ private:
 
 // --- INCLUDE ALL SYSTEM HEADERS HERE ---
 #include "Systems/FileSystem.h"
+#include "Systems/ProjectionSystem.h"
+#include "Systems/ProbeSystem.h"

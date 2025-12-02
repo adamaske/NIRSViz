@@ -8,14 +8,10 @@
 
 #include <NIRS/SNIRFValidator.h>
 
-using namespace HighFive;
-using namespace NIRS;
 
 namespace Utils {
     using namespace HighFive;
     using namespace NIRS;
-
-    
 
     template <typename T>
     std::vector<T> read_vector(const Group& group, const std::string& name) {
@@ -115,6 +111,9 @@ namespace Utils {
         return file;
     }
 }
+
+using namespace HighFive;
+using namespace NIRS;
 
 SNIRF::SNIRF(const std::filesystem::path& filepath) : filepath_(filepath)
 {

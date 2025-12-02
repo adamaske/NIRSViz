@@ -87,8 +87,16 @@ void Renderer::ExecuteQueue()
 
 		for (const auto& binding : command.TextureBindings)
 		{
-			// Assumes Texture::Bind calls glActiveTexture and glBindTexture
-			binding.TexturePtr->Bind(binding.Slot);
+			if (!binding.TexturePtr && binding.texture_id == 0) continue; // Do nothing
+
+			// TODO : This is a temproary solution
+			if (binding.TexturePtr) {
+				binding.TexturePtr->Bind(binding.Slot);
+			}
+			else if (binding.texture_id != 0) {
+				glActiveTexture(GL_TEXTURE0 + binding.Slot);
+				glBindTexture(GL_TEXTURE_2D, binding.texture_id);
+			}
 		}
 
 		bool disableTextureBinding = false;
@@ -117,7 +125,7 @@ void Renderer::ExecuteQueue()
 				break;
 			case UniformDataType::SAMPLER1D:
 			case UniformDataType::SAMPLER2D:
-				shader->SetUniform1i(uniform.Name, uniform.Data.i1);
+				shader->SetUniform1i(uniform.Name, uniform.Data.i1); // Informs what texture slot to sample from
 
 				disableTextureBinding = true;
 				break;

@@ -48,6 +48,11 @@ struct OnStopProjection {
 struct OnChannelIntersectionsUpdated {
 };
 
+
+struct OnUserStartProjectionCommand
+{
+};
+
 struct OnProjectionWavelengthChanged {
 	NIRS::WavelengthType Wavelength;
 };
@@ -64,7 +69,7 @@ struct OnProjectionDataChanged {
 
 // From Plotting Layer -> To Projection Layer
 struct OnProjectionTimeChanged {
-	unsigned int time_index;
+	size_t time_index;
 	double time_seconds;
 };
 

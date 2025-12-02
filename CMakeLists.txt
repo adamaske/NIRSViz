@@ -30,6 +30,8 @@ endif()
 # =============================================================================
 # External Dependencies
 # =============================================================================
+# FMTlib
+add_subdirectory(Vendor/fmt)
 
 # OpenGL
 find_package(OpenGL REQUIRED)
@@ -97,6 +99,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/entt/src
     ${VENDOR_DIR}/HighFive/include
     ${VENDOR_DIR}/Eigen/include
+    ${VENDOR_DIR}/fmt/include            # Added include for FMTlib
 )
 
 # Link libraries
@@ -108,6 +111,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     nfd
     SQLiteCpp
     $<$<BOOL:${MINGW}>:ws2_32>
+    fmt
 )
 
 # =============================================================================

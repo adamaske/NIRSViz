@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "App/Layer/ProbeLayer.h"
+#include "Systems/ProbeSystem.h"
 
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -25,15 +25,15 @@
 
 #include "NIRS/Anatomy/AnatomyManager.h"
 
-ProbeLayer::ProbeLayer()
+ProbeSystem::ProbeSystem()
 {
 }
 
-ProbeLayer::~ProbeLayer()
+ProbeSystem::~ProbeSystem()
 {
 }
 
-void ProbeLayer::OnAttach()
+void ProbeSystem::OnAttach()
 {
 	auto& app = Application::Get();
 
@@ -59,15 +59,15 @@ void ProbeLayer::OnAttach()
 
 }
 
-void ProbeLayer::OnDetach()
+void ProbeSystem::OnDetach()
 {
 }
 
-void ProbeLayer::OnUpdate(float dt)
+void ProbeSystem::OnUpdate(DeltaTime dt)
 {
 
 	if (!m_InitalProjectionToCortex) { // TODO : Handle differently
-		this->ProjectChannelsToCortex();
+		ProjectChannelsToCortex();
 		m_InitalProjectionToCortex = true;
 
 		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
@@ -105,11 +105,7 @@ void ProbeLayer::OnUpdate(float dt)
 	}
 }
 
-void ProbeLayer::OnRender()
-{
-}
-
-void ProbeLayer::OnImGuiRender()
+void ProbeSystem::OnGUIRender()
 {
 	ImGui::Begin("Probe Settings");
 	
@@ -133,12 +129,12 @@ void ProbeLayer::OnImGuiRender()
 	ImGui::End();
 }
 
-void ProbeLayer::OnEvent(Event& event)
+void ProbeSystem::OnEvent(Event& event)
 {
 
 }
 
-void ProbeLayer::RenderMenuBar()
+void ProbeSystem::RenderMenuBar()
 {
 	if (ImGui::BeginMenu("Probe"))
 	{
@@ -152,7 +148,7 @@ void ProbeLayer::RenderMenuBar()
 	}
 }
 
-void ProbeLayer::Render2DProbeTransformControls(bool standalone)
+void ProbeSystem::Render2DProbeTransformControls(bool standalone)
 {
 	if (standalone) ImGui::Begin("2D Probe Transform Controls");
 
@@ -194,7 +190,7 @@ void ProbeLayer::Render2DProbeTransformControls(bool standalone)
 	if (standalone) ImGui::End();
 }
 
-void ProbeLayer::Render3DProbeTransformControls(bool standalone)
+void ProbeSystem::Render3DProbeTransformControls(bool standalone)
 {
 	if (ImGui::Checkbox("Draw Probes", &m_DrawProbes3D)) {
 		m_DrawChannels3D = m_DrawProbes3D;
@@ -254,7 +250,7 @@ void ProbeLayer::Render3DProbeTransformControls(bool standalone)
 	ImGui::Separator();
 }
 
-void ProbeLayer::HandleSNIRFLoaded()
+void ProbeSystem::HandleSNIRFLoaded()
 {
 	m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
 
@@ -292,8 +288,8 @@ void ProbeLayer::HandleSNIRFLoaded()
 
 }
 
-// In ProbeLayer.cpp (private helper function)
-glm::mat4 ProbeLayer::CalculateProbeRotationMatrix(const glm::vec3& worldPos) const
+// In ProbeSystem.cpp (private helper function)
+glm::mat4 ProbeSystem::CalculateProbeRotationMatrix(const glm::vec3& worldPos) const
 {
 	// Calculate direction from worldPos towards m_TargetProbePosition
 	glm::vec3 direction = glm::normalize(m_TargetProbePosition - worldPos);
@@ -314,7 +310,7 @@ glm::mat4 ProbeLayer::CalculateProbeRotationMatrix(const glm::vec3& worldPos) co
 	return localRotation;
 }
 
-void ProbeLayer::UpdateProbeVisual(	ProbeVisual& pv,
+void ProbeSystem::UpdateProbeVisual(	ProbeVisual& pv,
 									const RenderCommand& cmd2D_template,
 									const RenderCommand& cmd3D_template,
 									UniformData& flatColor,
@@ -338,7 +334,7 @@ void ProbeLayer::UpdateProbeVisual(	ProbeVisual& pv,
 	pv.RenderCmd2D.UniformCommands = { flatColor };
 }
 
-void ProbeLayer::UpdateProbeVisuals()
+void ProbeSystem::UpdateProbeVisuals()
 {
 	auto viewport = ViewportManager::GetViewport(ViewportType::MainViewport);
 
@@ -377,7 +373,7 @@ void ProbeLayer::UpdateProbeVisuals()
 	UpdateChannelVisuals();					
 }
 
-void ProbeLayer::UpdateChannelVisuals()
+void ProbeSystem::UpdateChannelVisuals()
 {
 	m_LineRenderer2D->Clear();
 	m_LineRenderer3D->Clear();
@@ -422,17 +418,18 @@ void ProbeLayer::UpdateChannelVisuals()
 	}
 }
 
-void ProbeLayer::ProjectChannelsToCortex()
+void ProbeSystem::ProjectChannelsToCortex()
 {
 	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	if(!cortex){
-		NVIZ_WARN("ProbeLayer: No Cortex asset loaded for projection.");
+		NVIZ_WARN("ProbeSystem: No Cortex asset loaded for projection.");
 		return;
 	}
 
 	auto vertices = cortex->GetMesh()->GetVertices();
 	auto indices = cortex->GetMesh()->GetIndices();
 	auto world_transform = cortex->GetTransform()->GetMatrix(); // Get world space coordiantes
+
 	std::vector<glm::vec3> world_space_vertices(vertices.size());
 	for (size_t i = 0; i < vertices.size(); i++)
 	{
@@ -467,6 +464,7 @@ void ProbeLayer::ProjectChannelsToCortex()
 				}
 			}
 		}
+
 		if (hit.t_distance < std::numeric_limits<float>::max()) {
 			// We have a hit
 			glm::vec3 intersection_point = origin + direction * hit.t_distance;
@@ -479,7 +477,7 @@ void ProbeLayer::ProjectChannelsToCortex()
 
 }
 
-void ProbeLayer::InitHitDataTexture()
+void ProbeSystem::InitHitDataTexture()
 {
 	glGenTextures(1, &m_HitDataTextureID);
 	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
@@ -499,7 +497,7 @@ void ProbeLayer::InitHitDataTexture()
 	glBindTexture(GL_TEXTURE_1D, 0); // Unbind
 }
 
-void ProbeLayer::UpdateHitDataTexture()
+void ProbeSystem::UpdateHitDataTexture()
 {
 	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
 

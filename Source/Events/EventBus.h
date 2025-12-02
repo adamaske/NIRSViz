@@ -5,6 +5,7 @@
 #include <typeindex>
 #include <memory>
 #include <mutex>
+#include <concepts>
 
 class EventBus {
 private:
@@ -44,7 +45,7 @@ public:
 	 * @param callback The function to call when the event is published.
 	 */
 	template<typename T>
-	void Subscribe(std::function<void(const T&)> callback) {
+	void Subscribe(std::function<void(const T&)> callback) { 
 		std::lock_guard<std::mutex> lock(busMutex);
 		std::type_index typeIndex = typeid(T);
 

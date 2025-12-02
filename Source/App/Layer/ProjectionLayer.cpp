@@ -251,8 +251,8 @@ void ProjectionLayer::SetupVertexBasedProjection()
 { 
 	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 
-	const auto& vertices = cortex->GetMesh()->GetVertices();
-	const auto& indices = cortex->GetMesh()->GetIndices();
+	auto vertices = cortex->GetMesh()->GetVertices();
+	auto indices = cortex->GetMesh()->GetIndices();
 
 	// Create projection vertices 
 	m_VertexModeProjectionVertices.resize(vertices.size());
@@ -301,7 +301,7 @@ void ProjectionLayer::UpdateVerticiesInfluencedByChannel()
 				influencedVertices.push_back(i);
 			}
 		}
-		m_VerticesInfluencedByChannel[ID] = influencedVertices;
+		m_VerticesInfluencedByChannel[ID] = influencedVertices; //
 	}
 }
 
@@ -330,6 +330,46 @@ void ProjectionLayer::UpdateVertexBasedProjection(const NIRS::ProjectionData& da
 				// Simple linear falloff
 				float falloff = 1.0f - (distance / settings.Radius);
 				vertex.ActivityLevel += channel_values[ID] * falloff; 
+			}
+		}
+	}
+
+	m_VertexModeVBO->SetData(&m_VertexModeProjectionVertices[0], m_VertexModeProjectionVertices.size() * sizeof(ProjectionVertex));
+
+	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
+	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
+	m_VertexModeRenderCmd.target_viewport = viewport_type_;
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
+}
+
+void ProjectionLayer::UpdateVertexBasedProjection()
+{
+
+	for (auto& vertex : m_VertexModeProjectionVertices) {
+		vertex.ActivityLevel = 0.0f; // Reset all activity levels
+	}
+	const auto& data = *AssetManager::Get<NIRS::ProjectionData>("ProjectionData").get();
+
+	auto settings = m_VertexBasedProjectionSettings;
+
+	// We need to identifity each vertex 's activity level
+	auto intersection_points = data.ChannelProjectionIntersections;
+	auto channel_values = m_ProjectionWavelength == NIRS::WavelengthType::HBO ? data.HBOChannelValues : data.HBRChannelValues;
+
+	for (auto& [ID, pos] : data.ChannelProjectionIntersections) {
+
+		auto influencedVertices = m_VerticesInfluencedByChannel[ID];
+
+		for (int i = 0; i < influencedVertices.size(); i++) {
+			int vertexIndex = influencedVertices[i];
+
+			auto& vertex = m_VertexModeProjectionVertices[vertexIndex];
+			float distance = glm::distance(pos, vertex.Position);
+			if (distance <= settings.Radius) {
+				// Simple linear falloff
+				float falloff = 1.0f - (distance / settings.Radius);
+				vertex.ActivityLevel += channel_values[ID] * falloff;
 			}
 		}
 	}

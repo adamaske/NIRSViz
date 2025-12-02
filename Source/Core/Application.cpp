@@ -46,8 +46,10 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 
 	// --- Systems 
-	system_manager_.AddSystem(CreateRef<FileSystem>());
-	
+	auto fs = system_manager_.AddSystem<FileSystem>();
+	//auto ps = system_manager_.AddSystem<ProjectionSystem>();
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>();
+
 	// --- Layers
 
 	imgui_layer_ = CreateRef<ImGuiLayer>(); // Renders the ImGUI interface
@@ -56,7 +58,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	PushLayer(new AnatomyViewportLayer());
 	PushLayer(new ProjectionLayer());
-	PushLayer(new ProbeLayer());
 	PushLayer(new AtlasLayer());
 	PushLayer(new PlottingLayer());
 	PushLayer(new ChannelSelectorLayer());

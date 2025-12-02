@@ -29,30 +29,8 @@ constexpr Ref<T> CreateRef(Args&& ... args)
 
 using DeltaTime = double;
 
-namespace Viewports {
-
-    // 1. Define the underlying type (uint32_t) for efficiency
-    enum class ID : uint32_t
-    {
-        // 2. Define the constants within the enum class scope
-        AnatomyViewport = 1,
-        MainViewport = 2,
-        AltasViewport = 3,
-        ProbeEditor = 4,
-        ChannelSelector = 5
-    };
-
-    using ViewportID = ID;
-
-    constexpr uint32_t GetID(ID viewport)
-    {
-        return static_cast<uint32_t>(viewport);
-    }
-
-}
-
-
 #define MAX_HITS 256
 
+#include "Core/Except.h"
 #include "Core/Log.h"
 #include "Core/Assert.h"

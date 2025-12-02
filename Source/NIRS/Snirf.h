@@ -31,8 +31,6 @@ public:
 
 	bool IsFileLoaded() { return !filepath_.empty(); };
 	
-
-
 	std::vector<int> GetWavelengths() { return m_Wavelengths; };
 
 	// Get channels

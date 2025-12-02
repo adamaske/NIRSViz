@@ -9,6 +9,7 @@
 #include "Events/EventBus.h"
 
 #include "GUI/GUI.h"
+#include "Core/Application.h"
 
 PlottingLayer::PlottingLayer() 
 {
@@ -167,11 +168,10 @@ void PlottingLayer::OnImGuiRender()
 
 			auto timeIndex = static_cast<size_t>(std::round(tagX1TimeValue * fs));
 
+			// NOTE : THIS MEANS WE UPDATED THE PROJECTION TAG -> NOTIFY PROJECTION SYSTEM
 			if (timeIndex != m_TimeIndex) { // A change was made
-				SetChannelValuesAtTimeIndex(timeIndex);
 
-				// 
-				EventBus::Instance().Publish<OnProjectionTimeIndexChanged>()
+				HandleProjectionTagChanged(timeIndex, time[timeIndex]);
 			}
 
 			m_TimeIndex = timeIndex;
@@ -300,6 +300,21 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::Probe::Channe
 
 	// Flag that we need to fit the axes
 	m_NeedAxisFit = true;
+}
+
+void PlottingLayer::HandleProjectionTagChanged(size_t index, double actual)
+{
+	//auto ps = Application::Get().GetSystem<ProjectionSystem>();
+	//
+	//ps->UpdateProjectionTimeIndex(index, actual);
+
+
+
+	SetChannelValuesAtTimeIndex(index);
+
+	// Meh -> 
+	EventBus::Instance().Publish<OnProjectionTimeChanged>({ index, actual });
+
 }
 
 void PlottingLayer::SetChannelValuesAtTimeIndex(int index)

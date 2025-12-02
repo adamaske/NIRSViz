@@ -39,6 +39,8 @@ public:
 
 	void HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs);
 
+	void HandleProjectionTagChanged(size_t index, double actual);
+
 	void SetChannelValuesAtTimeIndex(int index);
 
 	void EditProcessingStream();

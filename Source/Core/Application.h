@@ -6,7 +6,6 @@
 #include "Events/ApplicationEvent.h"
 
 #include "GUI/ImGuiLayer.h"
-#include "App/Layer/ProbeLayer.h"
 #include "App/Layer/AtlasLayer.h"
 #include "App/Layer/PlottingLayer.h"
 #include "App/Layer/AnatomyViewportLayer.h"
@@ -76,6 +75,10 @@ public:
 	LayerStack& GetLayerStack() { return layer_stack_; }
 	SystemManager& GetSystemManager() { return system_manager_; }
 
+	template<typename T>
+	Ref<T> GetSystem() {
+		return system_manager_.GetSystem<T>();
+	}
 private:
 	static Application* sInstance;
 

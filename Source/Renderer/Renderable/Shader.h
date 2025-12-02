@@ -11,6 +11,7 @@ private:
 	std::unordered_map<std::string, int> m_UniformLocationCache;
 
 public:
+    Shader() = default;
 	Shader(const std::string& vertex_path, const std::string& fragment_path);
 	~Shader();
 
