@@ -4,7 +4,9 @@
 #include "NIRS/NIRS.h"
 
 #include "Renderer/Renderable/Shader.h"
+#include "Renderer/Buffer/VertexArray.h"
 
+#include <set>
 
 class ProjectionSystem : public System {
 public:
@@ -54,7 +56,8 @@ private:
 	NIRS::ProjectionSettings settings_;
 
 
-	void RenderProjectionCortex();
+	std::set<NIRS::Probe::ChannelID> selected_channels_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> channel_values_;
 
 	unsigned int max_hits_ = 1024;
 
@@ -78,8 +81,11 @@ private:
 	void UpdateActivatedVertices();
 
 	// Custom Cortex Rendering
-	void SetupCortexRendering();
 	Ref<VertexArray> cortex_vao_;
+	Ref<VertexBuffer> cortex_vbo_;
+	void SetupCortexRendering();
+	void RenderProjectionCortex();
+
 	struct ProjectionVertex {
 		glm::vec3 position;
 		glm::vec3 normal;
@@ -87,4 +93,9 @@ private:
 		float activity_level;
 	};
 	std::vector<ProjectionVertex> projection_vertices_;
+	std::vector<ProjectionVertex> zeroed_projection_vertices_;
+
+	// GUI
+	bool influence_radius_dirty_ = false;
+	void RenderProjectionSettings(bool standalone);
 };

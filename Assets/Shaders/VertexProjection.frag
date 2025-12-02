@@ -12,9 +12,6 @@ uniform vec3 u_LightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 u_ObjectColor = vec3(0.9, 0.35, 0.25);
 uniform float u_Opacity = 1.0; 
 
-uniform sampler1D u_ActivityLevelSampler; 
-uniform sampled1D u_SensitivtyRadiusSampler;
-
 // We optimally want to set the activity level by reading a texture instead of passing uniforms
 in float vActivityLevel;
 

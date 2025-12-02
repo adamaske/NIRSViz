@@ -3,14 +3,16 @@
 
 #include "Core/Application.h"
 
+#include <imgui.h>
+
+#include "GUI/GUI.h"
+
 #include "Events/EventBus.h"	
 #include "NIRS/Anatomy/AnatomyManager.h"
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Texture.h"
 #include "Renderer/ViewportManager.h"
-
-
 
 ProjectionSystem::ProjectionSystem()
 {
@@ -24,8 +26,8 @@ void ProjectionSystem::OnAttach()
 {
 
 	projection_shader_ = Shader(
-		"C:/dev/NIRSViz/Assets/Shaders/VertexProjection.vert", 
-		"C:/dev/NIRSViz/Assets/Shaders/VertexProjection.frag");
+		"C:/dev/NIRSViz/Assets/Shaders/Projection.vert", 
+		"C:/dev/NIRSViz/Assets/Shaders/Projection.frag");
 
 	SetupSubscriptions();
 
@@ -37,16 +39,17 @@ void ProjectionSystem::OnDetach()
 
 void ProjectionSystem::OnUpdate(DeltaTime dt)
 {
+	//RenderProjectionCortex();
 	if (!is_projecting_)
 		return;
 
-	// 1. Render the cortex -> Render it to the main viewport framebuffer. 
 	RenderProjectionCortex();
+	// 1. Render the cortex -> Render it to the main viewport framebuffer. 
 }
 
 void ProjectionSystem::OnGUIRender() {
 
-
+	RenderProjectionSettings(true);
 }
 
 void ProjectionSystem::OnEvent(Event& event) {
@@ -60,6 +63,12 @@ void ProjectionSystem::SetupSubscriptions()
 	auto& bus = EventBus::Instance();
 
 	// TODO : Defer this command to a projection queue to avoid threading issues
+	bus.Subscribe<OnAnatomyLoaded>([&](const OnAnatomyLoaded& e) {
+		if (e.Type == OnAnatomyLoaded::AnatomyTpye::Cortex) {
+			SetupCortexRendering();
+		}
+		});
+
 	bus.Subscribe<OnUserStartProjectionCommand>([&](const OnUserStartProjectionCommand& e) {
 		StartProjection();
 		});
@@ -69,17 +78,37 @@ void ProjectionSystem::SetupSubscriptions()
 		NVIZ_ERROR("ProjectionSystem received OnProjectionTimeChanged: index {0}, actual {1}", e.time_index, e.time_seconds);
 		NVIZ_ERROR("AVOID THIS METHOD -> The projectionsystem should be called directly...");
 	});
+	bus.Subscribe<OnChannelsSelected>([&](const OnChannelsSelected& e) {
+		selected_channels_.clear();
+		for (const auto& id : e.selectedIDs) {
+			selected_channels_.insert(id);
+		}
+	});
+
+	bus.Subscribe<OnChannelValuesUpdated>([&](const OnChannelValuesUpdated& e) {
+		switch (wavelength_) {
+			case NIRS::WavelengthType::HBO:
+				channel_values_ = e.HBOValues;
+				break;
+			case NIRS::WavelengthType::HBR:
+				channel_values_ = e.HBRValues;
+				break;
+		}
+
+		UpdateActivatedVertices();
+	});
 }
 
 void ProjectionSystem::StartProjection()
 {
 	is_projecting_ = true;
 
-	// We need to spin up our own vertex array with the strength 
 	SetupCortexRendering();
 
-
 	UpdateInfluenceMap();
+	UpdateActivatedVertices();
+
+	EventBus::Instance().Publish<OnStartProjection>({});
 }
 
 void ProjectionSystem::StopProjection()
@@ -87,6 +116,7 @@ void ProjectionSystem::StopProjection()
 	is_projecting_ = false;
 
 	// Shutdown logic
+	EventBus::Instance().Publish<OnStopProjection>({});
 }
 
 void ProjectionSystem::SetProjectionWavelength(const NIRS::WavelengthType& wavelength)
@@ -98,6 +128,9 @@ void ProjectionSystem::UpdateProjectionTimeIndex(size_t index, double actual)
 {
 	settings_.time_index = index;
 
+	// For selected channel : g
+
+
 	UpdateActivatedVertices();
 	// We need access to the loaded snirf data ->
 	// We need access to the channel intersections calculated in the probe system -> 
@@ -108,53 +141,6 @@ void ProjectionSystem::UpdateProjectionTimeIndex(size_t index, double actual)
 
 
 
-void ProjectionSystem::RenderProjectionCortex()
-{
-	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
-
-	auto target_viewport = ViewportType::AnatomyViewport;
-	auto matrix = cortex->GetTransform()->GetMatrix();
-	auto vao = cortex_vao_.get();
-
-	UniformData lightPos; // TODO : Move to shared uniform buffer ? 
-	lightPos.Type = UniformDataType::FLOAT3;
-	lightPos.Name = "u_LightPos";
-	lightPos.Data.f3 = ViewportManager::GetViewport(target_viewport).Camera->GetPosition();
-
-	UniformData objectColor;
-	objectColor.Type = UniformDataType::FLOAT4;
-	objectColor.Name = "u_ObjectColor";
-	objectColor.Data.f4 = { 0.4f, 0.4f, 0.4f, 1.0f };
-
-	UniformData strengthMin;
-	strengthMin.Type = UniformDataType::FLOAT1;
-	strengthMin.Name = "u_StrengthMin";
-	strengthMin.Data.f1 = settings_.StrengthMin;
-
-	UniformData strengthMax;
-	strengthMax.Type = UniformDataType::FLOAT1;
-	strengthMax.Name = "u_StrengthMax";
-	strengthMax.Data.f1 = settings_.StrengthMax;
-
-	UniformData ambientStrength;
-	ambientStrength.Type = UniformDataType::FLOAT1;
-	ambientStrength.Name = "u_AmbientStrength";
-	ambientStrength.Data.f1 = 0.4f;
-
-
-	RenderCommand cmd;
-	cmd.ShaderPtr = &projection_shader_;
-	cmd.VAOPtr = vao; // TODO : Determine if we need 
-	cmd.Transform = matrix;
-
-	cmd.target_viewport = target_viewport;	
-	cmd.Mode = DRAW_ELEMENTS;
-	
-	cmd.UniformCommands = {lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
-	cmd.APICalls = {};
-
-	Renderer::Submit(cmd);
-}
 
 void ProjectionSystem::UpdateInfluenceMap()
 {
@@ -201,7 +187,36 @@ void ProjectionSystem::UpdateInfluenceMap()
 
 void ProjectionSystem::UpdateActivatedVertices()
 {
+	auto start_time = std::chrono::high_resolution_clock::now();
 
+	auto projection_vertices = zeroed_projection_vertices_;
+
+	for(auto& [channel_id, influenced_vertices] : influenced_vertices_) {
+
+		//if (!selected_channels_.contains(channel_id)) // Dont process unselected channels
+		//	continue;
+		
+		for (const auto& iv : influenced_vertices) {
+			int vertex_index = iv.vertex_index;
+
+			float falloff = 1.0f - (iv.distance / settings_.Radius);
+
+			float activation_strength = channel_values_[channel_id] * falloff;
+
+			projection_vertices[vertex_index].activity_level = 0; activation_strength;
+		}
+	}
+
+	// Pass data to GPU
+	cortex_vao_->Bind();
+	cortex_vbo_->SetData(&zeroed_projection_vertices_[0], zeroed_projection_vertices_.size() * sizeof(ProjectionVertex));
+	
+	cortex_vao_->Unbind();
+
+	auto end_time = std::chrono::high_resolution_clock::now();
+
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+	NVIZ_INFO("UpdateActivatedVertices took {0} ms", duration);
 }
 
 void ProjectionSystem::SetupCortexRendering()
@@ -215,16 +230,18 @@ void ProjectionSystem::SetupCortexRendering()
 
 	for (int i = 0; i < vertices.size(); i++)
 	{
-		projection_vertices_[i].position = vertices[i].position;
-		projection_vertices_[i].normal = vertices[i].normal;
-		projection_vertices_[i].tex = vertices[i].tex_coords;
-		projection_vertices_[i].activity_level = 0.0f; // Initialize activity level
+		projection_vertices_[i].position		= vertices[i].position;
+		projection_vertices_[i].normal			= vertices[i].normal;
+		projection_vertices_[i].tex				= vertices[i].tex_coords;
+		projection_vertices_[i].activity_level	= 0.0f;
 	}
+
+	zeroed_projection_vertices_ = projection_vertices_;
 
 	cortex_vao_ = CreateRef<VertexArray>();
 	cortex_vao_->Bind();
 
-	auto vbo = CreateRef<VertexBuffer>(&projection_vertices_[0], projection_vertices_.size() * sizeof(ProjectionVertex));
+	cortex_vbo_ = CreateRef<VertexBuffer>(&projection_vertices_[0], projection_vertices_.size() * sizeof(ProjectionVertex));
 	auto ibo = CreateRef<IndexBuffer>(&indices[0], (unsigned int)(indices.size()));
 
 	BufferElement pos = { ShaderDataType::Float3, "aPos", false };
@@ -233,10 +250,163 @@ void ProjectionSystem::SetupCortexRendering()
 	BufferElement activity = { ShaderDataType::Float, "aActivityLevel", false };
 	BufferLayout layout = BufferLayout{ pos, norms, cords, activity };
 
-	vbo->SetLayout(layout);
+	cortex_vbo_->SetLayout(layout);
 
-	cortex_vao_->AddVertexBuffer(vbo);
+	cortex_vao_->AddVertexBuffer(cortex_vbo_);
 	cortex_vao_->SetIndexBuffer(ibo);
 
 	cortex_vao_->Unbind();
+}
+
+void ProjectionSystem::RenderProjectionCortex()
+{
+
+	UniformData lightPos;
+	lightPos.Type = UniformDataType::FLOAT3;
+	lightPos.Name = "u_LightPos";
+	lightPos.Data.f3 = ViewportManager::GetViewport(ViewportType::MainViewport).Camera->GetPosition();
+
+	UniformData objectColor;
+	objectColor.Type = UniformDataType::FLOAT4;
+	objectColor.Name = "u_ObjectColor";
+	objectColor.Data.f4 = { 0.4f, 0.4f, 0.4f, 1.0f };
+
+	UniformData strengthMin;
+	strengthMin.Type = UniformDataType::FLOAT1;
+	strengthMin.Name = "u_StrengthMin";
+	strengthMin.Data.f1 = settings_.StrengthMin;
+
+	UniformData strengthMax;
+	strengthMax.Type = UniformDataType::FLOAT1;
+	strengthMax.Name = "u_StrengthMax";
+	strengthMax.Data.f1 = settings_.StrengthMax;
+
+	UniformData ambientStrength;
+	ambientStrength.Type = UniformDataType::FLOAT1;
+	ambientStrength.Name = "u_AmbientStrength";
+	ambientStrength.Data.f1 = 0.4f;
+
+	// Fill render command temporarily
+	RenderCommand m_VertexModeRenderCmd;
+
+	m_VertexModeRenderCmd.ShaderPtr = &projection_shader_;
+	m_VertexModeRenderCmd.VAOPtr = cortex_vao_.get();
+	m_VertexModeRenderCmd.target_viewport = ViewportType::MainViewport;
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
+	m_VertexModeRenderCmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
+	Renderer::Submit(m_VertexModeRenderCmd);
+
+	//return;
+	//const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
+
+	//auto target_viewport = ViewportType::MainViewport;
+	//auto matrix = cortex->GetTransform()->GetMatrix();
+
+	//UniformData lightPos; // TODO : Move to shared uniform buffer ? 
+	//lightPos.Type = UniformDataType::FLOAT3;
+	//lightPos.Name = "u_LightPos";
+	//lightPos.Data.f3 = ViewportManager::GetViewport(target_viewport).Camera->GetPosition();
+
+	//UniformData objectColor;
+	//objectColor.Type = UniformDataType::FLOAT4;
+	//objectColor.Name = "u_ObjectColor";
+	//objectColor.Data.f4 = settings_.object_color;
+
+	//UniformData strengthMin;
+	//strengthMin.Type = UniformDataType::FLOAT1;
+	//strengthMin.Name = "u_StrengthMin";
+	//strengthMin.Data.f1 = settings_.StrengthMin;
+
+	//UniformData strengthMax;
+	//strengthMax.Type = UniformDataType::FLOAT1;
+	//strengthMax.Name = "u_StrengthMax";
+	//strengthMax.Data.f1 = settings_.StrengthMax;
+
+	//UniformData ambientStrength;
+	//ambientStrength.Type = UniformDataType::FLOAT1;
+	//ambientStrength.Name = "u_AmbientStrength";
+	//ambientStrength.Data.f1 = settings_.ambient_strength;
+
+	//RenderCommand cmd;
+	//cmd.ShaderPtr = &projection_shader_;
+	//cmd.VAOPtr = cortex_vao_.get();; // TODO : Determine if we need 
+	//cmd.Transform = matrix;
+
+	//cmd.target_viewport = target_viewport;
+	//cmd.Mode = DRAW_ELEMENTS;
+
+	//cmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
+	//cmd.APICalls = {};
+
+	//Renderer::Submit(cmd);
+}
+
+void ProjectionSystem::RenderProjectionSettings(bool standalone)
+{
+	if(standalone) 		
+		ImGui::Begin("Projection Settings");
+	else
+		if(!ImGui::CollapsingHeader("Projection Settings")) 
+			return;
+	if(ImGui::Button("Start Projection")) {
+		StartProjection();
+	}
+	if(ImGui::Button("Stop Projection")) {
+		StopProjection();
+	}
+	// Set up a two-column layout. The string "SettingsColumns" is a unique ID for the column set.
+// The 'false' means the column width is not border-locked (no vertical separator line).
+	ImGui::Columns(2, "SettingsColumns", false);
+
+	// Set the width of the first column to 150 pixels.
+	// This must be done *before* drawing the first item in the column.
+	ImGui::SetColumnWidth(0, 150.0f);
+
+	// --- Row 1: Strength Min/Max ---
+	ImGui::Text("Strength Min/Max");
+	ImGui::NextColumn();
+
+	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.45f);
+	ImGui::DragFloat("##StrengthMin", &settings_.StrengthMin, 0.01f, -10.0f, 0.0f);
+	ImGui::SameLine();
+	ImGui::DragFloat("##StrengthMax", &settings_.StrengthMax, 0.01f, 0.0f, 10.0f);
+	ImGui::PopItemWidth();
+	ImGui::NextColumn();
+
+	ImGui::Text("Falloff Power"); 
+	ImGui::NextColumn(); 
+	ImGui::DragFloat("##FalloffPower", &settings_.FalloffPower, 0.01f, 0.0f, 10.0f);
+	ImGui::NextColumn();
+
+	ImGui::Text("Radius"); 
+	ImGui::NextColumn(); 
+	if(ImGui::DragFloat("##Radius", &settings_.Radius, 0.1f, 0.1f, 10.0f))
+		influence_radius_dirty_ = true;
+	ImGui::NextColumn();
+
+	ImGui::Text("Decay Power"); 
+	ImGui::NextColumn(); 
+	ImGui::DragFloat("##DecayPower", &settings_.DecayPower, 0.1f, 0.1f, 20.0f);
+	ImGui::NextColumn();
+
+	ImGui::Text("Cortex Color"); 
+	ImGui::NextColumn();
+	ImGui::ColorEdit4("##CortexColor", &settings_.object_color[0]);
+	ImGui::NextColumn();
+
+	ImGui::Columns(1);
+
+	if (influence_radius_dirty_) {
+		ImGui::TextWrapped("The radius has changed. Please recalculate the influence map.");
+
+		if (ImGui::Button("Recalculate Influences")) {
+			UpdateInfluenceMap();
+			UpdateActivatedVertices();
+			influence_radius_dirty_ = false;
+		}
+	}
+
+	if (standalone) 
+		ImGui::End();
 }

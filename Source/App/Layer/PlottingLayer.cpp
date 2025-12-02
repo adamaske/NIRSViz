@@ -304,17 +304,23 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::Probe::Channe
 
 void PlottingLayer::HandleProjectionTagChanged(size_t index, double actual)
 {
+	// Check if index is between 0 and m_SNIRF->GetTime().size() - 1;
+	if (index < 0 || index >= m_SNIRF->GetTime().size()) {
+		NVIZ_ERROR("PlottingLayer::HandleProjectionTagChanged: Index {} out of bounds.", index);
+		return;
+	}
+
 	//auto ps = Application::Get().GetSystem<ProjectionSystem>();
 	//
 	//ps->UpdateProjectionTimeIndex(index, actual);
 
 
 
-	SetChannelValuesAtTimeIndex(index);
 
 	// Meh -> 
 	EventBus::Instance().Publish<OnProjectionTimeChanged>({ index, actual });
 
+	SetChannelValuesAtTimeIndex(index);
 }
 
 void PlottingLayer::SetChannelValuesAtTimeIndex(int index)

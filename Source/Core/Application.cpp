@@ -47,7 +47,10 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	// --- Systems 
 	auto fs = system_manager_.AddSystem<FileSystem>();
-	//auto ps = system_manager_.AddSystem<ProjectionSystem>();
+	
+	if (1) {
+		auto ps = system_manager_.AddSystem<ProjectionSystem>();
+	}
 	auto probe_system = system_manager_.AddSystem<ProbeSystem>();
 
 	// --- Layers
@@ -56,8 +59,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	PushOverlay(imgui_layer_.get());
 
-	PushLayer(new AnatomyViewportLayer());
 	PushLayer(new ProjectionLayer());
+	PushLayer(new AnatomyViewportLayer());
 	PushLayer(new AtlasLayer());
 	PushLayer(new PlottingLayer());
 	PushLayer(new ChannelSelectorLayer());

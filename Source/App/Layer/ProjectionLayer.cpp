@@ -127,7 +127,7 @@ void ProjectionLayer::OnUpdate(float dt){
 
 	
 	if (m_ProjectionMode == WORLD_SPACE_BASED) RenderWorldSpaceMode();
-	else if (m_ProjectionMode == VERTEX_BASED) RenderVertexMode();
+	else if (m_ProjectionMode == VERTEX_BASED) 1; //RenderVertexMode();
 
 }
 
