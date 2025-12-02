@@ -57,6 +57,9 @@ public:
 
 	const NIRS::Probe::Probe& GetProbe() const { return m_SNIRF->GetProbe(); };
 	NIRS::Probe::Probe& GetProbeMutable() { return m_SNIRF->GetProbe(); };
+
+	std::map<NIRS::Probe::ChannelID, NIRS::ChannelVisualization> GetChannelVisualizations() const { return m_ChannelVisualsMap; };
+	std::map<NIRS::Probe::ChannelID, glm::vec3> GetChannelProjectionResult() const { return m_ChannelProjectionIntersections; };
 private:
 
 	bool m_DrawProbes2D = false;

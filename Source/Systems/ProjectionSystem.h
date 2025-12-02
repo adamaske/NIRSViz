@@ -5,6 +5,7 @@
 
 #include "Renderer/Renderable/Shader.h"
 
+
 class ProjectionSystem : public System {
 public:
 
@@ -40,7 +41,6 @@ public:
 
 	void UpdateProjectionTimeIndex(size_t index, double actual);
 
-	void UpdateProbeProjection();
 private:
 	
 	Shader projection_shader_;
@@ -58,8 +58,33 @@ private:
 
 	unsigned int max_hits_ = 1024;
 
+	// 1. Influenced Vertices Data Structure
+	struct InfluencedVertex {
+		int vertex_index;
+		double distance;
+	};
+	using InfluencedVertexList = std::vector<InfluencedVertex>;
+	std::map<NIRS::Probe::ChannelID, InfluencedVertexList> influenced_vertices_;
 
-	using VertexIndexArray = std::vector<int>;
-	std::map<NIRS::Probe::ChannelID, VertexIndexArray> channel_influenced_vertices_;
+	void UpdateInfluenceMap();
 
+	// 2. Activated Vertices Data Structure
+	struct ActivatedVertex {
+		int vertex_index;
+		float strength;
+	};
+	using ActivatedVertexList = std::vector<ActivatedVertex>;
+	std::map<NIRS::Probe::ChannelID, ActivatedVertexList> activated_vertices_;
+	void UpdateActivatedVertices();
+
+	// Custom Cortex Rendering
+	void SetupCortexRendering();
+	Ref<VertexArray> cortex_vao_;
+	struct ProjectionVertex {
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec2 tex;
+		float activity_level;
+	};
+	std::vector<ProjectionVertex> projection_vertices_;
 };

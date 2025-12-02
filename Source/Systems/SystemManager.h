@@ -24,6 +24,8 @@ public:
 		Ref<T> system = CreateRef<T>(std::forward<args>(parameters)...);
 		systems_.push_back(system);
 		system->OnAttach();
+
+		NVIZ_INFO("    Attached {}", typeid(T).name());
 		return system.get();
 	}
 

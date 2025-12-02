@@ -28,7 +28,6 @@ Mesh::~Mesh()
 
 void Mesh::SetupBuffers()
 {
-
     const size_t pos_offset = offsetof(Vertex, position);
     const size_t norm_offset = offsetof(Vertex, normal);
     const size_t coords_offset = offsetof(Vertex, tex_coords);

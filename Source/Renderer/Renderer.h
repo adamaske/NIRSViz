@@ -80,11 +80,12 @@ struct RendererAPICall {
 };
 
 struct RenderCommand {
-	Shader* ShaderPtr = nullptr;
+	Shader* ShaderPtr = nullptr; // These are pointers, however we dont own the, and we dont want to care about their lifetime here
+	// So we should really not be using pointers, but isntead but either copies or references. 
 	VertexArray* VAOPtr = nullptr;
 	glm::mat4 Transform = glm::mat4(1.0f);
 
-	ViewportType target_viewport = ViewportType::MainViewport;
+	ViewportType target_viewport = ViewportType::AnatomyViewport;
 	DrawMode Mode = DRAW_ELEMENTS;
 
 	std::vector<TextureBinding> TextureBindings = {};
