@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "App/Layer/PlottingLayer.h"
+#include "Systems/PlottingSystem.h"
 
 #include <imgui.h>
 #include <implot.h>
@@ -11,15 +11,15 @@
 #include "GUI/GUI.h"
 #include "Core/Application.h"
 
-PlottingLayer::PlottingLayer() 
+PlottingSystem::PlottingSystem() 
 {
 }
 
-PlottingLayer::~PlottingLayer()
+PlottingSystem::~PlottingSystem()
 {
 }
 
-void PlottingLayer::OnAttach()
+void PlottingSystem::OnAttach()
 {
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
 		m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
@@ -48,21 +48,18 @@ void PlottingLayer::OnAttach()
 		});
 }
 
-void PlottingLayer::OnDetach()
+void PlottingSystem::OnDetach()
 {
 }
 
-void PlottingLayer::OnUpdate(float dt)
+void PlottingSystem::OnUpdate(DeltaTime dt)
 {
 	m_DeltaTime = dt;
 }
 
-void PlottingLayer::OnRender()
-{
-}
 
 static bool firstTime = true;
-void PlottingLayer::OnImGuiRender()
+void PlottingSystem::OnGUIRender()
 {
 	if (m_EditingProcessingStream) EditProcessingStream();
 
@@ -185,11 +182,11 @@ void PlottingLayer::OnImGuiRender()
 	ImPlot::ShowDemoWindow();
 }
 
-void PlottingLayer::OnEvent(Event& event)
+void PlottingSystem::OnEvent(Event& event)
 {
 }
 
-void PlottingLayer::EditProcessingStream()
+void PlottingSystem::EditProcessingStream()
 {
 	// Open Processing Panel
 	ImGui::Begin("Processing Stream Editor", &m_EditingProcessingStream);
@@ -200,7 +197,7 @@ void PlottingLayer::EditProcessingStream()
 	ImGui::End();
 }
 
-void PlottingLayer::RenderWavelengthSelector()
+void PlottingSystem::RenderWavelengthSelector()
 {
 
 	ImGui::Text("Wavelength : ");
@@ -219,7 +216,7 @@ void PlottingLayer::RenderWavelengthSelector()
 
 }
 
-void PlottingLayer::RenderMenuBar()
+void PlottingSystem::RenderMenuBar()
 {
 	if (ImGui::BeginMenu("Data"))
 	{
@@ -237,7 +234,7 @@ void PlottingLayer::RenderMenuBar()
 	}
 }
 
-void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs)
+void PlottingSystem::HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs)
 {
 	m_SelectedChannels = selectedIDs;
 
@@ -250,7 +247,7 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::Probe::Channe
 	auto channelMap = m_SNIRF->GetChannels();
 
 	if (time.empty()) {
-		NVIZ_WARN("PlottingLayer::HandleSelectedChannels: Time data is empty.");
+		NVIZ_WARN("PlottingSystem::HandleSelectedChannels: Time data is empty.");
 		return;
 	}
 
@@ -302,11 +299,11 @@ void PlottingLayer::HandleSelectedChannels(const std::vector<NIRS::Probe::Channe
 	m_NeedAxisFit = true;
 }
 
-void PlottingLayer::HandleProjectionTagChanged(size_t index, double actual)
+void PlottingSystem::HandleProjectionTagChanged(size_t index, double actual)
 {
 	// Check if index is between 0 and m_SNIRF->GetTime().size() - 1;
 	if (index < 0 || index >= m_SNIRF->GetTime().size()) {
-		NVIZ_ERROR("PlottingLayer::HandleProjectionTagChanged: Index {} out of bounds.", index);
+		NVIZ_ERROR("PlottingSystem::HandleProjectionTagChanged: Index {} out of bounds.", index);
 		return;
 	}
 
@@ -323,7 +320,7 @@ void PlottingLayer::HandleProjectionTagChanged(size_t index, double actual)
 	SetChannelValuesAtTimeIndex(index);
 }
 
-void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
+void PlottingSystem::SetChannelValuesAtTimeIndex(int index)
 {
 	auto channelMap = m_SNIRF->GetChannels();
 
@@ -346,11 +343,14 @@ void PlottingLayer::SetChannelValuesAtTimeIndex(int index)
 			hboValues[ID] = hbo[timeIndex];
 			hbrValues[ID] = hbr[timeIndex];
 		}
+
 	}
 
 	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
 	projData->HBOChannelValues = hboValues;
 	projData->HBRChannelValues = hbrValues;
+
+
 
 	EventBus::Instance().Publish<OnChannelValuesUpdated>({ hboValues, hbrValues });
 }

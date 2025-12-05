@@ -14,6 +14,7 @@
 #include "Renderer/Renderable/Texture.h"
 #include "Renderer/ViewportManager.h"
 
+
 ProjectionSystem::ProjectionSystem()
 {
 }
@@ -24,10 +25,10 @@ ProjectionSystem::~ProjectionSystem()
 
 void ProjectionSystem::OnAttach()
 {
-
-	projection_shader_ = Shader(
-		"C:/dev/NIRSViz/Assets/Shaders/Projection.vert", 
-		"C:/dev/NIRSViz/Assets/Shaders/Projection.frag");
+	// TODO : Fix the shader class such that I can have a reference of it. 
+	projection_shader_ = CreateRef<Shader>(
+		"C:/dev/NIRSViz/Assets/Shaders/VertexProjection.vert", 
+		"C:/dev/NIRSViz/Assets/Shaders/VertexProjection.frag");
 
 	SetupSubscriptions();
 
@@ -39,12 +40,10 @@ void ProjectionSystem::OnDetach()
 
 void ProjectionSystem::OnUpdate(DeltaTime dt)
 {
-	//RenderProjectionCortex();
 	if (!is_projecting_)
 		return;
 
 	RenderProjectionCortex();
-	// 1. Render the cortex -> Render it to the main viewport framebuffer. 
 }
 
 void ProjectionSystem::OnGUIRender() {
@@ -103,12 +102,11 @@ void ProjectionSystem::StartProjection()
 {
 	is_projecting_ = true;
 
-	SetupCortexRendering();
+	//SetupCortexRendering();
+	//UpdateInfluenceMap();
+	//UpdateActivatedVertices();
 
-	UpdateInfluenceMap();
-	UpdateActivatedVertices();
-
-	EventBus::Instance().Publish<OnStartProjection>({});
+	//EventBus::Instance().Publish<OnStartProjection>({});
 }
 
 void ProjectionSystem::StopProjection()
@@ -116,7 +114,7 @@ void ProjectionSystem::StopProjection()
 	is_projecting_ = false;
 
 	// Shutdown logic
-	EventBus::Instance().Publish<OnStopProjection>({});
+	//EventBus::Instance().Publish<OnStopProjection>({});
 }
 
 void ProjectionSystem::SetProjectionWavelength(const NIRS::WavelengthType& wavelength)
@@ -208,10 +206,10 @@ void ProjectionSystem::UpdateActivatedVertices()
 	}
 
 	// Pass data to GPU
-	cortex_vao_->Bind();
-	cortex_vbo_->SetData(&zeroed_projection_vertices_[0], zeroed_projection_vertices_.size() * sizeof(ProjectionVertex));
+//cortex_vao_->Bind();
+	cortex_vbo_->SetData(&projection_vertices[0], projection_vertices.size() * sizeof(ProjectionVertex));
 	
-	cortex_vao_->Unbind();
+	//cortex_vao_->Unbind();
 
 	auto end_time = std::chrono::high_resolution_clock::now();
 
@@ -274,12 +272,12 @@ void ProjectionSystem::RenderProjectionCortex()
 	UniformData strengthMin;
 	strengthMin.Type = UniformDataType::FLOAT1;
 	strengthMin.Name = "u_StrengthMin";
-	strengthMin.Data.f1 = settings_.StrengthMin;
+	strengthMin.Data.f1 = -2;
 
 	UniformData strengthMax;
 	strengthMax.Type = UniformDataType::FLOAT1;
 	strengthMax.Name = "u_StrengthMax";
-	strengthMax.Data.f1 = settings_.StrengthMax;
+	strengthMax.Data.f1 = 2;
 
 	UniformData ambientStrength;
 	ambientStrength.Type = UniformDataType::FLOAT1;
@@ -287,15 +285,19 @@ void ProjectionSystem::RenderProjectionCortex()
 	ambientStrength.Data.f1 = 0.4f;
 
 	// Fill render command temporarily
-	RenderCommand m_VertexModeRenderCmd;
+	RenderCommand cmd;
+	cmd.ShaderPtr = projection_shader_.get();
+	cmd.VAOPtr = cortex_vao_.get();
+	cmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
 
-	m_VertexModeRenderCmd.ShaderPtr = &projection_shader_;
-	m_VertexModeRenderCmd.VAOPtr = cortex_vao_.get();
-	m_VertexModeRenderCmd.target_viewport = ViewportType::MainViewport;
-	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
-	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
-	m_VertexModeRenderCmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
-	Renderer::Submit(m_VertexModeRenderCmd);
+	cmd.target_viewport = ViewportType::MainViewport;
+	cmd.Mode = DRAW_ELEMENTS;
+
+
+	cmd.TextureBindings = {};
+	cmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
+	cmd.APICalls = {};
+	Renderer::Submit(cmd);
 
 	//return;
 	//const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
@@ -349,12 +351,24 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 	else
 		if(!ImGui::CollapsingHeader("Projection Settings")) 
 			return;
-	if(ImGui::Button("Start Projection")) {
-		StartProjection();
+
+
+	{
+		auto buttonText = is_projecting_ ? "Stop Projection" : "Start Projection";
+		auto buttonColor = is_projecting_ ? GUI::RedButtonColor : GUI::GreenButtonColor;
+		ImVec4 im_button_color = ImVec4(buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+
+		ImGui::PushStyleColor(ImGuiCol_Button, im_button_color);
+		if(ImGui::Button(buttonText)) {
+			if(is_projecting_)
+				StopProjection();
+			else
+				StartProjection();
+		}
+		ImGui::PopStyleColor();
 	}
-	if(ImGui::Button("Stop Projection")) {
-		StopProjection();
-	}
+
+
 	// Set up a two-column layout. The string "SettingsColumns" is a unique ID for the column set.
 // The 'false' means the column width is not border-locked (no vertical separator line).
 	ImGui::Columns(2, "SettingsColumns", false);

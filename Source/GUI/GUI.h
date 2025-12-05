@@ -14,3 +14,5 @@ namespace GUI {
 
 	void RenderSNIRFInfo(SNIRF* snirf);
 }
+
+#include "GUI/Colors.h"

@@ -6,7 +6,6 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
-
 // TODO : What happends if two systems of the same type are added?
 // Should we allow that or prevent it?
 
@@ -17,11 +16,17 @@ public:
 
 	template<typename T, typename... args>
 	T* AddSystem(args&&... parameters) {
+
+		if (!std::is_base_of<System, T>::value) {
+			NVIZ_RUNTIME_ERROR("SystemManager: Type {} is not derived from System.", typeid(T).name());
+		}
+
 		if (HasSystem<T>()) {
 			NVIZ_RUNTIME_ERROR("SystemManager: System of type {} already exists.", typeid(T).name());
 		}
 
 		Ref<T> system = CreateRef<T>(std::forward<args>(parameters)...);
+
 		systems_.push_back(system);
 		system->OnAttach();
 
@@ -82,3 +87,5 @@ private:
 #include "Systems/FileSystem.h"
 #include "Systems/ProjectionSystem.h"
 #include "Systems/ProbeSystem.h"
+#include "Systems/PlottingSystem.h"
+#include "Systems/AnatomySystem.h"

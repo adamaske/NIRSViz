@@ -195,6 +195,9 @@ bool ChannelSelectorLayer::OnMouseButtonPressed(const MouseButtonPressedEvent& e
 		}
 
 		m_SelectedChannels.push_back(channelID);
+
+		// Create a set 
+
 		EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
 		return true;
 		// Pressed Channel

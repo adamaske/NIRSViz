@@ -3,18 +3,13 @@ out vec4 FragColor;
 
 in vec3 Normal; 
 in vec3 FragPos;
-
-// This is calculated in the vert shader 
 in vec3 LightPos;   
 
-// This is fine
 uniform vec3 u_LightColor = vec3(1.0, 1.0, 1.0);
 uniform vec3 u_ObjectColor = vec3(0.9, 0.35, 0.25);
 uniform float u_Opacity = 1.0; 
 
-// We optimally want to set the activity level by reading a texture instead of passing uniforms
 in float vActivityLevel;
-
 uniform float u_StrengthMin; // Minimum Activity Level threshold
 uniform float u_StrengthMax; // Maximum Activity Level threshold
 

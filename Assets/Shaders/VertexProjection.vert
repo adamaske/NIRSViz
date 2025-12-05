@@ -2,16 +2,14 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords; 
-
-// We want to remove these so we can read activity level from a texture in the fragment shader
 layout (location = 3) in float aActivityLevel; // -1 to 1
-out float vActivityLevel;
 
+out float vActivityLevel;
 out vec3 Normal; 
 out vec3 FragPos; 
 out vec3 LightPos;
 
-uniform vec3 u_LightPos; // we now define the uniform in the vertex shader and pass the 'view space' lightpos to the fragment shader. lightPos is currently in world space.
+uniform vec3 u_LightPos; 
 
 uniform mat4 u_Transform;
 uniform mat4 u_ViewMatrix;

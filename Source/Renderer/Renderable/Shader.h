@@ -15,6 +15,14 @@ public:
 	Shader(const std::string& vertex_path, const std::string& fragment_path);
 	~Shader();
 
+	// Delete copy constructor and copy assignment
+	Shader(const Shader&) = delete;
+	Shader& operator=(const Shader&) = delete;
+
+	// Delete move constructor and move assignment
+	Shader(Shader&&) = delete;
+	Shader& operator=(Shader&&) = delete;
+
 
 	void Bind() const;
 	void Unbind() const;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Layer.h"
+#include "Systems/System.h"
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Mesh.h"
@@ -11,27 +11,41 @@
 
 #include "NIRS/Snirf.h"
 
+
+class IChannelValuesProvider {
+public:
+	virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) = 0;
+};
+
 class TimeController;
 
 enum PlottingWavelength {
 	HBO_ONLY = 0,
 	HBR_ONLY = 1,
-	HBO_AND_HBR = 2,
+	HBT_ONLY = 2,
+	HBO_AND_HBR = 3,
 };
 
-class PlottingLayer : public Layer {
+class PlottingSystem : public System {//, public IChannelValuesProvider {
 public:
-	PlottingLayer();
-	~PlottingLayer();
+	PlottingSystem();
+	~PlottingSystem();
 
+	//const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) override {
+	//	switch (type) {
+	//		case NIRS::WavelengthType::HBO: return hbo_channel_values_;
+	//		case NIRS::WavelengthType::HBR: return hbr_channel_values_;
+	//		case NIRS::WavelengthType::HBT: return hbt_channel_values_;
+	//		default: return hbo_channel_values_; // Default to HBO
+	//	};
+	//};
 
 	void OnAttach() override;
 	void OnDetach() override;
 
-	void OnUpdate(float dt) override;
-	void OnRender() override;
+	void OnUpdate(DeltaTime dt) override;
 
-	void OnImGuiRender()override;
+	void OnGUIRender()override;
 
 	void OnEvent(Event& event) override;
 
@@ -49,6 +63,12 @@ public:
 private:
 	Ref<SNIRF> m_SNIRF;
 	
+	// Current channel values at the current time index
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbo_channel_values_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbr_channel_values_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbt_channel_values_;
+
+
 	bool m_IsProjecting = false;
 
 	float m_DeltaTime = 0.0f;

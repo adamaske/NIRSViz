@@ -15,6 +15,13 @@
 #include "Renderer/Buffer/Framebuffer.h"
 #include "Renderer/Camera/OrthogonalCamera.h"
 
+#include <set>
+
+class ISelectedChannelsProvider {
+public:
+	virtual const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() = 0;
+};
+
 struct Channel2DVisual {
 	glm::vec3 Start;
 	glm::vec3 End;
@@ -22,11 +29,14 @@ struct Channel2DVisual {
 	NIRS::Probe::ChannelID ChannelID;
 };
 
-class ChannelSelectorLayer : public Layer 
+class ChannelSelectorLayer : public Layer, public ISelectedChannelsProvider
 {
 public:
 	ChannelSelectorLayer();
 	~ChannelSelectorLayer();
+	const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() override {
+		return m_SelectedChannels;
+	};
 
 	void OnAttach() override;
 	void OnDetach() override;

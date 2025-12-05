@@ -18,7 +18,11 @@
 // Currently accepts at least the condition and one additional parameter (the message) being optional
 #define NVIZ_ASSERT(...) NVIZ_EXPAND_MACRO( NVIZ_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_, __VA_ARGS__) )
 #define NVIZ_CORE_ASSERT(...) NVIZ_EXPAND_MACRO( NVIZ_INTERNAL_ASSERT_GET_MACRO(__VA_ARGS__)(_CORE_, __VA_ARGS__) )
+#define NVIZ_STATIC_ASSERT(condition, msg) static_assert(condition, msg)
+
 #else
 #define NVIZ_ASSERT(...)
 #define NVIZ_CORE_ASSERT(...)
 #endif
+
+// Static assertion

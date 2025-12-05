@@ -117,7 +117,6 @@ void ProjectionLayer::OnDetach(){
 }
 
 void ProjectionLayer::OnUpdate(float dt){
-
 	if (!m_IsProjecting) return;
 
 	if (!NIRS::AnatomyManager::Instance().GetCortex()) {
@@ -127,7 +126,8 @@ void ProjectionLayer::OnUpdate(float dt){
 
 	
 	if (m_ProjectionMode == WORLD_SPACE_BASED) RenderWorldSpaceMode();
-	else if (m_ProjectionMode == VERTEX_BASED) 1; //RenderVertexMode();
+	else if (m_ProjectionMode == VERTEX_BASED) RenderVertexMode();
+	
 
 }
 
@@ -267,7 +267,9 @@ void ProjectionLayer::SetupVertexBasedProjection()
 	m_VertexModeVAO = CreateRef<VertexArray>();
 	m_VertexModeVAO->Bind();
 
-	m_VertexModeVBO = CreateRef<VertexBuffer>(&m_VertexModeProjectionVertices[0], m_VertexModeProjectionVertices.size() * sizeof(ProjectionVertex));
+	m_VertexModeVBO = CreateRef<VertexBuffer>(&m_VertexModeProjectionVertices[0], 
+		m_VertexModeProjectionVertices.size() * sizeof(ProjectionVertex));
+
 	m_VertexModeIBO = CreateRef<IndexBuffer>(&indices[0], (unsigned int)(indices.size()));
 
 	BufferElement pos = { ShaderDataType::Float3, "aPos", false };
@@ -349,6 +351,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 	for (auto& vertex : m_VertexModeProjectionVertices) {
 		vertex.ActivityLevel = 0.0f; // Reset all activity levels
 	}
+
 	const auto& data = *AssetManager::Get<NIRS::ProjectionData>("ProjectionData").get();
 
 	auto settings = m_VertexBasedProjectionSettings;

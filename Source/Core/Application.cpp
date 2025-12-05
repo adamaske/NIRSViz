@@ -48,10 +48,12 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	// --- Systems 
 	auto fs = system_manager_.AddSystem<FileSystem>();
 	
-	if (1) {
-		auto ps = system_manager_.AddSystem<ProjectionSystem>();
-	}
 	auto probe_system = system_manager_.AddSystem<ProbeSystem>();
+	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
+
+	// Needs IChannelValueProvider, ISelectedChannelsProvider, IAnatomyProvider, IProbeProvider
+	auto projection_system = system_manager_.AddSystem<ProjectionSystem>();
+	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
 
 	// --- Layers
 
@@ -62,7 +64,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	PushLayer(new ProjectionLayer());
 	PushLayer(new AnatomyViewportLayer());
 	PushLayer(new AtlasLayer());
-	PushLayer(new PlottingLayer());
 	PushLayer(new ChannelSelectorLayer());
 	PushLayer(new ControlPanelLayer());
 

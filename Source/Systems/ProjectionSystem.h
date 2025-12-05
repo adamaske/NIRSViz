@@ -1,6 +1,10 @@
 #pragma once
 
 #include "Systems/System.h"
+// Get Providers
+#include "Systems/PlottingSystem.h" 
+#include "App/Layer/ChannelSelectorLayer.h"
+
 #include "NIRS/NIRS.h"
 
 #include "Renderer/Renderable/Shader.h"
@@ -8,11 +12,13 @@
 
 #include <set>
 
+
 class ProjectionSystem : public System {
 public:
-
-	ProjectionSystem();
+	ProjectionSystem(
+	);
 	~ProjectionSystem();
+
 
 	 void OnAttach() override;
 	 void OnDetach() override;
@@ -44,8 +50,8 @@ public:
 	void UpdateProjectionTimeIndex(size_t index, double actual);
 
 private:
-	
-	Shader projection_shader_;
+
+	Ref<Shader> projection_shader_;
 
 	bool is_projecting_ = false;
 
