@@ -19,6 +19,8 @@ PlottingSystem::~PlottingSystem()
 {
 }
 
+
+
 void PlottingSystem::OnAttach()
 {
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
@@ -184,6 +186,36 @@ void PlottingSystem::OnGUIRender()
 
 void PlottingSystem::OnEvent(Event& event)
 {
+}
+
+void PlottingSystem::StartProjection(NIRS::WavelengthType& type)
+{
+	SetProjectionWavelength(type);
+
+	m_IsProjecting = true;
+}
+
+void PlottingSystem::StopProjection()
+{
+	m_IsProjecting = false;
+}
+
+void PlottingSystem::SetProjectionWavelength(NIRS::WavelengthType& type)
+{
+	switch (type) {
+	case (NIRS::WavelengthType::HBO):
+		m_PlottingWavelength = HBO_ONLY;
+		break;
+	case(NIRS::WavelengthType::HBR):
+		m_PlottingWavelength = HBR_ONLY;
+		break;
+	case (NIRS::WavelengthType::HBT):
+		m_PlottingWavelength = HBT_ONLY;
+		break;
+	default:
+		NVIZ_ERROR("PlottingSystem::SetProjectionWavelength: Unsupported wavelength type.");
+		return;
+	}
 }
 
 void PlottingSystem::EditProcessingStream()

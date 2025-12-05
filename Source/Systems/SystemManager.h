@@ -89,3 +89,4 @@ private:
 #include "Systems/ProbeSystem.h"
 #include "Systems/PlottingSystem.h"
 #include "Systems/AnatomySystem.h"
+#include "Systems/ChannelSelectorSystem.h"

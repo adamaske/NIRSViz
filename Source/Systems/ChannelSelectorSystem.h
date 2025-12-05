@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Base.h"
-#include "Core/Layer.h"
+#include "Systems/System.h"
 
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
@@ -29,11 +29,12 @@ struct Channel2DVisual {
 	NIRS::Probe::ChannelID ChannelID;
 };
 
-class ChannelSelectorLayer : public Layer, public ISelectedChannelsProvider
+class ChannelSelectorSystem : public System, public ISelectedChannelsProvider
 {
 public:
-	ChannelSelectorLayer();
-	~ChannelSelectorLayer();
+	ChannelSelectorSystem();
+	~ChannelSelectorSystem();
+
 	const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() override {
 		return m_SelectedChannels;
 	};
@@ -41,10 +42,9 @@ public:
 	void OnAttach() override;
 	void OnDetach() override;
 
-	void OnUpdate(float dt) override;
-	void OnRender() override;
+	void OnUpdate(DeltaTime dt) override;
 
-	void OnImGuiRender()override;
+	void OnGUIRender()override;
 
 	void OnEvent(Event& event) override;
 
@@ -78,6 +78,8 @@ private:
 
 	// --- Channel Data ---
 	glm::vec2 m_MousePosition;
+	glm::vec2 previous_mouse_position_;
+
 	std::map<NIRS::Probe::ChannelID, Channel2DVisual> m_ChannelVisuals;
 	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Channel> m_Channels;
 

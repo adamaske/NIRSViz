@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "App/Layer/ChannelSelectorLayer.h"
+#include "Systems/ChannelSelectorSystem.h"
 
 #include <imgui.h>
 #include "Renderer/ViewportManager.h"
@@ -16,14 +16,14 @@
 #define DETECTOR_OFFSET 1024
 #define CHANNEL_OFFSET 2048
 
-ChannelSelectorLayer::ChannelSelectorLayer() 
+ChannelSelectorSystem::ChannelSelectorSystem() 
 {
 }
-ChannelSelectorLayer::~ChannelSelectorLayer()
+ChannelSelectorSystem::~ChannelSelectorSystem()
 {
 }
 
-void ChannelSelectorLayer::OnAttach()
+void ChannelSelectorSystem::OnAttach()
 {
 	FramebufferSpecification fbSpec; // Init a framebuffer to show the probe
 	// Double Color
@@ -55,13 +55,13 @@ void ChannelSelectorLayer::OnAttach()
 	});
 }
 
-void ChannelSelectorLayer::OnDetach()
+void ChannelSelectorSystem::OnDetach()
 {
 
 }
 
 static bool inital_selction = false;
-void ChannelSelectorLayer::OnUpdate(float dt)
+void ChannelSelectorSystem::OnUpdate(DeltaTime dt)
 {
 	if(!inital_selction) {
 		SelectAllChannels();
@@ -77,11 +77,7 @@ void ChannelSelectorLayer::OnUpdate(float dt)
 	DrawChannels();
 }
 
-void ChannelSelectorLayer::OnRender()
-{
-}
-
-void ChannelSelectorLayer::OnImGuiRender()
+void ChannelSelectorSystem::OnGUIRender()
 {
 	
 	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
@@ -143,18 +139,18 @@ void ChannelSelectorLayer::OnImGuiRender()
 
 }
 
-void ChannelSelectorLayer::OnEvent(Event& event)
+void ChannelSelectorSystem::OnEvent(Event& event)
 {
 	EventDispatcher dispatcher(event);
-	dispatcher.Dispatch<MouseScrolledEvent>(BIND_EVENT_FN(ChannelSelectorLayer::OnMouseScrolled));
-	dispatcher.Dispatch<MouseButtonPressedEvent>(BIND_EVENT_FN(ChannelSelectorLayer::OnMouseButtonPressed));
+	dispatcher.Dispatch<MouseScrolledEvent>(BIND_EVENT_FN(ChannelSelectorSystem::OnMouseScrolled));
+	dispatcher.Dispatch<MouseButtonPressedEvent>(BIND_EVENT_FN(ChannelSelectorSystem::OnMouseButtonPressed));
 }
 
-void ChannelSelectorLayer::RenderMenuBar()
+void ChannelSelectorSystem::RenderMenuBar()
 {
 }
 
-bool ChannelSelectorLayer::OnMouseScrolled(const MouseScrolledEvent& event)
+bool ChannelSelectorSystem::OnMouseScrolled(const MouseScrolledEvent& event)
 {
 	if (!m_ViewportHovered) return false;
 	auto zoomOffset = event.GetYOffset();
@@ -163,7 +159,7 @@ bool ChannelSelectorLayer::OnMouseScrolled(const MouseScrolledEvent& event)
 	return false;
 }
 
-bool ChannelSelectorLayer::OnMouseButtonPressed(const MouseButtonPressedEvent& event)
+bool ChannelSelectorSystem::OnMouseButtonPressed(const MouseButtonPressedEvent& event)
 {
 	if (!m_ViewportHovered) return false;
 	
@@ -217,7 +213,7 @@ bool ChannelSelectorLayer::OnMouseButtonPressed(const MouseButtonPressedEvent& e
 	return true; // Capture the event
 }
 
-void ChannelSelectorLayer::HandleSNIRFLoaded()
+void ChannelSelectorSystem::HandleSNIRFLoaded()
 {
 	auto snirf = AssetManager::Get<SNIRF>("SNIRF");
 	m_ChannelVisuals.clear(); 
@@ -255,7 +251,7 @@ void ChannelSelectorLayer::HandleSNIRFLoaded()
 
 }
 
-void ChannelSelectorLayer::SelectAllChannels()
+void ChannelSelectorSystem::SelectAllChannels()
 {
 	m_SelectedChannels.clear();
 	for (auto& [ID, channel] : m_Channels) {
@@ -263,13 +259,13 @@ void ChannelSelectorLayer::SelectAllChannels()
 	}
 	EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
 }
-void ChannelSelectorLayer::ClearSelection()
+void ChannelSelectorSystem::ClearSelection()
 {
 	m_SelectedChannels.clear();
 	EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
 }
 
-void ChannelSelectorLayer::GenerateSourceRenderCommands()
+void ChannelSelectorSystem::GenerateSourceRenderCommands()
 {
 	m_SourceRenderCommands.clear();
 
@@ -305,7 +301,7 @@ void ChannelSelectorLayer::GenerateSourceRenderCommands()
 	}
 }
 
-void ChannelSelectorLayer::GenerateDetectorRenderCommands()
+void ChannelSelectorSystem::GenerateDetectorRenderCommands()
 {
 	m_DetectorRenderCommands.clear();
 
@@ -341,7 +337,7 @@ void ChannelSelectorLayer::GenerateDetectorRenderCommands()
 	}
 }
 
-void ChannelSelectorLayer::GenerateChannelRenderCommands()
+void ChannelSelectorSystem::GenerateChannelRenderCommands()
 {
 	m_ChannelRenderCommands.clear();
 
@@ -387,7 +383,7 @@ void ChannelSelectorLayer::GenerateChannelRenderCommands()
 	}
 }
 
-void ChannelSelectorLayer::GenerateBackgroundRenderCommands()
+void ChannelSelectorSystem::GenerateBackgroundRenderCommands()
 {
 	m_BackgroundRenderCommands.clear();
 
@@ -418,14 +414,14 @@ void ChannelSelectorLayer::GenerateBackgroundRenderCommands()
 	m_BackgroundRenderCommands.push_back(cmd);
 }
 
-void ChannelSelectorLayer::DrawBackground()
+void ChannelSelectorSystem::DrawBackground()
 {
 	for (auto& cmd : m_BackgroundRenderCommands) {
 		Renderer::Submit(cmd);
 	}
 }
 
-void ChannelSelectorLayer::DrawSourcesAndDetectors()
+void ChannelSelectorSystem::DrawSourcesAndDetectors()
 {
 	for (auto& cmd : m_SourceRenderCommands)
 	{
@@ -520,7 +516,7 @@ void ChannelSelectorLayer::DrawSourcesAndDetectors()
 	m_OrthoCamera->SetZoomLevel(newZoomLevel);
 }
 
-void ChannelSelectorLayer::DrawChannels()
+void ChannelSelectorSystem::DrawChannels()
 {
 	for (auto& cmd : m_ChannelRenderCommands)
 	{

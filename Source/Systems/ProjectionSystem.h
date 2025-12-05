@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Systems/System.h"
-// Get Providers
+
+#include "Systems/AnatomySystem.h" 
+#include "Systems/ChannelSelectorSystem.h"	 
 #include "Systems/PlottingSystem.h" 
-#include "App/Layer/ChannelSelectorLayer.h"
+#include "Systems/ProbeSystem.h"
 
 #include "NIRS/NIRS.h"
 
@@ -12,13 +14,29 @@
 
 #include <set>
 
-
 class ProjectionSystem : public System {
 public:
 	ProjectionSystem(
-	);
-	~ProjectionSystem();
+		IAnatomyProvider& anatomy_provider, 
+		ISelectedChannelsProvider& selection_provider,
+		IChannelDataProvider& ch_data_provider,
+		IProjectionTimeTagProvider& time_tag_provider,
+		IProbeProvider& probe_provider) :
+		anatomy_provider_(anatomy_provider), 
+		selected_channels_provider_(selection_provider),
+		channel_data_provider_(ch_data_provider),
+		projection_time_tag_provider_(time_tag_provider),
+		probe_provider_(probe_provider) 
+	{}; 
 
+	~ProjectionSystem() {};
+
+	IAnatomyProvider& anatomy_provider_;
+	ISelectedChannelsProvider& selected_channels_provider_;
+	IChannelDataProvider& channel_data_provider_;
+	IProjectionTimeTagProvider& projection_time_tag_provider_;
+
+	IProbeProvider& probe_provider_;
 
 	 void OnAttach() override;
 	 void OnDetach() override;
@@ -54,7 +72,7 @@ private:
 	Ref<Shader> projection_shader_;
 
 	bool is_projecting_ = false;
-
+	bool has_intialized = false;
 	//ProjectionMode mode_ = ProjectionMode::VERTEX_BASED;
 	NIRS::WavelengthType wavelength_ = NIRS::WavelengthType::HBO;
 

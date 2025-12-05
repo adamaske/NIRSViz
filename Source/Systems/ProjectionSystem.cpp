@@ -14,15 +14,6 @@
 #include "Renderer/Renderable/Texture.h"
 #include "Renderer/ViewportManager.h"
 
-
-ProjectionSystem::ProjectionSystem()
-{
-}
-
-ProjectionSystem::~ProjectionSystem()
-{
-}
-
 void ProjectionSystem::OnAttach()
 {
 	// TODO : Fix the shader class such that I can have a reference of it. 
@@ -102,6 +93,12 @@ void ProjectionSystem::StartProjection()
 {
 	is_projecting_ = true;
 
+	if (!has_intialized) {
+		
+		SetupCortexRendering();
+		UpdateInfluenceMap();
+		has_intialized = true;
+	}
 	//SetupCortexRendering();
 	//UpdateInfluenceMap();
 	//UpdateActivatedVertices();
@@ -219,10 +216,10 @@ void ProjectionSystem::UpdateActivatedVertices()
 
 void ProjectionSystem::SetupCortexRendering()
 {
-	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
+	auto cortex = anatomy_provider_.GetCortex();
 
-	auto vertices = cortex->GetMesh()->GetVertices();
-	auto indices = cortex->GetMesh()->GetIndices();
+	auto vertices = cortex.GetMesh()->GetVertices();
+	auto indices = cortex.GetMesh()->GetIndices();
 
 	projection_vertices_.resize(vertices.size());
 
@@ -258,90 +255,48 @@ void ProjectionSystem::SetupCortexRendering()
 
 void ProjectionSystem::RenderProjectionCortex()
 {
+	auto cortex = anatomy_provider_.GetCortex();
 
-	UniformData lightPos;
+	auto target_viewport = ViewportType::MainViewport;
+	auto matrix = cortex.GetTransform()->GetMatrix();
+
+	UniformData lightPos; // TODO : Move to shared uniform buffer ? 
 	lightPos.Type = UniformDataType::FLOAT3;
 	lightPos.Name = "u_LightPos";
-	lightPos.Data.f3 = ViewportManager::GetViewport(ViewportType::MainViewport).Camera->GetPosition();
+	lightPos.Data.f3 = ViewportManager::GetViewport(target_viewport).Camera->GetPosition();
 
 	UniformData objectColor;
 	objectColor.Type = UniformDataType::FLOAT4;
 	objectColor.Name = "u_ObjectColor";
-	objectColor.Data.f4 = { 0.4f, 0.4f, 0.4f, 1.0f };
+	objectColor.Data.f4 = settings_.object_color;
 
 	UniformData strengthMin;
 	strengthMin.Type = UniformDataType::FLOAT1;
 	strengthMin.Name = "u_StrengthMin";
-	strengthMin.Data.f1 = -2;
+	strengthMin.Data.f1 = settings_.StrengthMin;
 
 	UniformData strengthMax;
 	strengthMax.Type = UniformDataType::FLOAT1;
 	strengthMax.Name = "u_StrengthMax";
-	strengthMax.Data.f1 = 2;
+	strengthMax.Data.f1 = settings_.StrengthMax;
 
 	UniformData ambientStrength;
 	ambientStrength.Type = UniformDataType::FLOAT1;
 	ambientStrength.Name = "u_AmbientStrength";
-	ambientStrength.Data.f1 = 0.4f;
+	ambientStrength.Data.f1 = settings_.ambient_strength;
 
-	// Fill render command temporarily
 	RenderCommand cmd;
 	cmd.ShaderPtr = projection_shader_.get();
-	cmd.VAOPtr = cortex_vao_.get();
-	cmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
+	cmd.VAOPtr = cortex_vao_.get(); // TODO : Determine if we need 
+	cmd.Transform = matrix;
 
-	cmd.target_viewport = ViewportType::MainViewport;
+	cmd.target_viewport = target_viewport;
 	cmd.Mode = DRAW_ELEMENTS;
 
-
-	cmd.TextureBindings = {};
 	cmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
 	cmd.APICalls = {};
+
 	Renderer::Submit(cmd);
-
-	//return;
-	//const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
-
-	//auto target_viewport = ViewportType::MainViewport;
-	//auto matrix = cortex->GetTransform()->GetMatrix();
-
-	//UniformData lightPos; // TODO : Move to shared uniform buffer ? 
-	//lightPos.Type = UniformDataType::FLOAT3;
-	//lightPos.Name = "u_LightPos";
-	//lightPos.Data.f3 = ViewportManager::GetViewport(target_viewport).Camera->GetPosition();
-
-	//UniformData objectColor;
-	//objectColor.Type = UniformDataType::FLOAT4;
-	//objectColor.Name = "u_ObjectColor";
-	//objectColor.Data.f4 = settings_.object_color;
-
-	//UniformData strengthMin;
-	//strengthMin.Type = UniformDataType::FLOAT1;
-	//strengthMin.Name = "u_StrengthMin";
-	//strengthMin.Data.f1 = settings_.StrengthMin;
-
-	//UniformData strengthMax;
-	//strengthMax.Type = UniformDataType::FLOAT1;
-	//strengthMax.Name = "u_StrengthMax";
-	//strengthMax.Data.f1 = settings_.StrengthMax;
-
-	//UniformData ambientStrength;
-	//ambientStrength.Type = UniformDataType::FLOAT1;
-	//ambientStrength.Name = "u_AmbientStrength";
-	//ambientStrength.Data.f1 = settings_.ambient_strength;
-
-	//RenderCommand cmd;
-	//cmd.ShaderPtr = &projection_shader_;
-	//cmd.VAOPtr = cortex_vao_.get();; // TODO : Determine if we need 
-	//cmd.Transform = matrix;
-
-	//cmd.target_viewport = target_viewport;
-	//cmd.Mode = DRAW_ELEMENTS;
-
-	//cmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
-	//cmd.APICalls = {};
-
-	//Renderer::Submit(cmd);
 }
 
 void ProjectionSystem::RenderProjectionSettings(bool standalone)

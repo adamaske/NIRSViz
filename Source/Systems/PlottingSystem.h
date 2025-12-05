@@ -11,10 +11,20 @@
 
 #include "NIRS/Snirf.h"
 
+// Plotting system : Is the single truth of channel data. 
+// Must be alerted when projection starts to provide a projeciton time tag. 
 
-class IChannelValuesProvider {
+class IChannelDataProvider {
 public:
-	virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) = 0;
+	//virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) = 0;
+};
+
+class IProjectionTimeTagProvider {
+public:
+	virtual void StartProjection(NIRS::WavelengthType& type) = 0;
+	virtual void StopProjection() = 0;
+
+	virtual void SetProjectionWavelength(NIRS::WavelengthType& type) = 0;
 };
 
 class TimeController;
@@ -26,19 +36,12 @@ enum PlottingWavelength {
 	HBO_AND_HBR = 3,
 };
 
-class PlottingSystem : public System {//, public IChannelValuesProvider {
+class PlottingSystem : public System, public IChannelDataProvider, public IProjectionTimeTagProvider {
 public:
 	PlottingSystem();
 	~PlottingSystem();
 
-	//const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) override {
-	//	switch (type) {
-	//		case NIRS::WavelengthType::HBO: return hbo_channel_values_;
-	//		case NIRS::WavelengthType::HBR: return hbr_channel_values_;
-	//		case NIRS::WavelengthType::HBT: return hbt_channel_values_;
-	//		default: return hbo_channel_values_; // Default to HBO
-	//	};
-	//};
+
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -51,6 +54,10 @@ public:
 
 	void RenderMenuBar() override;
 
+	void StartProjection(NIRS::WavelengthType& type) override;
+	void StopProjection() override;
+	void SetProjectionWavelength(NIRS::WavelengthType& type) override;
+
 	void HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs);
 
 	void HandleProjectionTagChanged(size_t index, double actual);
@@ -60,6 +67,17 @@ public:
 	void EditProcessingStream();
 
 	void RenderWavelengthSelector();
+
+
+	//const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) override {
+	//	switch (type) {
+	//		case NIRS::WavelengthType::HBO: return hbo_channel_values_;
+	//		case NIRS::WavelengthType::HBR: return hbr_channel_values_;
+	//		case NIRS::WavelengthType::HBT: return hbt_channel_values_;
+	//		default: return hbo_channel_values_; // Default to HBO
+	//	};
+	//};
+
 private:
 	Ref<SNIRF> m_SNIRF;
 	

@@ -13,6 +13,7 @@
 #include "GUI/SNIRFFileLoaderPanel.h"
 
 #include <SQLiteCpp/SQLiteCpp.h>
+#include <optional>
 
 FileLayer::FileLayer() 
 {
@@ -177,11 +178,7 @@ void FileLayer::PostInit()
 {
 
 	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
-	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
-	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
 
-	NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
-	NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
 
 	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(snirfFilepath)));
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
@@ -211,44 +208,41 @@ void FileLayer::LoadSNIRFFile()
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
+namespace Utils {
+        std::optional<std::string> GetFile(const std::string& filter) {
+            char filePath[MAX_PATH] = "";
+            OPENFILENAMEA ofn;
+            ZeroMemory(&ofn, sizeof(ofn));
+            ofn.lStructSize = sizeof(ofn);
+            ofn.hwndOwner = NULL;
+            ofn.lpstrFile = filePath;
+            ofn.nMaxFile = sizeof(filePath);
+            ofn.lpstrFilter = filter.c_str();
+            ofn.nFilterIndex = 1;
+            ofn.lpstrInitialDir = NULL;
+            ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+            if (!GetOpenFileNameA(&ofn)) return std::nullopt;
+            else  return std::string(filePath);
+		}
+}
+
 void FileLayer::LoadHeadAnatomy()
 {
-	char filePath[MAX_PATH] = "";
-
-	OPENFILENAMEA ofn;
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;
-	ofn.lpstrFile = filePath;
-	ofn.nMaxFile = sizeof(filePath);
-	ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex = 1;
-	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-	if (!GetOpenFileNameA(&ofn)) return;
-	auto path = std::string(filePath);
-	NIRS::AnatomyManager::Instance().LoadHead(path);
+	auto path = Utils::GetFile("OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0");
+	
+	if (path.has_value()) 
+    {
+        NIRS::AnatomyManager::Instance().LoadHead(path.value());
+    }
 }
 
 void FileLayer::LoadCortexAnatomy()
 {
-	char filePath[MAX_PATH] = "";
+    auto path = Utils::GetFile("OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0");
 
-	OPENFILENAMEA ofn;
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;
-	ofn.lpstrFile = filePath;
-	ofn.nMaxFile = sizeof(filePath);
-	ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex = 1;
-	ofn.lpstrInitialDir = NULL;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
-	if (!GetOpenFileNameA(&ofn)) return;
-
-    auto path = std::string(filePath);
-    NIRS::AnatomyManager::Instance().LoadCortex(path);
+    if (path.has_value())
+    {
+        NIRS::AnatomyManager::Instance().LoadCortex(path.value());
+    }
 }
 

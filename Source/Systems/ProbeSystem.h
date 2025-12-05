@@ -24,9 +24,12 @@ struct ProbeVisual {
 	RenderCommand RenderCmd2D;
 };
 
+class IProbeProvider {
+public:
+	// TODO : We need a cleaner method of condesning the visual probes into a data strcture, then we can pass it
+};
 
-
-class ProbeSystem : public System {
+class ProbeSystem : public System, public IProbeProvider {
 public:
 	ProbeSystem();
 	~ProbeSystem();

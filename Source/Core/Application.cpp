@@ -49,14 +49,29 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto fs = system_manager_.AddSystem<FileSystem>();
 	
 	auto probe_system = system_manager_.AddSystem<ProbeSystem>();
+	auto probe_provider = static_cast<IProbeProvider*>(probe_system);
+	// Channel Value Provider
 	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
+	auto channel_data_provider = static_cast<IChannelDataProvider*>(plotting_system);
+	auto time_tag_provider = static_cast<IProjectionTimeTagProvider*>(plotting_system); // Lets projection system tell plotting when to enter projection mode and what wavelength to use
 
-	// Needs IChannelValueProvider, ISelectedChannelsProvider, IAnatomyProvider, IProbeProvider
-	auto projection_system = system_manager_.AddSystem<ProjectionSystem>();
-	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
+	// Anatomy Provider
+	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>(); 
+	auto anatomy_provider = static_cast<IAnatomyProvider*>(anatomy_system);
+
+	// Selected Channel Provider
+	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>();
+	auto selected_channels_provider = static_cast<ISelectedChannelsProvider*>(channel_selector);
+
+	// Projection System needs IChannelValueProvider, ISelectedChannelsProvider, IAnatomyProvider, IProbeProvider, IProjectionTimeTagProvider, IProbeProvider
+	auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
+		*anatomy_provider, 
+		*selected_channels_provider, 
+		*channel_data_provider, 
+		*time_tag_provider,
+		*probe_provider);
 
 	// --- Layers
-
 	imgui_layer_ = CreateRef<ImGuiLayer>(); // Renders the ImGUI interface
 
 	PushOverlay(imgui_layer_.get());
@@ -64,7 +79,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	PushLayer(new ProjectionLayer());
 	PushLayer(new AnatomyViewportLayer());
 	PushLayer(new AtlasLayer());
-	PushLayer(new ChannelSelectorLayer());
 	PushLayer(new ControlPanelLayer());
 
 	PushLayer(new FileLayer());

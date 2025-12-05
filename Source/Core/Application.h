@@ -10,7 +10,6 @@
 #include "App/Layer/AnatomyViewportLayer.h"
 #include "App/Layer/ProjectionLayer.h"
 #include "App/Layer/FileLayer.h"
-#include "App/Layer/ChannelSelectorLayer.h"
 #include "App/Layer/ControlPanelLayer.h"
 
 

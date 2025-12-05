@@ -36,11 +36,7 @@ public:
 		if (sViewports.find(type) != sViewports.end()) {
 			return sViewports.at(type);
 		}
-		else {
-			throw std::out_of_range("Viewport Type not found in ViewportManager");
-		}
-		Viewport dummy;
-		return dummy;
+		throw std::out_of_range("Viewport Type not found in ViewportManager");
 	}
 
 	static ViewportManager& Get() {
