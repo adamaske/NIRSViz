@@ -47,3 +47,6 @@
 [submodule "Vendor/fmt"]
 	path = Vendor/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "vendor/bvh"]
+	path = vendor/bvh
+	url = https://github.com/madmann91/bvh.git

@@ -43,7 +43,6 @@ class ProbeSystem : public System, public IProbeProvider {
 public:
 	ProbeSystem(IAnatomyProvider& anatomy_provider) : anatomy_provider_(anatomy_provider) {};
 	~ProbeSystem() {};
-	IAnatomyProvider& anatomy_provider_;
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -80,6 +79,9 @@ public:
 	};
 
 private:
+
+	IAnatomyProvider& anatomy_provider_;
+
 	std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> channel_intersection_results_;
 
 	bool m_DrawProbes2D = false;
