@@ -48,8 +48,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	// --- Systems 
 	auto fs = system_manager_.AddSystem<FileSystem>();
 	
-	auto probe_system = system_manager_.AddSystem<ProbeSystem>();
-	auto probe_provider = static_cast<IProbeProvider*>(probe_system);
 	// Channel Value Provider
 	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
 	auto channel_data_provider = static_cast<IChannelDataProvider*>(plotting_system);
@@ -59,7 +57,11 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>(); 
 	auto anatomy_provider = static_cast<IAnatomyProvider*>(anatomy_system);
 
-	// Selected Channel Provider
+	// Probe System / Provider : Needs Anatomy Provider
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>(anatomy_provider);
+	auto probe_provider = static_cast<IProbeProvider*>(probe_system);
+
+	// Selected Channel System / Provider : TODO(Needs probe provider??)
 	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>();
 	auto selected_channels_provider = static_cast<ISelectedChannelsProvider*>(channel_selector);
 

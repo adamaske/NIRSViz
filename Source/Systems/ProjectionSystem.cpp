@@ -91,19 +91,19 @@ void ProjectionSystem::SetupSubscriptions()
 
 void ProjectionSystem::StartProjection()
 {
+	// Get Probe from probe provider
+	// auto probe = probe_provider_.GetProbe();
+
+	// TODO : Wrapp StartProjeciton in a bool so that service can be denied
+	projection_time_tag_provider_.StartProjection(wavelength_);
+
 	is_projecting_ = true;
 
-	if (!has_intialized) {
-		
-		SetupCortexRendering();
-		UpdateInfluenceMap();
-		has_intialized = true;
-	}
-	//SetupCortexRendering();
-	//UpdateInfluenceMap();
-	//UpdateActivatedVertices();
+	SetupCortexRendering();
 
-	//EventBus::Instance().Publish<OnStartProjection>({});
+	UpdateInfluenceMap();
+	
+	UpdateActivatedVertices();
 }
 
 void ProjectionSystem::StopProjection()
@@ -150,6 +150,9 @@ void ProjectionSystem::UpdateInfluenceMap()
 
 	const auto& probe_system = Application::Get().GetSystem<ProbeSystem>();
 	const auto& intersections = probe_system->GetChannelProjectionResult();
+
+	// auto channel_intersectinos = probe_provider_.GetChannelIntersections();
+
 
 	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	const auto& vertices = cortex->GetMesh()->GetVertices();
@@ -306,7 +309,6 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 	else
 		if(!ImGui::CollapsingHeader("Projection Settings")) 
 			return;
-
 
 	{
 		auto buttonText = is_projecting_ ? "Stop Projection" : "Start Projection";

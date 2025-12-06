@@ -25,14 +25,6 @@
 
 #include "NIRS/Anatomy/AnatomyManager.h"
 
-ProbeSystem::ProbeSystem()
-{
-}
-
-ProbeSystem::~ProbeSystem()
-{
-}
-
 void ProbeSystem::OnAttach()
 {
 	auto& app = Application::Get();
@@ -420,27 +412,27 @@ void ProbeSystem::UpdateChannelVisuals()
 
 void ProbeSystem::ProjectChannelsToCortex()
 {
-	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	if(!cortex){
-		NVIZ_WARN("ProbeSystem: No Cortex asset loaded for projection.");
-		return;
-	}
+	channel_intersection_results_.clear();
 
-	auto vertices = cortex->GetMesh()->GetVertices();
-	auto indices = cortex->GetMesh()->GetIndices();
-	auto world_transform = cortex->GetTransform()->GetMatrix(); // Get world space coordiantes
+	auto& cortex = anatomy_provider_.GetCortexMutable();
 
+	auto& vertices = cortex.GetMesh()->GetVertices();
+	auto& indices = cortex.GetMesh()->GetIndices();
+	glm::mat4 world_transform = cortex.GetTransform()->GetMatrix(); // Get world space coordiantes
+
+	// Cache world space vertices
 	std::vector<glm::vec3> world_space_vertices(vertices.size());
 	for (size_t i = 0; i < vertices.size(); i++)
 	{
 		glm::mat4 world_pos = glm::translate(world_transform, vertices[i].position);
 		world_space_vertices[i] = world_pos[3];
 	}
+
 	// It is already intialized to 0, therefore we dont need to clear it
 	//m_ChannelProjectionIntersections.clear(); 
 
-	for (const auto& [idx, channel] : channel_map_) {
-		const auto& cv = m_ChannelVisualsMap[idx];
+	for (const auto& [id, channel] : channel_map_) {
+		const auto& cv = m_ChannelVisualsMap[id];
 
 		auto line = cv.ProjectionLine3D;
 		const auto& origin = line.Start;
@@ -448,7 +440,7 @@ void ProbeSystem::ProjectChannelsToCortex()
 		const auto& direction = glm::normalize(end - origin);
 
 		RayHit hit;
-		for (unsigned int i = 0; i < indices.size(); i += 3) {
+		for (unsigned int i = 0; i < indices.size(); i += 3) { // TODO : Use a BVH to increase performance and avoid checking every triangle
 
 			auto v0 = world_space_vertices[indices[i]];
 			auto v1 = world_space_vertices[indices[i + 1]];
@@ -465,11 +457,43 @@ void ProbeSystem::ProjectChannelsToCortex()
 			}
 		}
 
+
+
+
 		if (hit.t_distance < std::numeric_limits<float>::max()) {
 			// We have a hit
 			glm::vec3 intersection_point = origin + direction * hit.t_distance;
+			m_ChannelProjectionIntersections[id] = intersection_point;
 
-			m_ChannelProjectionIntersections[idx] = intersection_point;
+			// Go through each hit.hit_vX to find closest vertex
+
+			auto v0_pos = world_space_vertices[hit.hit_v0];
+			auto v1_pos = world_space_vertices[hit.hit_v1];
+			auto v2_pos = world_space_vertices[hit.hit_v2];
+
+			auto v0_dist = glm::distance(intersection_point, v0_pos);
+			auto v1_dist = glm::distance(intersection_point, v1_pos);
+			auto v2_dist = glm::distance(intersection_point, v2_pos);
+
+			int closest_vertex_index = hit.hit_v0;
+			float min_distance = v0_dist;
+
+			if (v1_dist < min_distance) {
+				min_distance = v1_dist;
+				closest_vertex_index = hit.hit_v1;
+			}
+
+			if (v2_dist < min_distance) {
+				closest_vertex_index = hit.hit_v2;
+			}
+
+			// Find the which of the 3 vertices are closest, 
+			ChannelIntersectionResult result;
+			result.ChannelID = id;
+			result.IntersectionPoint3D = intersection_point;
+			result.vertex_index = closest_vertex_index; // Just pick one for now
+
+			channel_intersection_results_[id] = result;
 		}
 	}
 

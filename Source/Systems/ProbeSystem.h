@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Systems/System.h"
+#include "Systems/AnatomySystem.h"
 
 #include "Core/Window/Window.h"
 
@@ -17,6 +18,7 @@
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
 
+
 struct ProbeVisual {
 	NIRS::Probe::Optode optode;
 
@@ -24,15 +26,24 @@ struct ProbeVisual {
 	RenderCommand RenderCmd2D;
 };
 
+struct ChannelIntersectionResult {
+	NIRS::Probe::ChannelID ChannelID;
+	NIRS::Probe::Position3D IntersectionPoint3D;
+
+	unsigned int vertex_index = 0;
+};
+
 class IProbeProvider {
 public:
 	// TODO : We need a cleaner method of condesning the visual probes into a data strcture, then we can pass it
+	virtual const std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> GetChannelIntersectionResults() = 0;
 };
 
 class ProbeSystem : public System, public IProbeProvider {
 public:
-	ProbeSystem();
-	~ProbeSystem();
+	ProbeSystem(IAnatomyProvider& anatomy_provider) : anatomy_provider_(anatomy_provider) {};
+	~ProbeSystem() {};
+	IAnatomyProvider& anatomy_provider_;
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -62,8 +73,14 @@ public:
 	NIRS::Probe::Probe& GetProbeMutable() { return m_SNIRF->GetProbe(); };
 
 	std::map<NIRS::Probe::ChannelID, NIRS::ChannelVisualization> GetChannelVisualizations() const { return m_ChannelVisualsMap; };
-	std::map<NIRS::Probe::ChannelID, glm::vec3> GetChannelProjectionResult() const { return m_ChannelProjectionIntersections; };
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Position3D> GetChannelProjectionResult() const { return m_ChannelProjectionIntersections; };
+
+	const std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> GetChannelIntersectionResults() override {
+		return channel_intersection_results_; 
+	};
+
 private:
+	std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> channel_intersection_results_;
 
 	bool m_DrawProbes2D = false;
 	bool m_DrawChannels2D = false;

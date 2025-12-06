@@ -21,7 +21,7 @@ public:
 
 class IProjectionTimeTagProvider {
 public:
-	virtual void StartProjection(NIRS::WavelengthType& type) = 0;
+	virtual void StartProjection(NIRS::WavelengthType& type) = 0; // TODO : This should be a bool so we can deny serivce
 	virtual void StopProjection() = 0;
 
 	virtual void SetProjectionWavelength(NIRS::WavelengthType& type) = 0;
