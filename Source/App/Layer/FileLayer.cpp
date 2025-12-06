@@ -177,6 +177,11 @@ void FileLayer::RenderMenuBar()
 void FileLayer::PostInit()
 {
 
+    std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
+    std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
+
+    NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
+    NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
 	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
 
 

@@ -58,7 +58,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto anatomy_provider = static_cast<IAnatomyProvider*>(anatomy_system);
 
 	// Probe System / Provider : Needs Anatomy Provider
-	auto probe_system = system_manager_.AddSystem<ProbeSystem>(anatomy_provider);
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_provider);
 	auto probe_provider = static_cast<IProbeProvider*>(probe_system);
 
 	// Selected Channel System / Provider : TODO(Needs probe provider??)

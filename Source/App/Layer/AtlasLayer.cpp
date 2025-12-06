@@ -148,8 +148,8 @@ void AtlasLayer::OnUpdate(float dt)
 	if (m_DrawRays) DrawRays();
 	if (m_DrawManualLandmarks) DrawManualLandmarks(); // TODO : Move shader and mesh into editor
 
-	DrawCortex();
 	DrawHead();
+	DrawCortex();
 }
 
 void AtlasLayer::OnRender()
@@ -357,7 +357,7 @@ void AtlasLayer::DrawCortex()
 {
 	auto* cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	if (!cortex || !cortex->IsVisible()) return;
-
+		
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_PhongShader.get();
 	cmd.VAOPtr = cortex->GetMesh()->GetVAO().get();

@@ -414,7 +414,7 @@ void ProbeSystem::ProjectChannelsToCortex()
 {
 	channel_intersection_results_.clear();
 
-	auto& cortex = anatomy_provider_.GetCortexMutable();
+	auto cortex = anatomy_provider_.GetCortex(); // NIRS::AnatomyManager::Instance().GetCortex();
 
 	auto& vertices = cortex.GetMesh()->GetVertices();
 	auto& indices = cortex.GetMesh()->GetIndices();

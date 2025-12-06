@@ -18,11 +18,6 @@ void AnatomySystem::OnAttach()
 {
 	// Load anatomy data here if needed
 
-	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
-	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
-
-	NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
-	NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
 }
 
 void AnatomySystem::OnDetach()
