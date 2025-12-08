@@ -5,13 +5,18 @@
 #include "NIRS/Anatomy/Head.h"
 #include "NIRS/Anatomy/Cortex.h"
 
-class IAnatomyProvider {
-public:
-	virtual const NIRS::Head& GetHead() = 0;
-	virtual const NIRS::Cortex& GetCortex() = 0;
+#include "NIRS/Coordinate/CoordinateSystemGenerator.h"
 
-    virtual NIRS::Head& GetHeadMutable() = 0;
-	virtual NIRS::Cortex& GetCortexMutable() = 0;
+
+#include "Renderer/Viewport/Viewport3D.h"
+
+#include "NIRS/Anatomy/AnatomyProvider.h"
+
+// TODO : The anatomy system can be told by other system when to start/stop rendering anatomy
+class IAnatomyRenderer {
+public:
+    virtual void StopRenderingAnatomy() = 0;
+	virtual void StartRenderingAnatomy() = 0;
 };
 
 // TODO : Delete Anatomy Manager, this system takes all of AnatomyManager's roles
@@ -30,6 +35,11 @@ public:
     void OnEvent(Event& event) override;
     void RenderMenuBar() override;
 
+    void SetupRendering();
+    void RenderAnatomy();
+
+	void GenerateCoordinateSystem();
+
     const NIRS::Head& GetHead() override;
     const NIRS::Cortex& GetCortex() override;
 
@@ -37,10 +47,16 @@ public:
 	NIRS::Cortex& GetCortexMutable() override;
 
 private:
-
+	Ref<Shader> phong_shader_;
+	Ref<Shader> flat_shader_;
     // TODO : Create a generic viewport class ?
+
+	Scope<CoordinateSystemGenerator> coordinate_generator_;
+	
+    // Manual Landmarks
 
 
     // TODO : Merge AtlasLayer and AnatomyViewport and AnatomyManager into AnatomySystem
+    Scope<Viewport3D> anatomy_viewport_;
 
 };

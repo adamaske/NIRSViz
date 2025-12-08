@@ -10,6 +10,11 @@
 
 class AssetManager {
 public:
+
+    // TODO : On Application Initalzation -> Parse the entire assets folder and pre-load assets.
+    // let them be easily accessible during runtime. 
+    // Do we create a different struct per asset loaded. 
+
     // --- 2. Lifecycle Methods ---
     static void Init() { /* Initialization logic */ }
     static void Shutdown() {

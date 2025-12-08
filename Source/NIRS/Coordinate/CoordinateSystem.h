@@ -19,9 +19,9 @@ enum class PathType {
 
     T5Pz,
     C301,
-
-    
 };
+
+
 
 namespace NIRS {
     class CoordinateSystem {

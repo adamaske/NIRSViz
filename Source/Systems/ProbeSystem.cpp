@@ -34,9 +34,9 @@ void ProbeSystem::OnAttach()
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
 
 	m_ProbeMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
-	m_LineRenderer2D = CreateRef<LineRenderer>(ViewportType::MainViewport, glm::vec4(1.0f), 2.0f);
-	m_LineRenderer3D = CreateRef<LineRenderer>(ViewportType::MainViewport, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
-	m_ProjLineRenderer3D = CreateRef<LineRenderer>(ViewportType::MainViewport, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
+	m_LineRenderer2D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(1.0f), 2.0f);
+	m_LineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
+	m_ProjLineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
 
 	InitHitDataTexture();
 
@@ -328,13 +328,13 @@ void ProbeSystem::UpdateProbeVisual(	ProbeVisual& pv,
 
 void ProbeSystem::UpdateProbeVisuals()
 {
-	auto viewport = ViewportManager::GetViewport(ViewportType::MainViewport);
+	auto viewport = ViewportManager::GetViewport(viewport_type_);
 
 	// --- 1. Initialize Templates and Uniforms ---
 	RenderCommand cmd_template;
 	cmd_template.ShaderPtr = m_FlatColorShader.get();
 	cmd_template.VAOPtr = m_ProbeMesh->GetVAO().get();
-	cmd_template.target_viewport = ViewportType::MainViewport;
+	cmd_template.target_viewport = viewport_type_;
 	cmd_template.Mode = DRAW_ELEMENTS;
 
 	// Use a single template and copy for 2D/3D if they are the same

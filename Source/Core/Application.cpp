@@ -79,8 +79,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	PushOverlay(imgui_layer_.get());
 
 	PushLayer(new ProjectionLayer());
-	PushLayer(new AnatomyViewportLayer());
-	PushLayer(new AtlasLayer());
+	//PushLayer(new AnatomyViewportLayer());
+	//PushLayer(new AtlasLayer());
 	PushLayer(new ControlPanelLayer());
 
 	PushLayer(new FileLayer());

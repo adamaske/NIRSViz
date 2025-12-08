@@ -74,7 +74,7 @@ void AtlasLayer::OnAttach()
 
 	m_SphereMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
 
-	m_LandmarkEditor = CreateScope<App::ManualLandmarkEditor>(
+	m_LandmarkEditor = CreateScope<ManualLandmarkEditor>(
 		m_CoordController->GetCoordinateSystem().GetManualLandmarks(),
 		ViewportType::MainViewport
 	);
@@ -138,7 +138,7 @@ void AtlasLayer::OnDetach()
 void AtlasLayer::OnUpdate(float dt)
 {
 	// Update light position
-	auto viewport = ViewportManager::GetViewport(ViewportType::MainViewport);
+	auto viewport = ViewportManager::GetViewport(viewport_type_);
 	m_LightPosUniform.Data.f3 = viewport.Camera->GetPosition();
 
 	// Draw everything
@@ -201,11 +201,6 @@ void AtlasLayer::RenderHeadSettings() {
 	GUI::RenderAnatomySettings(head, "Head", "Head Anatomy Settings", false);
 }
 
-namespace Utils {
-
-	static glm::vec3 HeadRotationAxis = { 0,1,0 };
-	static float HeadRotationAngleStep = 10;
-}
 
 void AtlasLayer::RenderCortexSettings() {
 
@@ -294,7 +289,7 @@ void AtlasLayer::RenderManualLandmarkSettings()
 
 		ImGui::Checkbox("Draw Manual Landmarks", &m_DrawManualLandmarks);
 		//if (m_DrawManualLandmarks) 
-		m_LandmarkEditor->OnImGuiRender(false);
+		m_LandmarkEditor->RenderGUI(false);
 	}
 }
 
@@ -374,7 +369,7 @@ void AtlasLayer::DrawCortex()
 
 void AtlasLayer::DrawManualLandmarks()
 {
-	m_LandmarkEditor->Render3D(m_FlatColorShader, m_SphereMesh);
+	m_LandmarkEditor->RenderManualLandmarks();
 }
 
 void AtlasLayer::DrawPaths()

@@ -8,11 +8,6 @@
 #include "Renderer/Camera/OrbitCamera.h"
 #include "Renderer/Camera/RoamCamera.h"
 
-enum CameraMode {
-	ORBIT,
-	ROAM
-};
-
 class AnatomyViewportLayer : public Layer {
 public:
 	AnatomyViewportLayer();

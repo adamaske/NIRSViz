@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Renderer/Viewport/Viewport.h"
+
 #include "Core/Base.h"
 
 #include "Renderer/Renderer.h"
@@ -8,10 +10,6 @@
 
 #include <map>
 
-struct Viewport { // A viewport is just a container for pointer to a camera and framebuffer.
-	Camera* Camera;
-	Framebuffer*Framebuffer;
-};
 
 
 class ViewportManager {

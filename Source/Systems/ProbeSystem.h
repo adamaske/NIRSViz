@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Systems/System.h"
-#include "Systems/AnatomySystem.h"
+
+#include "NIRS/Anatomy/AnatomyProvider.h"
 
 #include "Core/Window/Window.h"
 
@@ -128,4 +129,6 @@ private:
 	uint32_t m_HitDataTextureID = 0;
 
 	bool m_InitalProjectionToCortex = false;
+
+	ViewportType viewport_type_ = ViewportType::AnatomyViewport;
 };

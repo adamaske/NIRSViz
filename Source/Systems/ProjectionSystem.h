@@ -2,7 +2,7 @@
 
 #include "Systems/System.h"
 
-#include "Systems/AnatomySystem.h" 
+#include "NIRS/Anatomy/AnatomyProvider.h"
 #include "Systems/ChannelSelectorSystem.h"	 
 #include "Systems/PlottingSystem.h" 
 #include "Systems/ProbeSystem.h"

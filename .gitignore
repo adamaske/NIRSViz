@@ -6,6 +6,8 @@ out/
 .vs/
 .claude/
 utilities/py/venv/
+build/
+
 # User-specific files
 *.rsuser
 *.suo

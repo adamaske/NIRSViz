@@ -19,7 +19,7 @@
 #include "NIRS/Anatomy/AnatomyManager.h"
 
 #include "NIRS/Landmark/ManualLandmarkRegistry.h"
-#include "App/UI/ManualLandmarkEditor.h"	
+#include "NIRS/Landmark/ManualLandmarkEditor.h"	
 
 class AtlasLayer : public Layer {
 public:
@@ -64,7 +64,7 @@ private:
 	// Controllers
 	Scope<App::CoordinateSystemController> m_CoordController;
 
-	Scope<App::ManualLandmarkEditor> m_LandmarkEditor;
+	Scope<ManualLandmarkEditor> m_LandmarkEditor;
 
 
 	// Rendering
@@ -96,4 +96,5 @@ private:
 	char m_LandmarkInputBuffer[256] = "";
 	std::vector<std::string> m_SelectedLandmarkNames;
 
+	ViewportType viewport_type_ = ViewportType::AnatomyViewport;
 };

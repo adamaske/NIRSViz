@@ -85,8 +85,10 @@ void GUI::RenderTransformSettings(Transform* transform)
 	RenderVec3Control("Scale", scale, 1.0f);
 }
 
-void GUI::RenderAnatomySettings(Anatomy* anatomy, const std::string& name, const std::string& label, bool standalone)
+void GUI::RenderAnatomySettingsImpl(Anatomy* anatomy, const std::string& name, const std::string& label, bool standalone)
 {
+	//NVIZ_ASSERT(std::is_base_of<Anatomy, T>::value, "RenderAnatomySettings: T must be a subclass of Anatomy");
+
 	ImGui::PushID(std::string("anatomy_settings_" + name).c_str());
 	if (standalone)
 		ImGui::Begin(label.c_str());

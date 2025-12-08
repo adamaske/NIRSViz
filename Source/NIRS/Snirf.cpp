@@ -237,7 +237,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             optode.id = i + 1;
 
             optode.position_2D = glm::vec2(x2D, y2D);
-            optode.position_3D = glm::vec3(x3D, y3D, z3D);
+            optode.position_3D = glm::vec3(x3D, z3D, y3D); // TODO : Sort out this z-y swap
 
 			probe_.detectors[optode.id] = optode;
         }
@@ -275,7 +275,7 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
             optode.id = i + 1;
 
 			optode.position_2D = glm::vec2(x2D, y2D);
-			optode.position_3D = glm::vec3(x3D, y3D, z3D);
+			optode.position_3D = glm::vec3(x3D, z3D, y3D);
 
 			probe_.sources[optode.id] = optode;
         }
