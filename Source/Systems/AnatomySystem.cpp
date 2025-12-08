@@ -42,6 +42,8 @@ void AnatomySystem::OnUpdate(DeltaTime dt)
 {
 	anatomy_viewport_->OnUpdate(dt);
 
+	coordinate_generator_->RenderCoordinateSystem();
+
 	RenderAnatomy();
 }
 

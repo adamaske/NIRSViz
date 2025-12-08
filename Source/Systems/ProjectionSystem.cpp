@@ -18,8 +18,8 @@ void ProjectionSystem::OnAttach()
 {
 	// TODO : Fix the shader class such that I can have a reference of it. 
 	projection_shader_ = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/VertexProjection.vert", 
-		"C:/dev/NIRSViz/Assets/Shaders/VertexProjection.frag");
+		"C:/dev/NIRSViz/Assets/Shaders/Projection.vert", 
+		"C:/dev/NIRSViz/Assets/Shaders/Projection.frag");
 
 	SetupSubscriptions();
 
@@ -162,11 +162,6 @@ void ProjectionSystem::UpdateInfluenceMap()
 
 	for (auto& [channel_id, intersection_point] : intersections) {
 
-		// We want to both know wheter the vertex is wihtin the influence radius/
-		// And we want the actual distance to calculate infleunce falloff.
-		std::vector<int> influenced_vertices;
-		std::vector<double> distances;
-
 
 		for (int i = 0; i < vertices.size(); i++) {
 
@@ -199,9 +194,9 @@ void ProjectionSystem::UpdateActivatedVertices()
 
 			float falloff = 1.0f - (iv.distance / settings_.Radius);
 
-			float activation_strength = channel_values_[channel_id] * falloff;
+			float activation_strength = channel_values_[channel_id];
 
-			projection_vertices[vertex_index].activity_level = 0; activation_strength;
+			projection_vertices[vertex_index].activity_level += activation_strength * falloff;
 		}
 	}
 
@@ -260,7 +255,7 @@ void ProjectionSystem::RenderProjectionCortex()
 {
 	auto cortex = anatomy_provider_.GetCortex();
 
-	auto target_viewport = ViewportType::MainViewport;
+	auto target_viewport = ViewportType::AnatomyViewport;
 	auto matrix = cortex.GetTransform()->GetMatrix();
 
 	UniformData lightPos; // TODO : Move to shared uniform buffer ? 

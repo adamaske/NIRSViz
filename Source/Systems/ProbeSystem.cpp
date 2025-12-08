@@ -65,6 +65,18 @@ void ProbeSystem::OnUpdate(DeltaTime dt)
 		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
 
+	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
+		for (auto& [id, pv] : source_visuals_) {
+			RenderCommand cmd = pv.RenderCmd3D;
+			cmd.Transform = glm::scale(cmd.Transform, glm::vec3(m_Probe3DMeshScale));
+			Renderer::Submit(cmd);
+		}
+		for (auto& [id, pv] : detector_visuals_) {
+			RenderCommand cmd = pv.RenderCmd3D;
+			cmd.Transform = glm::scale(cmd.Transform, glm::vec3(m_Probe3DMeshScale));
+			Renderer::Submit(cmd);
+		}
+	}
 
 	if (m_DrawChannels2D && m_SNIRF->IsFileLoaded()) m_LineRenderer2D->Draw();
 	if (m_DrawChannels3D && m_SNIRF->IsFileLoaded()) m_LineRenderer3D->Draw();
@@ -85,16 +97,6 @@ void ProbeSystem::OnUpdate(DeltaTime dt)
 		}
 	}
 
-	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
-		for (auto& [id, pv] : source_visuals_) {
-			RenderCommand cmd = pv.RenderCmd3D;
-			Renderer::Submit(cmd);
-		}
-		for (auto& [id, pv] : detector_visuals_) {
-			RenderCommand cmd = pv.RenderCmd3D;
-			Renderer::Submit(cmd);
-		}
-	}
 }
 
 void ProbeSystem::OnGUIRender()
@@ -351,7 +353,7 @@ void ProbeSystem::UpdateProbeVisuals()
 	glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(m_Probe3DMeshScale));
 
 	// Base transform: Offset * Rotation * Scale (Translation and localRotation are per-probe)
-	glm::mat4 base3DTransform = offset * rotation * scale;
+	glm::mat4 base3DTransform = offset * rotation;
 
 	// --- 3. Update All Visuals ---
 	for (auto& [id, pv] : source_visuals_) {

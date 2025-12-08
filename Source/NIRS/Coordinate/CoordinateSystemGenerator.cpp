@@ -29,9 +29,10 @@ bool CoordinateSystemGenerator::GenerateCoordinateSystem(CoordinateSystemData & 
 
 
 
-	auto coordSystem = m_CoordController->GetCoordinateSystem();
+	auto head = &anatomy_provider_.GetHeadMutable();
+	m_CoordController->GenerateCoordinateSystem(head);
 
-	auto head = &anatomy_provider_.GetHead();
+	auto coordSystem = m_CoordController->GetCoordinateSystem();
 	auto worldVertices = head->GetWorldSpaceVertexPositions();
 
 
@@ -104,6 +105,7 @@ bool CoordinateSystemGenerator::GenerateCoordinateSystem(CoordinateSystemData & 
 
 void CoordinateSystemGenerator::RenderCoordinateSystem()
 {
+	
 
 	landmark_renderer_->Draw();
 	ray_renderer_->Draw();

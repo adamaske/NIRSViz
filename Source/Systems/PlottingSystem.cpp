@@ -339,9 +339,9 @@ void PlottingSystem::HandleProjectionTagChanged(size_t index, double actual)
 		return;
 	}
 
-	//auto ps = Application::Get().GetSystem<ProjectionSystem>();
-	//
-	//ps->UpdateProjectionTimeIndex(index, actual);
+	auto ps = Application::Get().GetSystem<ProjectionSystem>();
+	
+	ps->UpdateProjectionTimeIndex(index, actual);
 
 
 
