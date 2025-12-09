@@ -16,7 +16,9 @@
 
 class IChannelDataProvider {
 public:
-	//virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) = 0;
+	virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::WavelengthType type) = 0;
+
+	virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::WavelengthType type, uint32_t time_index) = 0;
 };
 
 class IProjectionTimeTagProvider {
@@ -24,24 +26,22 @@ public:
 	virtual void StartProjection(NIRS::WavelengthType& type) = 0; // TODO : This should be a bool so we can deny serivce
 	virtual void StopProjection() = 0;
 
-	virtual void SetProjectionWavelength(NIRS::WavelengthType& type) = 0;
+	//virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValueAtCurrentTimeIndex(NIRS::WavelengthType type) = 0;
+	
 };
 
+class IProjectionTimeSubscriber;
 class TimeController;
-
-enum PlottingWavelength {
-	HBO_ONLY = 0,
-	HBR_ONLY = 1,
-	HBT_ONLY = 2,
-	HBO_AND_HBR = 3,
-};
 
 class PlottingSystem : public System, public IChannelDataProvider, public IProjectionTimeTagProvider {
 public:
 	PlottingSystem();
 	~PlottingSystem();
 
-
+	// Register a subscriber to be notified when projection time changes
+	void RegisterProjectionTimeSubscriber(IProjectionTimeSubscriber* subscriber) {
+		projection_time_subscriber_ = subscriber;
+	}
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -56,7 +56,6 @@ public:
 
 	void StartProjection(NIRS::WavelengthType& type) override;
 	void StopProjection() override;
-	void SetProjectionWavelength(NIRS::WavelengthType& type) override;
 
 	void HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs);
 
@@ -66,33 +65,38 @@ public:
 
 	void EditProcessingStream();
 
-	void RenderWavelengthSelector();
+	const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::WavelengthType type) override;
+	const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::WavelengthType type, uint32_t time_index) override;
 
-
-	//const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValues(NIRS::WavelengthType type) override {
-	//	switch (type) {
-	//		case NIRS::WavelengthType::HBO: return hbo_channel_values_;
-	//		case NIRS::WavelengthType::HBR: return hbr_channel_values_;
-	//		case NIRS::WavelengthType::HBT: return hbt_channel_values_;
-	//		default: return hbo_channel_values_; // Default to HBO
-	//	};
-	//};
-
+	void SetWavelengthVisibility(NIRS::WavelengthType wavelength, bool isVisible) {
+		wavelength_visibility_[wavelength] = isVisible;
+	}
 private:
-	Ref<SNIRF> m_SNIRF;
-	
-	// Current channel values at the current time index
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbo_channel_values_;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbr_channel_values_;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbt_channel_values_;
+	// Use a map so we can easily extend to more wavelengths in the future
+	std::map<NIRS::WavelengthType, bool> wavelength_visibility_ = {
+		{NIRS::WavelengthType::HBO, true},
+		{NIRS::WavelengthType::HBR, true},
+		{NIRS::WavelengthType::HBT, false}
+	};
 
+	Ref<SNIRF> m_SNIRF;
+
+	// Current channel values at the current time index
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbo_channel_data_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbr_channel_data_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbt_channel_data_;
+
+
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbo_channel_values_at_tag_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbr_channel_values_at_tag_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbt_channel_values_at_tag_;
 
 	bool m_IsProjecting = false;
 
 	float m_DeltaTime = 0.0f;
 	bool m_EditingProcessingStream = false;
 
-	unsigned int m_TimeIndex = 0;
+	int m_TimeIndex = 0;
 
 	double m_TagSliderValue = 0.0f; 
 
@@ -102,9 +106,11 @@ private:
 	double m_PlotYMax = 0;
 	bool m_NeedAxisFit = false;
 
-	PlottingWavelength m_PlottingWavelength = HBO_ONLY; // Plotting however can show both at the same time. 
 	std::vector<NIRS::Probe::ChannelID> m_SelectedChannels;
 
 	// For playback mode
 	Ref<TimeController> m_TimeController;
+
+	// Subscriber to notify when projection time changes (breaks circular dependency)
+	IProjectionTimeSubscriber* projection_time_subscriber_ = nullptr;
 };

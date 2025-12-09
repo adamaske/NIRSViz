@@ -6,6 +6,10 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 
 #include "Projects/ProjectDatabase.h"
+#include "NIRS/Anatomy/AnatomyManager.h"
+#include "Core/AssetManager.h"
+#include "NIRS/Snirf.h"
+#include "Events/EventBus.h"
 
 void FileSystem::OnAttach()
 {
@@ -52,6 +56,20 @@ void FileSystem::RenderMenuBar()
 		ImGui::EndMenu();
 	}
 	ImGui::PopID();
+}
+
+void FileSystem::PostInit() {
+
+	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
+	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
+
+	NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
+	NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
+	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
+
+
+	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(snirfFilepath)));
+	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
 void FileSystem::OpenProject()

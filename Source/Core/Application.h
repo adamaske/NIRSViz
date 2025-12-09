@@ -2,16 +2,9 @@
 #include "Core/Base.h"
 
 #include "Core/Window/Window.h"
-#include "Core/LayerStack.h"
 #include "Events/ApplicationEvent.h"
 
-#include "GUI/ImGuiLayer.h"
-#include "App/Layer/AtlasLayer.h"
-#include "App/Layer/AnatomyViewportLayer.h"
-#include "App/Layer/ProjectionLayer.h"
-#include "App/Layer/FileLayer.h"
-#include "App/Layer/ControlPanelLayer.h"
-
+#include "GUI/ControlPanel.h"
 
 #include "Systems/SystemManager.h"
 
@@ -61,16 +54,12 @@ public:
 
 	void OnEvent(Event& e);
 
-	void PushLayer(Layer* layer);
-	void PushOverlay(Layer* layer);
-
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
 
 	Ref<Window> GetWindow() { return window_; }
 	const ApplicationSpecification& GetSpecification() const { return specification_	; }
 
-	LayerStack& GetLayerStack() { return layer_stack_; }
 	SystemManager& GetSystemManager() { return system_manager_; }
 
 	template<typename T>
@@ -87,10 +76,10 @@ private:
 
 	//Ref<Coordinator> m_Coordinator;
 	Ref<Window> window_;
-
 	SystemManager system_manager_;
 
+	ImGuiSystem* gui_system_ = nullptr;
 
-	LayerStack layer_stack_;
-	Ref<ImGuiLayer> imgui_layer_; // Store it for special functionaliyy
+	Ref<ControlPanel> control_panel_;
+	friend class ControlPanel; // For now let control panel access application settings directly
 };

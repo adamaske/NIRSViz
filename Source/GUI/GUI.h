@@ -20,6 +20,9 @@ namespace GUI {
 	void RenderPointRendererSettings(LineRenderer* renderer, bool& show, const std::string& label, bool standalone, float columnWidth = 100.0f);
 
 	void RenderSNIRFInfo(SNIRF* snirf);
+
+	void RenderWavelengthSelectorSingular(NIRS::WavelengthType& out_type);
+	void RenderWavelengthSelectorMultiple(std::map<NIRS::WavelengthType, bool>& out_map);
 }
 
 #include "GUI/Colors.h"

@@ -505,52 +505,9 @@ void ProbeSystem::ProjectChannelsToCortex()
 
 void ProbeSystem::InitHitDataTexture()
 {
-	glGenTextures(1, &m_HitDataTextureID);
-	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
-	
-	// Set texture parameters
-	// GL_NEAREST for fetching exact hit data, no interpolation needed
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-
-	// Allocate storage for MAX_HITS (each hit is a vec4, so RGBA32F is good)
-	// We'll store hitPosition.xyz in RGB and strength in A
-	// Radius will be passed as a separate uniform for simplicity, or in a second texture.
-	// For MAX_HITS, you need MAX_HITS * 4 floats for RGBA data
-	glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F, MAX_HITS, 0, GL_RGBA, GL_FLOAT, nullptr);
-
-	glBindTexture(GL_TEXTURE_1D, 0); // Unbind
 }
 
 void ProbeSystem::UpdateHitDataTexture()
 {
-	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
-
-	projData->HitDataTextureID = m_HitDataTextureID;
-	projData->NumHits = static_cast<uint32_t>(m_ChannelProjectionIntersections.size());
-	projData->ChannelProjectionIntersections = m_ChannelProjectionIntersections;
-
-	std::vector<glm::vec4> textureData(MAX_HITS, glm::vec4(0.0f));
-
-	int idx = 0;
-	for(auto& [ID, channel] : channel_map_){
-
-		auto intersectionPoint = m_ChannelProjectionIntersections[ID];
-
-
-		textureData[idx].x = intersectionPoint.x;
-		textureData[idx].y = intersectionPoint.y;
-		textureData[idx].z = intersectionPoint.z;
-
-		textureData[idx].w = 0;// projData->ChannelValues[ID];
-
-		idx++;
-	}
-
-	// Bind the texture and update its data
-	glBindTexture(GL_TEXTURE_1D, m_HitDataTextureID);
-	glTexSubImage1D(GL_TEXTURE_1D, 0, 0, MAX_HITS, GL_RGBA, GL_FLOAT, textureData.data());
-	glBindTexture(GL_TEXTURE_1D, 0);
 }
 

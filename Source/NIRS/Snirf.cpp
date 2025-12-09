@@ -404,6 +404,15 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
             channel.hbo_data = channel_data_vec;
         };
 
+        // Set HBT
+        {
+            channel.hbt_data.resize(channel.hbo_data.size());
+            for (size_t t = 0; t < channel.hbo_data.size(); t++)
+            {
+                channel.hbt_data[t] = channel.hbo_data[t] + channel.hbr_data[t];
+			}
+        }
+
         probe_.channels[channel.id] = channel;
     }
 }

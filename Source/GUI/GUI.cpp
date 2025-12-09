@@ -183,3 +183,33 @@ void GUI::RenderSNIRFInfo(SNIRF* snirf)
 	ImGui::Separator();
 	ImGui::PopID();
 }
+
+void GUI::RenderWavelengthSelectorSingular(NIRS::WavelengthType& out_type)
+{
+	// Radio buttons - only one can be active at a time
+	if (ImGui::RadioButton("HbO", out_type == NIRS::WavelengthType::HBO)) {
+		out_type = NIRS::WavelengthType::HBO;
+	}
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("HbR", out_type == NIRS::WavelengthType::HBR)) {
+		out_type = NIRS::WavelengthType::HBR;
+	}
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("HbT", out_type == NIRS::WavelengthType::HBT)) {
+		out_type = NIRS::WavelengthType::HBT;
+	}
+}
+
+void GUI::RenderWavelengthSelectorMultiple(std::map<NIRS::WavelengthType, bool>& out_map)
+{
+	// Checkboxes - multiple can be active at once
+	ImGui::Checkbox("HbO", &out_map[NIRS::WavelengthType::HBO]);
+	ImGui::SameLine();
+
+	ImGui::Checkbox("HbR", &out_map[NIRS::WavelengthType::HBR]);
+	ImGui::SameLine();
+
+	ImGui::Checkbox("HbT", &out_map[NIRS::WavelengthType::HBT]);
+}

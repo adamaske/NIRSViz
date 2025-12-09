@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "GUI/ImGuiLayer.h"
+#include "Systems/ImGuiSystem.h"
 
 #include <glad/glad.h>
 
@@ -12,14 +12,14 @@
 
 #include "Core/Application.h"
 
-ImGuiLayer::ImGuiLayer()
+ImGuiSystem::ImGuiSystem()
 {
 }
-ImGuiLayer::~ImGuiLayer()
+ImGuiSystem::~ImGuiSystem()
 {
 }
 
-void ImGuiLayer::OnAttach()
+void ImGuiSystem::OnAttach()
 {
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
@@ -59,7 +59,7 @@ void ImGuiLayer::OnAttach()
 	ImGui_ImplOpenGL3_Init("#version 450");
 }
 
-void ImGuiLayer::OnDetach()
+void ImGuiSystem::OnDetach()
 {
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
@@ -67,7 +67,7 @@ void ImGuiLayer::OnDetach()
 	ImPlot::DestroyContext();
 }
 
-void ImGuiLayer::OnEvent(Event& e)
+void ImGuiSystem::OnEvent(Event& e)
 {
 	if (m_BlockEvents)
 	{
@@ -77,7 +77,7 @@ void ImGuiLayer::OnEvent(Event& e)
 	}
 }
 
-void ImGuiLayer::Begin()
+void ImGuiSystem::Begin()
 {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -85,7 +85,6 @@ void ImGuiLayer::Begin()
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 	ImGui::ShowDemoWindow();
 
-	auto& layerStack = Application::Get().GetLayerStack();
 	auto& systemManager = Application::Get().GetSystemManager();
 
 	if (ImGui::BeginMainMenuBar()) {
@@ -93,13 +92,11 @@ void ImGuiLayer::Begin()
 		for(auto& system : systemManager)
 			system->RenderMenuBar();
 
-		for (auto* layer : layerStack)
-			layer->RenderMenuBar();
 		ImGui::EndMainMenuBar();
 	}
 }
 
-void ImGuiLayer::End()
+void ImGuiSystem::End()
 {
 	ImGuiIO& io = ImGui::GetIO();
 	Application& app = Application::Get();
@@ -118,7 +115,7 @@ void ImGuiLayer::End()
 	}
 }
 
-void ImGuiLayer::SetDarkThemeColors()
+void ImGuiSystem::SetDarkThemeColors()
 {
 	auto& colors = ImGui::GetStyle().Colors;
 	colors[ImGuiCol_WindowBg] = ImVec4{ 0.1f, 0.105f, 0.11f, 1.0f };
@@ -151,7 +148,7 @@ void ImGuiLayer::SetDarkThemeColors()
 	colors[ImGuiCol_TitleBgCollapsed] = ImVec4{ 0.15f, 0.1505f, 0.151f, 1.0f };
 }
 
-uint32_t ImGuiLayer::GetActiveWidgetID() const
+uint32_t ImGuiSystem::GetActiveWidgetID() const
 {
 	return 0;
 }

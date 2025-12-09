@@ -32,11 +32,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	window_ = CreateRef<Window>(window_spec);
 	window_->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 
-
-	// ECS Setup
-
-	// DI Container
-
 	EventBus::Instance().Subscribe<ExitApplicationCommand>([this](const ExitApplicationCommand& cmd) {
 		this->Close();
 		});
@@ -46,44 +41,31 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 
 	// --- Systems 
+	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
+
 	auto fs = system_manager_.AddSystem<FileSystem>();
-	
-	// Channel Value Provider
+
+	// Add systems
 	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
-	auto channel_data_provider = static_cast<IChannelDataProvider*>(plotting_system);
-	auto time_tag_provider = static_cast<IProjectionTimeTagProvider*>(plotting_system); // Lets projection system tell plotting when to enter projection mode and what wavelength to use
-
-	// Anatomy Provider
-	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>(); 
-	auto anatomy_provider = static_cast<IAnatomyProvider*>(anatomy_system);
-
-	// Probe System / Provider : Needs Anatomy Provider
-	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_provider);
-	auto probe_provider = static_cast<IProbeProvider*>(probe_system);
-
-	// Selected Channel System / Provider : TODO(Needs probe provider??)
+	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system); 
 	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>();
-	auto selected_channels_provider = static_cast<ISelectedChannelsProvider*>(channel_selector);
 
-	// Projection System needs IChannelValueProvider, ISelectedChannelsProvider, IAnatomyProvider, IProbeProvider, IProjectionTimeTagProvider, IProbeProvider
+	// Projection System - pass systems directly, they'll upcast automatically
 	auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
-		*anatomy_provider, 
-		*selected_channels_provider, 
-		*channel_data_provider, 
-		*time_tag_provider,
-		*probe_provider);
+		*anatomy_system,   
+		*channel_selector, 
+		*plotting_system,  
+		*plotting_system,  
+		*probe_system);    
 
-	// --- Layers
-	imgui_layer_ = CreateRef<ImGuiLayer>(); // Renders the ImGUI interface
+	// Register callback
+	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 
-	PushOverlay(imgui_layer_.get());
+	// --- TODO : Clean up this, we should not handle the control panel from here, and we should not need to call post init 
+	control_panel_ = CreateRef<ControlPanel>();
 
-	PushLayer(new ProjectionLayer());
-	//PushLayer(new AnatomyViewportLayer());
-	//PushLayer(new AtlasLayer());
-	PushLayer(new ControlPanelLayer());
-
-	PushLayer(new FileLayer());
+	system_manager_.GetSystem<FileSystem>()->PostInit();
 }
 
 Application::~Application()
@@ -108,20 +90,17 @@ void Application::Run()
 			for (auto& system : system_manager_)
 				system->OnUpdate(delta_time);
 
-			for (Layer* layer : layer_stack_)
-				layer->OnUpdate(delta_time);
 
 			Renderer::ExecuteQueue();
 
-			imgui_layer_->Begin();
-			
-			for (Layer* layer : layer_stack_)
-				layer->OnImGuiRender();
+			gui_system_->Begin();
 
 			for (auto& system : system_manager_)
 				system->OnGUIRender();
 
-			imgui_layer_->End();
+			control_panel_->OnImGuiRender(true, running_);
+
+			gui_system_->End();
 		}
 	}
 }
@@ -137,22 +116,12 @@ void Application::OnEvent(Event& e)
 	dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClose));
 	dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
 
-	for (auto it = layer_stack_.rbegin(); it != layer_stack_.rend(); ++it)
+	for (auto it = system_manager_.begin(); it != system_manager_.end(); ++it)
 	{
 		if (e.handled)
 			break;
 		(*it)->OnEvent(e);
 	}
-}
-
-void Application::PushLayer(Layer* layer)
-{
-	layer_stack_.PushLayer(layer);
-}
-
-void Application::PushOverlay(Layer* layer)
-{
-	layer_stack_.PushOverlay(layer);
 }
 
 bool Application::OnWindowClose(WindowCloseEvent& e)

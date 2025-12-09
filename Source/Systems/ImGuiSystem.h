@@ -1,16 +1,16 @@
 #pragma once
 
-#include "Core/Layer.h"
+#include "Systems/System.h"
 
 #include "Events/ApplicationEvent.h"
 #include "Events/KeyEvent.h"
 #include "Events/MouseEvent.h"
 
-class ImGuiLayer : public Layer
+class ImGuiSystem : public System
 {
 public:
-	ImGuiLayer();
-	~ImGuiLayer();
+	ImGuiSystem();
+	~ImGuiSystem();
 
 	virtual void OnAttach() override;
 	virtual void OnDetach() override;

@@ -13,6 +13,7 @@ public:
 	void OnGUIRender() override;
 	void RenderMenuBar() override;
 
+	void PostInit();
 
 	void OpenProject();
 

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Systems/PlottingSystem.h"
+#include "Systems/IProjectionTimeSubscriber.h"
 
 #include <imgui.h>
 #include <implot.h>
@@ -38,16 +39,6 @@ void PlottingSystem::OnAttach()
 	EventBus::Instance().Subscribe<OnStopProjection>([this](const OnStopProjection& e) {
 		m_IsProjecting = false;
 	});
-	EventBus::Instance().Subscribe<OnProjectionWavelengthChanged>([this](const OnProjectionWavelengthChanged& e) {
-		switch(e.Wavelength) {
-			case(NIRS::WavelengthType::HBO):
-				m_PlottingWavelength = HBO_ONLY;
-				break;
-			case(NIRS::WavelengthType::HBR):
-				m_PlottingWavelength = HBR_ONLY;
-				break;
-		}
-		});
 }
 
 void PlottingSystem::OnDetach()
@@ -59,8 +50,6 @@ void PlottingSystem::OnUpdate(DeltaTime dt)
 	m_DeltaTime = dt;
 }
 
-
-static bool firstTime = true;
 void PlottingSystem::OnGUIRender()
 {
 	if (m_EditingProcessingStream) EditProcessingStream();
@@ -68,8 +57,11 @@ void PlottingSystem::OnGUIRender()
 	ImGui::Begin("Data Plotter");
 	if (ImGui::CollapsingHeader("SNIRF File Info")) GUI::RenderSNIRFInfo(m_SNIRF.get());
 
-	ImGui::Separator(); 
-	RenderWavelengthSelector();
+	ImGui::Separator();
+	ImGui::Text("Plotting Wavelength(s): ");
+	ImGui::SameLine();
+	GUI::RenderWavelengthSelectorMultiple(wavelength_visibility_);
+
 	ImGui::Separator();
 	
 	auto fs = m_SNIRF->GetSamplingRate();
@@ -80,14 +72,18 @@ void PlottingSystem::OnGUIRender()
 	size_t channel_num = m_SelectedChannels.size();
 
 	ImGui::Separator();
-	if (m_TimeIndex < time.size() && m_TimeIndex >= 0) {
-		ImGui::Text("Time Index : %zu", m_TimeIndex);
-		ImGui::Text("Actual Time : %.4f s", time[m_TimeIndex]);
-	}
-	else {
-		ImGui::Text("Time Index : N/A");
-		ImGui::Text("Actual Time : N/A");
-	}
+
+	auto clamp_time_index = [&](int& index) {
+		if (index < 0)
+			index = 0;
+		else if (index >= time.size())
+			index = time.size() - 1;
+		};
+
+	clamp_time_index(m_TimeIndex);
+
+	ImGui::Text("Time Index : %u", m_TimeIndex);
+	ImGui::Text("Actual Time : %.4f s", time[m_TimeIndex]);
 
 	if (ImPlot::BeginPlot("##Data Plot")) {
 
@@ -127,28 +123,26 @@ void PlottingSystem::OnGUIRender()
 
 			std::string label; 
 			std::vector<double> data;
-			switch (m_PlottingWavelength) {
-				case(HBO_ONLY):
-					label = "Channel " + std::to_string(channelID) + " - HbO";
-					data = channel.hbo_data;
-					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
-					break;
 
-				case(HBR_ONLY):
-					label = "Channel " + std::to_string(channelID) + " - HbR";
-					data = channel.hbr_data;
-					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
-					break;
+			if (wavelength_visibility_[NIRS::WavelengthType::HBO]) {
 
-				case(HBO_AND_HBR):
-					label = "Channel " + std::to_string(channelID) + " - HbO";
-					data = channel.hbo_data;
-					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+				label = "Channel " + std::to_string(channelID) + " - HbO";
+				data = channel.hbo_data;
+				ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+			}
 
-					label = "Channel " + std::to_string(channelID) + " - HbR";
-					data = channel.hbr_data;
-					ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
-					break;
+			if (wavelength_visibility_[NIRS::WavelengthType::HBR]) {
+
+				label = "Channel " + std::to_string(channelID) + " - HbR";
+				data = channel.hbr_data;
+				ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
+			}
+
+			if (wavelength_visibility_[NIRS::WavelengthType::HBT]) {
+
+				label = "Channel " + std::to_string(channelID) + " - HbT";
+				data = channel.hbt_data;
+				ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 			}
 		}
 
@@ -158,22 +152,18 @@ void PlottingSystem::OnGUIRender()
 
 			ImPlot::DragLineX(0, &m_TagSliderValue, ImVec4(1, 0.2, 0.2, 1), 1, ImPlotDragToolFlags_NoFit);
 			ImPlot::TagX(m_TagSliderValue, ImVec4(1, 0.2, 0.2, 1), "%s", "Time");
-			// --- Conversion Logic ---
+
 			ImVec2 pixelCoords = ImPlot::PlotToPixels(m_TagSliderValue, 0.0, ImAxis_X2, ImAxis_Y2);
 			ImPlotPoint plotCoordsX1 = ImPlot::PixelsToPlot(pixelCoords, ImAxis_X1, ImAxis_Y1);
+			auto new_time_seconds = plotCoordsX1.x;
+			auto new_time_index = static_cast<int>(new_time_seconds * fs); // Multiply by sampling rate to get index
+			clamp_time_index(new_time_index);
 
-			double tagX1TimeValue = plotCoordsX1.x;
-			//ImGui::SetCursorScreenPos(pixelCoords); 
-
-			auto timeIndex = static_cast<size_t>(std::round(tagX1TimeValue * fs));
-
-			// NOTE : THIS MEANS WE UPDATED THE PROJECTION TAG -> NOTIFY PROJECTION SYSTEM
-			if (timeIndex != m_TimeIndex) { // A change was made
-
-				HandleProjectionTagChanged(timeIndex, time[timeIndex]);
+			if (new_time_index != m_TimeIndex) {
+				HandleProjectionTagChanged(new_time_index, time[new_time_index]);
 			}
 
-			m_TimeIndex = timeIndex;
+			m_TimeIndex = new_time_index;
 		}
 
 		ImPlot::EndPlot();
@@ -190,7 +180,17 @@ void PlottingSystem::OnEvent(Event& event)
 
 void PlottingSystem::StartProjection(NIRS::WavelengthType& type)
 {
-	SetProjectionWavelength(type);
+	//SetProjectionWavelength(type);
+	
+	// Set all wavelengths to false first
+	for (auto& wavelength : wavelength_visibility_) {
+		wavelength.second = false;
+	}
+	wavelength_visibility_[type] = true;
+
+
+	m_TimeIndex = 0;
+	m_TagSliderValue = 0.0f;
 
 	m_IsProjecting = true;
 }
@@ -200,23 +200,6 @@ void PlottingSystem::StopProjection()
 	m_IsProjecting = false;
 }
 
-void PlottingSystem::SetProjectionWavelength(NIRS::WavelengthType& type)
-{
-	switch (type) {
-	case (NIRS::WavelengthType::HBO):
-		m_PlottingWavelength = HBO_ONLY;
-		break;
-	case(NIRS::WavelengthType::HBR):
-		m_PlottingWavelength = HBR_ONLY;
-		break;
-	case (NIRS::WavelengthType::HBT):
-		m_PlottingWavelength = HBT_ONLY;
-		break;
-	default:
-		NVIZ_ERROR("PlottingSystem::SetProjectionWavelength: Unsupported wavelength type.");
-		return;
-	}
-}
 
 void PlottingSystem::EditProcessingStream()
 {
@@ -229,23 +212,35 @@ void PlottingSystem::EditProcessingStream()
 	ImGui::End();
 }
 
-void PlottingSystem::RenderWavelengthSelector()
+const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& PlottingSystem::GetChannelData(NIRS::WavelengthType type)
 {
+	// TODO: insert return statement here
+	switch (type) {
+		case NIRS::WavelengthType::HBO:
+			return hbo_channel_data_;
+		case NIRS::WavelengthType::HBR:
+			return hbr_channel_data_;
+		case NIRS::WavelengthType::HBT:
+			return hbt_channel_data_;
+		default:
+			NVIZ_ERROR("PlottingSystem::GetChannelData: Unsupported wavelength type. Returning HBO");
+			return hbo_channel_data_;
+	}
+}
 
-	ImGui::Text("Wavelength : ");
-	ImGui::SameLine();
-	if (ImGui::RadioButton("HbO", m_PlottingWavelength == HBO_ONLY)) {
-		m_PlottingWavelength = HBO_ONLY;
+const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& PlottingSystem::GetChannelDataAtTimeIndex(NIRS::WavelengthType type, uint32_t time_index)
+{
+	switch (type) {
+	case NIRS::WavelengthType::HBO:
+		return hbo_channel_values_at_tag_;
+	case NIRS::WavelengthType::HBR:
+		return hbr_channel_values_at_tag_;
+	case NIRS::WavelengthType::HBT:
+		return hbt_channel_values_at_tag_;
+	default:
+		NVIZ_ERROR("PlottingSystem::GetChannelData: Unsupported wavelength type. Returning HBO");
+		return hbo_channel_values_at_tag_;
 	}
-	ImGui::SameLine();
-	if (ImGui::RadioButton("HbR", m_PlottingWavelength == HBR_ONLY)) {
-		m_PlottingWavelength = HBR_ONLY;
-	}
-	ImGui::SameLine();
-	if (ImGui::RadioButton("HbO & HbR", m_PlottingWavelength == HBO_AND_HBR)) {
-		m_PlottingWavelength = HBO_AND_HBR;
-	}
-
 }
 
 void PlottingSystem::RenderMenuBar()
@@ -293,24 +288,35 @@ void PlottingSystem::HandleSelectedChannels(const std::vector<NIRS::Probe::Chann
 		}
 
 		auto& channel = channelMap[channelID];
+		auto hboData = channel.hbo_data;
+		auto hbrData = channel.hbr_data;
+		auto hbtData = channel.hbt_data;
 
-		// Check HbO data if needed
-		if (m_PlottingWavelength == HBO_ONLY || m_PlottingWavelength == HBO_AND_HBR) {
-			auto hboData = channel.hbo_data;
-			if (!hboData.empty()) {
-				auto [minIt, maxIt] = std::minmax_element(hboData.begin(), hboData.end());
-				minY = std::min(minY, *minIt);
-				maxY = std::max(maxY, *maxIt);
-			}
-		}
+		for(auto& [WL, visible] : wavelength_visibility_) {
+			if (!visible) continue;
 
-		// Check HbR data if needed
-		if (m_PlottingWavelength == HBR_ONLY || m_PlottingWavelength == HBO_AND_HBR) {
-			auto hbrData = channel.hbr_data;
-			if (!hbrData.empty()) {
-				auto [minIt, maxIt] = std::minmax_element(hbrData.begin(), hbrData.end());
-				minY = std::min(minY, *minIt);
-				maxY = std::max(maxY, *maxIt);
+			switch (WL) {
+			case NIRS::WavelengthType::HBO:
+				if (!hboData.empty()) {
+					auto [minIt, maxIt] = std::minmax_element(hboData.begin(), hboData.end());
+					minY = std::min(minY, *minIt);
+					maxY = std::max(maxY, *maxIt);
+				}
+				break;
+			case NIRS::WavelengthType::HBR:
+				if (!hbrData.empty()) {
+					auto [minIt, maxIt] = std::minmax_element(hbrData.begin(), hbrData.end());
+					minY = std::min(minY, *minIt);
+					maxY = std::max(maxY, *maxIt);
+				}
+				break;
+			case NIRS::WavelengthType::HBT:
+				if (!hbtData.empty()) {
+					auto [minIt, maxIt] = std::minmax_element(hbtData.begin(), hbtData.end());
+					minY = std::min(minY, *minIt);
+					maxY = std::max(maxY, *maxIt);
+				}
+				break;
 			}
 		}
 	}
@@ -339,51 +345,58 @@ void PlottingSystem::HandleProjectionTagChanged(size_t index, double actual)
 		return;
 	}
 
-	auto ps = Application::Get().GetSystem<ProjectionSystem>();
-	
-	ps->UpdateProjectionTimeIndex(index, actual);
-
-
-
-
-	// Meh -> 
-	EventBus::Instance().Publish<OnProjectionTimeChanged>({ index, actual });
-
 	SetChannelValuesAtTimeIndex(index);
+
+	// Notify the subscriber (if registered) instead of directly calling ProjectionSystem
+	if (projection_time_subscriber_) {
+		projection_time_subscriber_->OnProjectionTimeChanged(index, actual);
+	}
+	else {
+		NVIZ_WARN("PlottingSystem::HandleProjectionTagChanged: No projection time subscriber registered.");
+	}
 }
 
 void PlottingSystem::SetChannelValuesAtTimeIndex(int index)
 {
 	auto channelMap = m_SNIRF->GetChannels();
 
-	size_t timeIndex = static_cast<size_t>(index);
+	// Verify index is within scope
 
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hboValues; // Your map to store results
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbrValues; // Your map to store results
+	size_t time_index = static_cast<size_t>(index);
+
+	//std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hboValues; // Your map to store results
+	//std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbrValues; // Your map to store results
+	//std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbtValues; // Your map to store results
 
 	for (auto& [ID, channel] : channelMap) {
-		hboValues[ID] = 0.0;
-		hbrValues[ID] = 0.0;
-	}
 
-	for (auto& ID : m_SelectedChannels) {
-		auto& channel = channelMap[ID];
-		std::vector<double> hbo = channel.hbo_data;
-		std::vector<double> hbr = channel.hbr_data;
+		auto hbo_data = channel.hbo_data;
+		auto hbr_data = channel.hbr_data;
+		auto hbt_data = channel.hbt_data;
 
-		if (timeIndex >= 0 && timeIndex < hbo.size()) { // Within bounds
-			hboValues[ID] = hbo[timeIndex];
-			hbrValues[ID] = hbr[timeIndex];
+
+
+		hbo_channel_data_[ID] = hbo_data;
+		hbr_channel_data_[ID] = hbo_data;
+		hbt_channel_data_[ID] = hbo_data;
+
+		if (time_index >= 0 && time_index < hbo_data.size()) {
+			auto hbo = hbo_data[time_index];
+			auto hbr = hbr_data[time_index];
+
+			hbo_channel_values_at_tag_[ID] = hbo;
+			hbr_channel_values_at_tag_[ID] = hbr;
+			hbt_channel_values_at_tag_[ID] = hbo + hbr;
+		}
+		else {
+			hbo_channel_values_at_tag_[ID] = 0;
+			hbr_channel_values_at_tag_[ID] = 0;
+			hbt_channel_values_at_tag_[ID] = 0;
 		}
 
+		continue;
 	}
 
-	auto projData = AssetManager::Get<NIRS::ProjectionData>("ProjectionData");
-	projData->HBOChannelValues = hboValues;
-	projData->HBRChannelValues = hbrValues;
 
-
-
-	EventBus::Instance().Publish<OnChannelValuesUpdated>({ hboValues, hbrValues });
 }
 

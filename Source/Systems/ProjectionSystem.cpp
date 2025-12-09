@@ -63,29 +63,11 @@ void ProjectionSystem::SetupSubscriptions()
 		StartProjection();
 		});
 
-	bus.Subscribe<OnProjectionTimeChanged>([&](const OnProjectionTimeChanged& e) {
-		// Update projection time in settings
-		NVIZ_ERROR("ProjectionSystem received OnProjectionTimeChanged: index {0}, actual {1}", e.time_index, e.time_seconds);
-		NVIZ_ERROR("AVOID THIS METHOD -> The projectionsystem should be called directly...");
-	});
 	bus.Subscribe<OnChannelsSelected>([&](const OnChannelsSelected& e) {
 		selected_channels_.clear();
 		for (const auto& id : e.selectedIDs) {
 			selected_channels_.insert(id);
 		}
-	});
-
-	bus.Subscribe<OnChannelValuesUpdated>([&](const OnChannelValuesUpdated& e) {
-		switch (wavelength_) {
-			case NIRS::WavelengthType::HBO:
-				channel_values_ = e.HBOValues;
-				break;
-			case NIRS::WavelengthType::HBR:
-				channel_values_ = e.HBRValues;
-				break;
-		}
-
-		UpdateActivatedVertices();
 	});
 }
 
@@ -119,19 +101,12 @@ void ProjectionSystem::SetProjectionWavelength(const NIRS::WavelengthType& wavel
 	wavelength_ = wavelength;
 }
 
-void ProjectionSystem::UpdateProjectionTimeIndex(size_t index, double actual)
+void ProjectionSystem::OnProjectionTimeChanged(size_t index, double actualTime)
 {
 	settings_.time_index = index;
 
-	// For selected channel : g
-
-
+	// Update the activated vertices based on the new time index
 	UpdateActivatedVertices();
-	// We need access to the loaded snirf data ->
-	// We need access to the channel intersections calculated in the probe system -> 
-
-	// Bind the activity level texture
-
 }
 
 
@@ -151,9 +126,6 @@ void ProjectionSystem::UpdateInfluenceMap()
 	const auto& probe_system = Application::Get().GetSystem<ProbeSystem>();
 	const auto& intersections = probe_system->GetChannelProjectionResult();
 
-	// auto channel_intersectinos = probe_provider_.GetChannelIntersections();
-
-
 	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	const auto& vertices = cortex->GetMesh()->GetVertices();
 	const auto& transform = cortex->GetTransform()->GetMatrix();
@@ -162,10 +134,8 @@ void ProjectionSystem::UpdateInfluenceMap()
 
 	for (auto& [channel_id, intersection_point] : intersections) {
 
-
 		for (int i = 0; i < vertices.size(); i++) {
 
-			// We need the world position of the vertex
 			glm::vec3 world_pos = transform * glm::vec4(vertices[i].position, 1.0f);
 
 			float distance = glm::distance(intersection_point, world_pos);
@@ -180,36 +150,26 @@ void ProjectionSystem::UpdateInfluenceMap()
 
 void ProjectionSystem::UpdateActivatedVertices()
 {
-	auto start_time = std::chrono::high_resolution_clock::now();
-
 	auto projection_vertices = zeroed_projection_vertices_;
+
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> channels = 
+		channel_data_provider_.GetChannelDataAtTimeIndex(wavelength_, settings_.time_index);
 
 	for(auto& [channel_id, influenced_vertices] : influenced_vertices_) {
 
-		//if (!selected_channels_.contains(channel_id)) // Dont process unselected channels
-		//	continue;
+		double activation_strength = channels[channel_id];
 		
 		for (const auto& iv : influenced_vertices) {
 			int vertex_index = iv.vertex_index;
 
 			float falloff = 1.0f - (iv.distance / settings_.Radius);
 
-			float activation_strength = channel_values_[channel_id];
 
 			projection_vertices[vertex_index].activity_level += activation_strength * falloff;
 		}
 	}
 
-	// Pass data to GPU
-//cortex_vao_->Bind();
 	cortex_vbo_->SetData(&projection_vertices[0], projection_vertices.size() * sizeof(ProjectionVertex));
-	
-	//cortex_vao_->Unbind();
-
-	auto end_time = std::chrono::high_resolution_clock::now();
-
-	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-	NVIZ_INFO("UpdateActivatedVertices took {0} ms", duration);
 }
 
 void ProjectionSystem::SetupCortexRendering()
@@ -320,6 +280,8 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 		ImGui::PopStyleColor();
 	}
 
+	ImGui::SameLine();
+	GUI::RenderWavelengthSelectorSingular(wavelength_);
 
 	// Set up a two-column layout. The string "SettingsColumns" is a unique ID for the column set.
 // The 'false' means the column width is not border-locked (no vertical separator line).

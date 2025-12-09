@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Systems/System.h"
+#include "Systems/IProjectionTimeSubscriber.h"
 
 #include "NIRS/Anatomy/AnatomyProvider.h"
-#include "Systems/ChannelSelectorSystem.h"	 
-#include "Systems/PlottingSystem.h" 
+#include "Systems/ChannelSelectorSystem.h"
+#include "Systems/PlottingSystem.h"
 #include "Systems/ProbeSystem.h"
 
 #include "NIRS/NIRS.h"
@@ -14,7 +15,7 @@
 
 #include <set>
 
-class ProjectionSystem : public System {
+class ProjectionSystem : public System, public IProjectionTimeSubscriber {
 public:
 	ProjectionSystem(
 		IAnatomyProvider& anatomy_provider, 
@@ -65,7 +66,8 @@ public:
 	const NIRS::ProjectionSettings& GetProjectionSettings() { return settings_; };
 	NIRS::ProjectionSettings& GetProjectionSettingsMutable() { return settings_; };
 
-	void UpdateProjectionTimeIndex(size_t index, double actual);
+	// IProjectionTimeSubscriber interface implementation
+	void OnProjectionTimeChanged(size_t index, double actualTime) override;
 
 private:
 
