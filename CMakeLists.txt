@@ -21,7 +21,7 @@ set(ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
 # Platform-Specific Configuration
 # =============================================================================
 if(MSVC)
-    add_compile_options(/utf-8)
+    add_compile_options(/source_charset:utf-8)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup")
 
 endif()
@@ -30,8 +30,48 @@ endif()
 # =============================================================================
 # External Dependencies
 # =============================================================================
+
+#Boost
+#find_package(Boost REQUIRED COMPONENTS filesystem system)
+
+#Assimp 
+
+CONFIGURE_FILE(
+  ${VENDOR_DIR}/assimp/include/assimp/config.h.in
+  ${VENDOR_DIR}/assimp/include/assimp/config.h
+)
+add_library(Assimp::Assimp SHARED IMPORTED)
+set_target_properties(Assimp::Assimp PROPERTIES
+    # IMPLIB (Import Library) points to the .lib file that the linker needs.
+    IMPORTED_IMPLIB_DEBUG
+    "${VENDOR_DIR}/assimp/build/lib/Debug/assimp-vc143-mtd.lib"
+
+    # LOCATION points to the actual .dll file that the executable needs at runtime.
+    IMPORTED_LOCATION_DEBUG
+    "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll"
+)
+
+# --- RELEASE Configuration ---
+# NOTE: Ensure these paths and file names match your Release configuration!
+set_target_properties(Assimp::Assimp PROPERTIES
+    # IMPLIB for Release configuration
+    IMPORTED_IMPLIB_RELEASE
+    "${VENDOR_DIR}/assimp/build/lib/Release/assimp-vc143-mt.lib"
+
+    # LOCATION for Release configuration
+    IMPORTED_LOCATION_RELEASE
+    "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll"
+)
+
+# Get the DLL path based on the build configuration
+# We use generator expressions to select the correct path (.dll) at build time
+set(ASSIMP_DLL_PATH_DEBUG "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll")
+set(ASSIMP_DLL_PATH_RELEASE "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll")
+
+
+
 # FMTlib
-add_subdirectory(Vendor/fmt)
+add_subdirectory(${VENDOR_DIR}/fmt)
 
 # OpenGL
 find_package(OpenGL REQUIRED)
@@ -100,6 +140,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/HighFive/include
     ${VENDOR_DIR}/Eigen/include
     ${VENDOR_DIR}/fmt/include            # Added include for FMTlib
+    ${VENDOR_DIR}/assimp/include
 )
 
 # Link libraries
@@ -112,6 +153,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     SQLiteCpp
     $<$<BOOL:${MINGW}>:ws2_32>
     fmt
+    Assimp::Assimp
 )
 
 # =============================================================================
@@ -130,4 +172,14 @@ install(FILES ${ASSET_SHARE}
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
+)
+
+# Use a POST_BUILD command to copy the DLL after the main executable is built.
+add_custom_command(
+    TARGET ${PROJECT_NAME} POST_BUILD
+    # Generator expression to select the correct DLL path based on configuration
+    COMMAND ${CMAKE_COMMAND} -E copy
+        "$<IF:$<CONFIG:Debug>,${ASSIMP_DLL_PATH_DEBUG},${ASSIMP_DLL_PATH_RELEASE}>"
+        "$<TARGET_FILE_DIR:${PROJECT_NAME}>"  # Updated to use ${PROJECT_NAME} for target directory
+    COMMENT "Copying Assimp DLL to executable output directory"
 )

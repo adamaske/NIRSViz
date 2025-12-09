@@ -152,21 +152,32 @@ void ProjectionSystem::UpdateActivatedVertices()
 {
 	auto projection_vertices = zeroed_projection_vertices_;
 
+	auto selected_channels = selected_channels_provider_.GetSelectedChannels();
+
 	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> channels = 
 		channel_data_provider_.GetChannelDataAtTimeIndex(wavelength_, settings_.time_index);
 
 	for(auto& [channel_id, influenced_vertices] : influenced_vertices_) {
 
-		double activation_strength = channels[channel_id];
-		
-		for (const auto& iv : influenced_vertices) {
-			int vertex_index = iv.vertex_index;
+		// Ignore not selcetd chanels ? 
+		// selected_channels is a vector of ChannelID
+		for(auto& sel_channel_id : selected_channels) {
+			if(sel_channel_id == channel_id) {
+				// Channel is selected, proceed
+				double activation_strength = channels[channel_id];
 
-			float falloff = 1.0f - (iv.distance / settings_.Radius);
+				for (const auto& iv : influenced_vertices) {
+					int vertex_index = iv.vertex_index;
+
+					float falloff = 1.0f - (iv.distance / settings_.Radius);
 
 
-			projection_vertices[vertex_index].activity_level += activation_strength * falloff;
+					projection_vertices[vertex_index].activity_level += activation_strength * falloff;
+				}
+			}
 		}
+
+		
 	}
 
 	cortex_vbo_->SetData(&projection_vertices[0], projection_vertices.size() * sizeof(ProjectionVertex));

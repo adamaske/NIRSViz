@@ -24,11 +24,6 @@ public:
 	bool LoadModel(const std::string& inputFile,
 		std::vector<Vertex>& vertices,
 		std::vector<unsigned int>& indices);
-	bool LoadObj(	const std::string& filename,
-					std::vector<Vertex>& vertices,
-					std::vector<unsigned int>& indices
-	);
-
 	void SetupBuffers();
 
 	Ref<VertexArray> GetVAO() { return m_VAO; };

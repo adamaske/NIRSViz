@@ -2,6 +2,7 @@
 
 
 #include "GUI/Panel.h"
+class Application;
 
 class ControlPanel : public ImGuiPanel {
 public:
@@ -12,4 +13,6 @@ public:
 
 	void OnImGuiRender(bool standalone, bool& open) override;
 private:
+
+	Application* application = nullptr;
 };

@@ -82,8 +82,12 @@ void PlottingSystem::OnGUIRender()
 
 	clamp_time_index(m_TimeIndex);
 
-	ImGui::Text("Time Index : %u", m_TimeIndex);
-	ImGui::Text("Actual Time : %.4f s", time[m_TimeIndex]);
+	if(m_IsProjecting)
+	{
+		ImGui::Text("Time Index : %u", m_TimeIndex);
+		ImGui::SameLine();
+		ImGui::Text("Actual Time : %.4f s", time[m_TimeIndex]);
+	}
 
 	if (ImPlot::BeginPlot("##Data Plot")) {
 

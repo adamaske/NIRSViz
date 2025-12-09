@@ -11,14 +11,66 @@
 #include "NIRS/Snirf.h"
 #include "Events/EventBus.h"
 
+#include <assimp/Importer.hpp>      // Main Assimp importer class
+#include <assimp/scene.h>           // The Assimp scene structure
+#include <assimp/postprocess.h>     // Post-processing flags
+
+// --- Helper functions (You would define these outside of OnAttach) ---
+void processMesh(aiMesh * mesh, const aiScene * scene) {
+	// Implementation to extract vertices, indices, and materials...
+	// For now, we'll just log
+	NVIZ_INFO("    - Mesh found: " + std::string(mesh->mName.C_Str()));
+}
+
+void processNode(aiNode * node, const aiScene * scene) {
+	for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+		processMesh(mesh, scene);
+	}
+	for (unsigned int i = 0; i < node->mNumChildren; i++) {
+		processNode(node->mChildren[i], scene);
+	}
+}
+// --------------------------------------------------------------------
+
 void FileSystem::OnAttach()
 {
-	NVIZ_INFO("FileSystem attached.");
+	// We want to preload our assets, then all places which need assest goes through this. 
 
 
 	// What do we want to do?
 
+	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
 
+	NVIZ_INFO("Attempting to load model from: " + headFilepath);
+
+	// 1. Initialize the Assimp Importer
+	Assimp::Importer importer;
+
+	// 2. Read the file with post-processing flags
+	const aiScene* scene = importer.ReadFile(
+		headFilepath,
+		aiProcess_Triangulate |           // Ensure all geometry is triangles
+		aiProcess_GenSmoothNormals |      // Calculate smooth normals
+		aiProcess_FlipUVs |               // Flip UVs on the Y-axis
+		aiProcess_JoinIdenticalVertices   // Optimize vertex count
+	);
+
+	// 3. Check for errors
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+		NVIZ_ERROR("Model Loading Failed! Assimp Error: " + std::string(importer.GetErrorString()));
+		return;
+	}
+
+	// 4. Success! Begin processing the scene data
+	NVIZ_WARN("Model loaded successfully!");
+	NVIZ_WARN("Total meshes found: " + std::to_string(scene->mNumMeshes));
+	NVIZ_WARN("Total materials found: " + std::to_string(scene->mNumMaterials));
+
+	// Recursively process the root node and its children
+	processNode(scene->mRootNode, scene);
+
+	// Assimp::Importer cleans up the scene data automatically upon destruction
 }
 
 void FileSystem::OnGUIRender()

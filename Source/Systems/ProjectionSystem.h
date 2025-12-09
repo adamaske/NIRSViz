@@ -58,6 +58,7 @@ public:
 
 	void SetProjectionWavelength(const NIRS::WavelengthType& wavelength);
 	const NIRS::WavelengthType& GetProjectionWavelength() { return wavelength_; };
+	NIRS::WavelengthType& GetProjectionWavelengthMutable() { return wavelength_; };
 
 
 	const NIRS::ProjectionData& GetProjectionData() { return data_; };
