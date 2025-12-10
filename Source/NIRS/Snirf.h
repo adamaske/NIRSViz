@@ -13,6 +13,7 @@
 #include "NIRS/SNIRFError.h"
 #include "NIRS/SNIRFValidator.h"
 
+class WingsDataParser;
 
 class SNIRF {
 public:
@@ -26,7 +27,7 @@ public:
 	void ParseProbe(const HighFive::Group& probe);
 	void ParseData1(const HighFive::Group& data1);
 	void ParseStims(const HighFive::Group& nirs);
-
+	void ParseWings(const HighFive::Group& nirs);
 	std::string GetFilepath() { return filepath_.string(); };
 
 	bool IsFileLoaded() { return !filepath_.empty(); };
@@ -48,6 +49,10 @@ public:
 	double GetSamplingRate() { return m_SamplingRate; };
 	std::vector<double> GetTime() { return m_Time; };
 	double GetDurationSeconds() { return m_DurationSeconds; };
+	
+	// --- WINGS ---
+	const bool& HasWings() { return has_wings_; };
+	WingsDataParser& GetWingsParser() const { return *wings_parser_; };
 
 private:
 	// --- File ---
@@ -79,4 +84,6 @@ private:
 		Eigen::Dynamic,
 		Eigen::RowMajor> m_ChannelData;
 
+	bool has_wings_ = false;
+	Ref<WingsDataParser> wings_parser_ = nullptr;
 };

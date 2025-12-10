@@ -8,6 +8,7 @@
 
 #include <NIRS/SNIRFValidator.h>
 
+#include "NIRS/Wings/WingsDataParser.h"
 
 namespace Utils {
     using namespace HighFive;
@@ -165,7 +166,7 @@ void SNIRF::Print()
 void SNIRF::LoadFile(const std::filesystem::path& filepath)
 {
     File file(filepath.string(), File::ReadOnly); 
-	//Utils::ParseHDF5(filepath.string());
+	Utils::ParseHDF5(filepath.string());
 
 	Group root = file.getGroup("/");
     Group nirs = root.getGroup("nirs");
@@ -175,6 +176,7 @@ void SNIRF::LoadFile(const std::filesystem::path& filepath)
     ParseData1(nirs.getGroup("data1"));
     ParseStims(nirs);
 
+    ParseWings(nirs);
     Print();
 }
 
@@ -186,8 +188,20 @@ void SNIRF::ParseMetadataTags(const HighFive::Group& metadata)
     for(auto& name : object_names)
     {
         DataSet dataset = metadata.getDataSet(name);
+        
+
         NVIZ_INFO("Metadata Tag : {0}", name);
+
+        // TODO : Wings Generation metadata tag. 
+       /* if(name == "wingsGeneration")
+        {
+            Group wings_group = metadata.getGroup("wingsGeneration");
+            
+			Utils::ParseGroup(wings_group, wings_group.getPath());
+		}*/
 	}
+
+
 }
 
 void SNIRF::ParseProbe(const HighFive::Group& probe)
@@ -197,8 +211,6 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
     std::vector<std::string> object_names = probe.listObjectNames();
 
     using Map_RM = Eigen::Map<const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>;
-
-
 
     OptodeID source2D = 0;
     OptodeID source3D = 0;
@@ -486,5 +498,27 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
     
 		events_.push_back(std::move(event));
 	}
+}
+
+void SNIRF::ParseWings(const HighFive::Group& nirs)
+{
+	bool found_wings = false;
+	auto metadata = nirs.getGroup("metaDataTags");
+
+    auto names = metadata.listObjectNames();
+    for(auto& name : names)
+    {
+        if (name == "wingsGeneration")
+        {
+            found_wings = true;
+        }
+	}
+    if(!found_wings)
+		return;
+    has_wings_ = true;
+
+    wings_parser_ = CreateRef<WingsDataParser>();
+	wings_parser_->Parse(nirs);
+    wings_parser_->Print();
 }
 

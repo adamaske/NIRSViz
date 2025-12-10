@@ -91,3 +91,4 @@ private:
 #include "Systems/AnatomySystem.h"
 #include "Systems/ChannelSelectorSystem.h"
 #include "Systems/ImGuiSystem.h"
+#include "Systems/WingsPlottingSystem.h"

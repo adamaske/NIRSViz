@@ -86,6 +86,10 @@ void FileSystem::RenderMenuBar()
 	ImGui::PushID("FileSystemMenuBar");
 	if (ImGui::BeginMenu("File")) {
 		
+		if(ImGui::Button("Open sNIRF")) {
+			UserLoadSNIRF();
+		};
+
 		if (ImGui::MenuItem("New Project")) {
 			m_ShowNewProjectEditor = true;
 
@@ -122,6 +126,29 @@ void FileSystem::PostInit() {
 
 	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(snirfFilepath)));
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
+}
+
+void FileSystem::UserLoadSNIRF()
+{
+	char filePath[MAX_PATH] = "";
+	OPENFILENAMEA ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = NULL;
+	ofn.lpstrFile = filePath;
+	ofn.nMaxFile = sizeof(filePath);
+	ofn.lpstrFilter = "SNIRF Files (*.snirf)\0*.snirf\0All Files (*.*)\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = 0;// OFN_PATHMUST | OFN_FILEMUSTEXIST;
+	GetOpenFileNameA(&ofn);
+
+	std::string projectPath = std::string(filePath);
+	if (!projectPath.empty()) {
+
+		AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(projectPath));
+		EventBus::Instance().Publish<OnSNIRFLoaded>({});
+	}
 }
 
 void FileSystem::OpenProject()

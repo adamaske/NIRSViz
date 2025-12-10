@@ -59,6 +59,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 		*plotting_system,  
 		*probe_system);    
 
+	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
+
 	// Register callback
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 

@@ -14,6 +14,7 @@ public:
 	void RenderMenuBar() override;
 
 	void PostInit();
+	void UserLoadSNIRF();
 
 	void OpenProject();
 
