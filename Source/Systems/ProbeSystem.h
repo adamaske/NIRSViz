@@ -117,7 +117,7 @@ private:
 	glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, -1.45f, -1.5f);
 	glm::vec3	m_Probe3DRotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
 	float		m_Probe3DRotationAngle = 180.0f;
-	float		m_Probe3DSpreadFactor = 0.13f;
+	float		m_Probe3DSpreadFactor = 0.11f;
 	float		m_Probe3DMeshScale = 0.8f;
 	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 0.0f, 0.0f);
 

@@ -30,6 +30,8 @@ public:
 
 	void RenderCortexSettings();
 
+
+
 private:
 	ViewportType viewport_type_ = ViewportType::AnatomyViewport;
 	IAnatomyProvider& anatomy_provider_;
@@ -58,4 +60,6 @@ private:
 	Scope<PointRenderer> waypoint_renderer_;
 	bool draw_waypoints_ = true;
 	void RenderWaypointSettings();
+
+	friend class AnatomySystem;
 };

@@ -12,6 +12,7 @@
 
 #include "NIRS/Anatomy/AnatomyProvider.h"
 
+
 // TODO : The anatomy system can be told by other system when to start/stop rendering anatomy
 class IAnatomyRenderer {
 public:
@@ -46,6 +47,17 @@ public:
 	NIRS::Head& GetHeadMutable() override;
 	NIRS::Cortex& GetCortexMutable() override;
 
+    const CoordinateSystemGenerator& GetCoordinateSystemGenerator() { return *coordinate_generator_; };
+    CoordinateSystemGenerator& GetCoordinateSystemGeneratorMuteable() { return *coordinate_generator_; };
+
+    enum DrawMode {
+        NONE = 0,
+        ANATOMY_NO_COORDINATES = 1,
+		ANATOMY_BASIC_COORDINATES = 2,
+		ANATOMY_FULL_COORDINATES = 3,
+		COORDINATES_ONLY = 4
+    };
+    void SetDrawMode(DrawMode mode);
 private:
 	Ref<Shader> phong_shader_;
 	Ref<Shader> flat_shader_;

@@ -56,15 +56,22 @@ void AnatomySystem::OnGUIRender()
 	// Anatomy Settings
 	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	auto head = NIRS::AnatomyManager::Instance().GetHead();
+
+	ImGui::SeparatorText("Cortex Anatomy");
 	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex, "Cortex", "Cortex Anatomy Settings", false);
+	ImGui::SeparatorText("Head Anatomy");
 	GUI::RenderAnatomySettings<NIRS::Head>(head, "Head", "Head Anatomy Settings", false);
 
+
+	ImGui::SeparatorText("Coordinate System Generation");
 	if (ImGui::Button("Generate Coordinates"))
 	{
 		GenerateCoordinateSystem();
 	};
 	coordinate_generator_->RenderGUI(false);
+	
 
+	ImGui::SeparatorText("Anatomy Viewport Camera Settings");
 	anatomy_viewport_->RenderCameraSettings(false);
 
 	ImGui::End();
@@ -190,4 +197,31 @@ NIRS::Head& AnatomySystem::GetHeadMutable()
 NIRS::Cortex& AnatomySystem::GetCortexMutable()
 {
 	return *NIRS::AnatomyManager::Instance().GetCortex();
+}
+
+void AnatomySystem::SetDrawMode(DrawMode mode)
+{
+	switch (mode) {
+
+		case NONE:
+			// Disable all rendering
+			break;
+		case ANATOMY_NO_COORDINATES:
+
+			// Render anatomy without coordinates
+			break;
+
+		case ANATOMY_BASIC_COORDINATES:
+
+			// Render anatomy with basic coordinates
+			break;
+
+		case ANATOMY_FULL_COORDINATES:
+
+			break;
+
+		case COORDINATES_ONLY:
+
+			break;
+	}
 }

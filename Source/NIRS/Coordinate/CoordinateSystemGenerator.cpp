@@ -107,10 +107,10 @@ void CoordinateSystemGenerator::RenderCoordinateSystem()
 {
 	
 
-	landmark_renderer_->Draw();
-	ray_renderer_->Draw();
-	path_renderer_->Draw();
-	waypoint_renderer_->Draw();
+	if(draw_landmarks_) landmark_renderer_->Draw();
+	if (draw_rays_) ray_renderer_->Draw();
+	if (draw_paths_) path_renderer_->Draw();
+	if (draw_waypoints_) waypoint_renderer_->Draw();
 
 	if (draw_manual_landmarks_)
 		manual_landmark_editor_->RenderManualLandmarks();
@@ -119,11 +119,26 @@ void CoordinateSystemGenerator::RenderCoordinateSystem()
 
 void CoordinateSystemGenerator::RenderGUI(bool standalone)
 {
+	bool visible = false;
 	if (standalone) ImGui::Begin("Manual Landmark Editor");
+	else visible = ImGui::CollapsingHeader("Coordinate System Settings");
 
+	if (!visible) return;
+	
+	// Draw Waypoints
+	ImGui::Checkbox("Draw Waypoints", &draw_waypoints_);
+	// Draw Rays
+	ImGui::Checkbox("Draw Rays", &draw_rays_);
 
+	// Draw Paths
+	ImGui::Checkbox("Draw Paths", &draw_paths_);
+
+	// Draw Landmarks
+
+	ImGui::Checkbox("Draw Landmarks", &draw_landmarks_);
 
 	// --- Manual Landmarks ---
+	ImGui::SeparatorText("Manual Landmark Editor Settings");
 	ImGui::Checkbox("Draw Manual Landmarks", &draw_manual_landmarks_);
 	manual_landmark_editor_->RenderGUI(false);
 
