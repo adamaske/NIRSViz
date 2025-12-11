@@ -92,3 +92,4 @@ private:
 #include "Systems/ChannelSelectorSystem.h"
 #include "Systems/ImGuiSystem.h"
 #include "Systems/WingsPlottingSystem.h"
+#include "Systems/ControlPanelSystem.h"

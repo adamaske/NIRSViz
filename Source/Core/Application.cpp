@@ -44,6 +44,9 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
 	auto fs = system_manager_.AddSystem<FileSystem>();
 
+
+
+
 	// Add systems
 	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
 	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
@@ -59,12 +62,12 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 		*probe_system);    
 
 	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
+	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
+
 
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 
-	// --- TODO : Clean up this, we should not handle the control panel from here, and we should not need to call post init 
-	control_panel_ = CreateRef<ControlPanel>();
 
 	system_manager_.GetSystem<FileSystem>()->PostInit();
 }
@@ -98,8 +101,6 @@ void Application::Run()
 
 			for (auto& system : system_manager_)
 				system->OnGUIRender();
-
-			control_panel_->OnImGuiRender(true, running_);
 
 			gui_system_->End();
 		}

@@ -1,26 +1,30 @@
 #include "pch.h"
-#include "GUI/ControlPanel.h"
+#include "Systems/ControlPanelSystem.h"
 #include "Core/Application.h"
 #include <imgui.h>
 #include <GUI/GUI.h>
 
-ControlPanel::ControlPanel()
-{
-	
-    application = &Application::Get();
-	if(!application)
-		NVIZ_RUNTIME_ERROR("ControlPanel: Failed to get Application instance.");
+void ControlPanelSystem::OnAttach() {
+
 }
 
-void ControlPanel::OnImGuiRender(bool standalone, bool& open)
+void ControlPanelSystem::OnDetach() {
+
+}
+
+void ControlPanelSystem::OnUpdate(DeltaTime dt) {
+
+}
+
+void ControlPanelSystem::OnEvent(Event& event) {
+
+}
+
+void ControlPanelSystem::OnGUIRender()
 {
-
-    // First of all "Start Projection"
-
-	ImGui::Begin("Control Panel", &open);
-
+	ImGui::Begin("Control Panel");
 	{
-		auto ps = application->GetSystemManager().GetSystem<ProjectionSystem>();
+		auto ps = application_.GetSystem<ProjectionSystem>();
 		bool is_projecting = ps->IsProjection();
 
 		auto buttonText = is_projecting ? "Stop Projection" : "Start Projection";

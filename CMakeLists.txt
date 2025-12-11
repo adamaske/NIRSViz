@@ -36,6 +36,7 @@ endif()
 
 #Assimp 
 
+
 CONFIGURE_FILE(
   ${VENDOR_DIR}/assimp/include/assimp/config.h.in
   ${VENDOR_DIR}/assimp/include/assimp/config.h

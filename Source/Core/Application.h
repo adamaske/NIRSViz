@@ -3,11 +3,7 @@
 
 #include "Core/Window/Window.h"
 #include "Events/ApplicationEvent.h"
-
-#include "GUI/ControlPanel.h"
-
 #include "Systems/SystemManager.h"
-
 
 struct ApplicationCommandLineArgs
 {
@@ -52,7 +48,7 @@ public:
 	void Run();
 	void Close();
 
-	void OnEvent(Event& e);
+void OnEvent(Event& e);
 
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
@@ -80,6 +76,5 @@ private:
 
 	ImGuiSystem* gui_system_ = nullptr;
 
-	Ref<ControlPanel> control_panel_;
 	friend class ControlPanel; // For now let control panel access application settings directly
 };
