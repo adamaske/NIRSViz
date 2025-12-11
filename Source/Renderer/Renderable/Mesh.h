@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <vector>
 #include <string>
 #include <filesystem>
@@ -12,42 +13,41 @@
 #include "Renderer/Buffer/BufferLayout.h"
 #include "Renderer/Buffer/VertexArray.h"
 #include "Renderer/Renderable/Vertex.h"
-
+#include <glm/glm.hpp>
+#include <functional> // For std::hash and std::size_t
 
 namespace fs = std::filesystem;
+
 class Mesh {
 public:
-	Mesh();
-	Mesh(const fs::path& obj_filepat);
-	~Mesh();
+    Mesh(const fs::path &obj_filepat);
 
-	bool LoadModel(const std::string& inputFile,
-		std::vector<Vertex>& vertices,
-		std::vector<unsigned int>& indices);
-	bool LoadModelTinyObj(const std::string& inputFile,
-		std::vector<Vertex>& vertices,
-		std::vector<unsigned int>& indices);
-	void SetupBuffers();
+    ~Mesh() = default;
 
-	Ref<VertexArray> GetVAO() { return m_VAO; };
-	Ref<VertexBuffer> GetVBO() { return m_VBO; };
-	Ref<IndexBuffer> GetIBO() { return m_IBO; };
+    bool LoadModel(const std::string &inputFile,
+                   std::vector<Vertex> &vertices,
+                   std::vector<unsigned int> &indices);
 
-	const std::vector<Vertex> GetVertices() { return m_Vertices; };
-	const std::vector<unsigned int> GetIndices() { return m_Indices; };
+    void SetupBuffers();
 
-	int GetVertexCount() const { return m_VertexCount; };
-	int GetIndexCount() const { return m_IndexCount; };
+    Ref<VertexArray> GetVAO() { return m_VAO; };
+    Ref<VertexBuffer> GetVBO() { return m_VBO; };
+    Ref<IndexBuffer> GetIBO() { return m_IBO; };
+
+    const std::vector<Vertex>& GetVertices() { return m_Vertices; };
+    const std::vector<unsigned int>& GetIndices() { return m_Indices; };
+
+    int GetVertexCount() const { return m_VertexCount; };
+    int GetIndexCount() const { return m_IndexCount; };
 
 private:
-	Ref<VertexArray> m_VAO;
-	Ref<VertexBuffer> m_VBO;
-	Ref<IndexBuffer> m_IBO;
+    Ref<VertexArray> m_VAO;
+    Ref<VertexBuffer> m_VBO;
+    Ref<IndexBuffer> m_IBO;
 
-	std::vector<Vertex> m_Vertices;
-	std::vector<unsigned int> m_Indices;
+    std::vector<Vertex> m_Vertices;
+    std::vector<unsigned int> m_Indices;
 
-	int m_VertexCount;
-	int m_IndexCount;
-
+    int m_VertexCount;
+    int m_IndexCount;
 };
