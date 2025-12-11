@@ -42,7 +42,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	// --- Systems 
 	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
-
 	auto fs = system_manager_.AddSystem<FileSystem>();
 
 	// Add systems
@@ -61,7 +60,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
 
-	// Register callback
+	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 
 	// --- TODO : Clean up this, we should not handle the control panel from here, and we should not need to call post init 
