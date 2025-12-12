@@ -72,7 +72,8 @@ void AtlasLayer::OnAttach()
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
 	);
 
-	m_SphereMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+	MeshFileDescription fd{.filepath = "C:/dev/NIRSViz/Assets/Models/sphere.obj"};
+	m_SphereMesh = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
 
 	m_LandmarkEditor = CreateScope<ManualLandmarkEditor>(
 		m_CoordController->GetCoordinateSystem().GetManualLandmarks(),
@@ -334,9 +335,9 @@ void AtlasLayer::DrawHead()
 
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_PhongShader.get();
-	cmd.VAOPtr = head->GetMesh()->GetVAO().get();
+	cmd.VAOPtr = head->GetMesh().buffers.vao.get();
 	cmd.target_viewport = ViewportType::MainViewport;
-	cmd.Transform = head->GetTransform()->GetMatrix();
+	cmd.Transform = head->GetTransform().GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
@@ -355,9 +356,9 @@ void AtlasLayer::DrawCortex()
 		
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_PhongShader.get();
-	cmd.VAOPtr = cortex->GetMesh()->GetVAO().get();
+	cmd.VAOPtr = cortex->GetMesh().buffers.vao.get();
 	cmd.target_viewport = ViewportType::MainViewport;
-	cmd.Transform = cortex->GetTransform()->GetMatrix();
+	cmd.Transform = cortex->GetTransform().GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	m_ObjectColorUniform.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };

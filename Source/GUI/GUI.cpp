@@ -74,11 +74,11 @@ void GUI::RenderVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PopID();
 }
 
-void GUI::RenderTransformSettings(Transform* transform)
+void GUI::RenderTransformSettings(Transform& transform)
 {
-	auto& position = transform->GetPosition();
-	auto& rotation = transform->GetRotation();
-	auto& scale = transform->GetScale();
+	auto position = transform.GetPosition();
+	auto rotation = transform.GetRotation();
+	auto scale = transform.GetScale();
 
 	RenderVec3Control("Position", position, 0.0f);
 	RenderVec3Control("Rotation", rotation, 0.0f);
@@ -107,9 +107,9 @@ void GUI::RenderAnatomySettingsImpl(Anatomy* anatomy, const std::string& name, c
 		// --- INFO ---
 		ImGui::TextDisabled("Info:");
 		ImGui::Separator();
-		auto mesh = anatomy->GetMesh();
-		ImGui::TextDisabled("Vertices: %d", mesh->GetVertexCount());
-		ImGui::TextDisabled("Indices: %d", mesh->GetIndexCount());
+		auto& mesh = anatomy->GetMesh();
+		ImGui::TextDisabled("Vertices: %d", static_cast<int>(mesh.geometry.vertices.size()));
+		ImGui::TextDisabled("Indices: %d", static_cast<int>(mesh.geometry.indices.size()));
 		ImGui::Spacing();
 		ImGui::TextDisabled("Mesh File: %s", anatomy->GetMeshFilepath().c_str());
 		ImGui::Separator();
@@ -125,7 +125,7 @@ void GUI::RenderAnatomySettingsImpl(Anatomy* anatomy, const std::string& name, c
 
 		ImGui::Spacing();
 		// Position, Rotation, Scale Controls
-		RenderTransformSettings(anatomy->GetTransform().get());
+		RenderTransformSettings(anatomy->GetTransformMutable());
 	}
 
 	if (standalone)

@@ -9,8 +9,8 @@ PointRenderer::PointRenderer(ViewportType type, glm::vec4 color, float size) : v
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
     );
- 
-    m_SphereMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+    MeshFileDescription fd{.filepath="C:/dev/NIRSViz/Assets/Models/sphere.obj"};
+    m_SphereMesh = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
     m_VAO = CreateRef<VertexArray>();
     m_VAO->Bind();
 
@@ -34,7 +34,7 @@ void PointRenderer::Draw() {
 
     RenderCommand cmd3D_template;
     cmd3D_template.ShaderPtr = m_Shader.get();
-    cmd3D_template.VAOPtr = m_SphereMesh->GetVAO().get();
+    cmd3D_template.VAOPtr = m_SphereMesh->buffers.vao.get();
     cmd3D_template.target_viewport = viewport_type_;
     cmd3D_template.Mode = DRAW_ELEMENTS;
 

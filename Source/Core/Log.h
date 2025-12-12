@@ -38,8 +38,9 @@ inline OStream& operator<<(OStream& os, glm::qua<T, Q> quaternion)
 	return os << glm::to_string(quaternion);
 }
 
-#define NVIZ_TRACE(...)    ::Log::GetCoreLogger()->trace(__VA_ARGS__)
-#define NVIZ_INFO(...)     ::Log::GetCoreLogger()->info(__VA_ARGS__)
-#define NVIZ_WARN(...)     ::Log::GetCoreLogger()->warn(__VA_ARGS__)
-#define NVIZ_ERROR(...)    ::Log::GetCoreLogger()->error(__VA_ARGS__)
-#define NVIZ_CRITICAL(...) ::Log::GetCoreLogger()->critical(__VA_ARGS__)
+#define NVIZ_TRACE(...)		::Log::GetCoreLogger()->trace(__VA_ARGS__)
+#define NVIZ_INFO(...)		::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define NVIZ_DEBUG(...)		::Log::GetCoreLogger()->debug(__VA_ARGS__)
+#define NVIZ_WARN(...)		::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define NVIZ_ERROR(...)		::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define NVIZ_CRITICAL(...)	::Log::GetCoreLogger()->critical(__VA_ARGS__)

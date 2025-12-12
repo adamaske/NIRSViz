@@ -50,6 +50,6 @@ private:
     Ref<Shader> m_FlatColorShader;
     
     Ref<Shader> shader_;
-    Ref<Mesh_old> sphere_mesh_;
+    Ref<Mesh> sphere_mesh_;
 
 };

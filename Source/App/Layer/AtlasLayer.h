@@ -70,7 +70,7 @@ private:
 	// Rendering
 	Ref<Shader> m_PhongShader;
 	Ref<Shader> m_FlatColorShader;
-	Ref<Mesh_old> m_SphereMesh;
+	Ref<Mesh> m_SphereMesh;
 
 	// Renderers for different elements
 	Ref<PointRenderer> m_ManualLandmarkRenderer;

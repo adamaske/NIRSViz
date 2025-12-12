@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Renderer/Mesh/MeshSpatialIndex.h"
 
-#include <boost/mpl/begin_end.hpp>
-#include <boost/range/begin.hpp>
+#include <bvh/v2/thread_pool.h>
+#include <bvh/v2/executor.h>
+#include <bvh/v2/default_builder.h>
+#include <bvh/v2/stack.h>
 
 MeshSpatialIndex MeshSpatialIndex::BuildFromGeometry(const MeshGeometry &geometry) {
     MeshSpatialIndex index;
@@ -56,11 +58,13 @@ MeshSpatialIndex MeshSpatialIndex::BuildFromGeometry(const MeshGeometry &geometr
     return index;
 }
 
-bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit) const {
-    auto origin = ray.Origin;
-    auto end = ray.End;
+bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit, const MeshGeometry &geometry) const {
+
+    const auto& origin = ray.Origin;
+    const auto& end = ray.End;
     auto distance = glm::distance(origin, end);
     auto direction = end - origin;
+
     auto bvh_ray = BvhRay{
         Vec3(origin.x, origin.y, origin.z),
         Vec3(direction.x, direction.y, direction.z),
@@ -78,39 +82,54 @@ bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit) const {
     // Traverse BVH get u,v coordinates of closest intersection
     bvh::v2::SmallStack<Bvh::Index, stack_size> stack;
     bvh.intersect<false, use_robust_traversal>(bvh_ray, bvh.get_root().index, stack,
-[&](size_t begin, size_t end) {
-        for (size_t i = begin; i < end; ++i) {
-            size_t j = should_permute ? i : bvh.prim_ids[i];
+        [&](size_t begin, size_t end) {
+                for (size_t i = begin; i < end; ++i) {
 
-            if (auto hit = precomputed_triangles[j].intersect(bvh_ray)) {
-                prim_id = i;
-                std::tie(bvh_ray.tmax, u, v) = *hit;
-            }
-        }
+                    size_t j = should_permute ? i : bvh.prim_ids[i];
+                    if (auto hit = precomputed_triangles[j].intersect(bvh_ray)) {
+                        prim_id = i;
+                        std::tie(bvh_ray.tmax, u, v) = *hit;
+                    }
+                }
 
         return prim_id != invalid_id;
     });
 
-    // Check result
-    if (prim_id != invalid_id) {
-        out_hit.t_distance = bvh_ray.tmax;
-        out_hit.prim_id = prim_id;
-        out_hit.u = u;
-        out_hit.v = v;
-
-        NVIZ_INFO("Intersection found:");
-        NVIZ_INFO("    primitive: {}", prim_id);
-        NVIZ_INFO("    distance: {}", bvh_ray.tmax);
-        NVIZ_INFO("    barycentric coords: {}, {}", u, v);
-
-        return true;
+    if (prim_id == invalid_id) {
+        return false;
     }
-    NVIZ_INFO("No intersection found.");
-    return false;
-}
 
-unsigned int MeshSpatialIndex::FindClosestVertex(const glm::vec3 &point, const MeshGeometry &geom) {
-    return 0;
+    out_hit.prim_id = prim_id;
+
+    out_hit.u = u;
+    out_hit.v = v;
+
+    out_hit.t_distance = distance;
+
+    auto tri_indices = GetTriangleIndices(prim_id, geometry);
+
+    out_hit.hit_v0 = tri_indices[0];
+    out_hit.hit_v1 = tri_indices[1];
+    out_hit.hit_v2 = tri_indices[2];
+
+    glm::vec3 hit_point = ComputeBarycentricPoint(prim_id, u, v, geometry);
+    out_hit.intersection_point = hit_point;
+
+    // Find closest of the 3 triangle vertices
+    float min_dist = std::numeric_limits<float>::max();
+    unsigned int closest = tri_indices[0];
+
+    for (int i = 0; i < 3; i++) {
+        float dist = glm::distance(hit_point, geometry.vertices[tri_indices[i]].position);
+        if (dist < min_dist) {
+            min_dist = dist;
+            closest = tri_indices[i];
+        }
+    }
+
+    out_hit.closest_vertex_index = closest;
+
+    return true;
 }
 
 std::array<unsigned int, 3> MeshSpatialIndex::GetTriangleIndices(size_t prim_id, const MeshGeometry& geom) const {

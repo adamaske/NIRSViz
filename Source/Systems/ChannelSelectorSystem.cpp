@@ -47,8 +47,11 @@ void ChannelSelectorSystem::OnAttach()
 	m_ChannelTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/channel.png");
 	m_BackgroundTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/background.png");
 
-	m_QuadMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/plane.obj");
-	m_PlateMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/plate.obj");
+	MeshFileDescription quad_fd{.filepath = "C:/dev/NIRSViz/Assets/Models/plane.obj"};
+	MeshFileDescription plate_fd{.filepath = "C:/dev/NIRSViz/Assets/Models/plate.obj"};
+
+	m_QuadMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(quad_fd));
+	m_PlateMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(quad_fd));
 
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e){
 		this->HandleSNIRFLoaded();
@@ -272,7 +275,7 @@ void ChannelSelectorSystem::GenerateSourceRenderCommands()
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
 	cmd.target_viewport = viewport_type_;
-	cmd.VAOPtr = m_PlateMesh->GetVAO().get();
+	cmd.VAOPtr = m_PlateMesh->buffers.vao.get();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	TextureBinding texBind;
@@ -308,7 +311,7 @@ void ChannelSelectorSystem::GenerateDetectorRenderCommands()
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
 	cmd.target_viewport = viewport_type_;
-	cmd.VAOPtr = m_PlateMesh->GetVAO().get();
+	cmd.VAOPtr = m_PlateMesh->buffers.vao.get();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	TextureBinding texBind;
@@ -344,7 +347,7 @@ void ChannelSelectorSystem::GenerateChannelRenderCommands()
 	RenderCommand cmd;
 	cmd.ShaderPtr = m_TextureShader.get();
 	cmd.target_viewport = viewport_type_;
-	cmd.VAOPtr = m_QuadMesh->GetVAO().get();
+	cmd.VAOPtr = m_QuadMesh->buffers.vao.get();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	TextureBinding texBind;
@@ -391,7 +394,7 @@ void ChannelSelectorSystem::GenerateBackgroundRenderCommands()
 	cmd.ShaderPtr = m_TextureShader.get();
 	cmd.target_viewport = viewport_type_;
 	cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(100));
-	cmd.VAOPtr = m_QuadMesh->GetVAO().get();
+	cmd.VAOPtr = m_QuadMesh->buffers.vao.get();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	TextureBinding texBind;

@@ -1,26 +1,16 @@
 #pragma once
-#include <bvh/v2/default_builder.h>
+
+#include <Renderer/Mesh/MeshGeometry.h>
+#include <App/Data/Raycast.h>
+
+#include <glm/glm.hpp>
+
 #include <bvh/v2/node.h>
 #include <bvh/v2/bbox.h>
 #include <bvh/v2/vec.h>
 #include <bvh/v2/tri.h>
-
-
 #include <bvh/v2/bvh.h>
-#include <bvh/v2/vec.h>
 #include <bvh/v2/ray.h>
-#include <bvh/v2/node.h>
-#include <bvh/v2/default_builder.h>
-#include <bvh/v2/thread_pool.h>
-#include <bvh/v2/executor.h>
-#include <bvh/v2/stack.h>
-#include <bvh/v2/tri.h>
-
-#include <glm/glm.hpp>
-#include <App/Data/Raycast.h>
-
-#include <Renderer/Mesh/MeshGeometry.h>
-#include <App/Data/Raycast.h>
 
 using Scalar = float;
 using Node = bvh::v2::Node<Scalar, 3>;
@@ -36,19 +26,14 @@ struct MeshSpatialIndex {
     Bvh bvh;
     std::vector<Tri> triangles;
     std::vector<PrecomputedTri> precomputed_triangles;
-
     bool should_permute = true;
 
     static MeshSpatialIndex BuildFromGeometry(const MeshGeometry &geometry);
 
     bool Intersect(
         const Ray &ray,
-        RayHit &out_hit)
-    const;
-
-    unsigned int FindClosestVertex(
-        const glm::vec3 &point,
-        const MeshGeometry &geom);
+        RayHit &out_hit,
+        const MeshGeometry &geometry) const;
 
     // Get the triangle indices for a given primitive ID
     std::array<unsigned int, 3> GetTriangleIndices(size_t prim_id, const MeshGeometry &geom) const;

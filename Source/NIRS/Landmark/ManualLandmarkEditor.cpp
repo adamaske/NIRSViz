@@ -14,8 +14,8 @@ ManualLandmarkEditor::ManualLandmarkEditor(NIRS::ManualLandmarkRegistry& registr
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
     );
-
-    sphere_mesh_ = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+    MeshFileDescription fd{.filepath = "C:/dev/NIRSViz/Assets/Models/sphere.obj"};
+    sphere_mesh_ = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
 }
 
 void ManualLandmarkEditor::RenderGUI(bool standalone) {
@@ -40,7 +40,7 @@ void ManualLandmarkEditor::RenderManualLandmarks()
     for (auto& [type, landmark] : m_Registry.GetLandmarks()) {
         RenderCommand cmd;
         cmd.ShaderPtr = shader_.get();
-        cmd.VAOPtr = sphere_mesh_->GetVAO().get();
+        cmd.VAOPtr = sphere_mesh_->buffers.vao.get();
         cmd.target_viewport = viewport_type_;
         cmd.Mode = DRAW_ELEMENTS;
 

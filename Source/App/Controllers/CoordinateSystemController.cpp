@@ -19,7 +19,7 @@ namespace App {
 	        return;
 	    }
 	    // Verify graph connectivity
-	    if (!IsGraphConnected(*head->GetGraph(), head->GetMesh()->GetVertices().size())) {
+	    if (!IsGraphConnected(*head->GetGraph(), head->GetMesh().geometry.vertices.size())) {
 	        NVIZ_ERROR("Head graph is not fully connected. Pathfinding may fail.");
 	    }
 
@@ -70,7 +70,7 @@ namespace App {
 		auto intersections = m_Sampler.FindIntersections(
 			rays,
 			worldVertices,
-			head->GetMesh()->GetIndices()
+			head->GetMesh().geometry.indices
 		);
 		
 		auto roughPath = m_Sampler.IntersectionsToVertexPath(intersections, worldVertices);
@@ -139,7 +139,7 @@ namespace App {
 		auto intersections = m_Sampler.FindIntersections(
 			rays,
 			worldVertices,
-			head->GetMesh()->GetIndices()
+			head->GetMesh().geometry.indices
 		);
 
 		auto roughPath = m_Sampler.IntersectionsToVertexPath(intersections, worldVertices);

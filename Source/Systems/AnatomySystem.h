@@ -47,8 +47,10 @@ public:
 	NIRS::Head& GetHeadMutable() override;
 	NIRS::Cortex& GetCortexMutable() override;
 
-    const CoordinateSystemGenerator& GetCoordinateSystemGenerator() { return *coordinate_generator_; };
-    CoordinateSystemGenerator& GetCoordinateSystemGeneratorMuteable() { return *coordinate_generator_; };
+    const CoordinateSystemGenerator& GetCoordinateSystemGenerator()
+		{return *coordinate_generator_; };
+    CoordinateSystemGenerator& GetCoordinateSystemGeneratorMuteable()
+		{ return *coordinate_generator_; };
 
     enum DrawMode {
         NONE = 0,
@@ -71,6 +73,4 @@ private:
     // TODO : Merge AtlasLayer and AnatomyViewport and AnatomyManager into AnatomySystem
     Scope<Viewport3D> anatomy_viewport_;
 
-	Mesh mesh_test_;
-	void RenderTestMesh();
 };

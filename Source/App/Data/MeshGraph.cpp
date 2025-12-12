@@ -9,10 +9,10 @@
 #include <unordered_set>
 #include <queue>
 
-Graph CreateGraphFromTriangleMesh(Mesh_old* mesh, const glm::mat4 local_matrix) {
+Graph CreateGraphFromTriangleMesh(Mesh* mesh, const glm::mat4 local_matrix) {
 
-	auto vertices = mesh->GetVertices();
-	auto indices = mesh->GetIndices();
+	auto vertices = mesh->geometry.vertices;
+	auto indices = mesh->geometry.indices;
 
 	unsigned int num_vertices = vertices.size();
 	Graph graph(num_vertices);

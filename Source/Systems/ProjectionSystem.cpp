@@ -127,8 +127,8 @@ void ProjectionSystem::UpdateInfluenceMap()
 	const auto& intersections = probe_system->GetChannelProjectionResult();
 
 	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	const auto& vertices = cortex->GetMesh()->GetVertices();
-	const auto& transform = cortex->GetTransform()->GetMatrix();
+	const auto& vertices = cortex->GetMesh().geometry.vertices;
+	const auto& transform = cortex->GetTransform().GetMatrix();
 
 	influenced_vertices_.clear();
 
@@ -185,10 +185,10 @@ void ProjectionSystem::UpdateActivatedVertices()
 
 void ProjectionSystem::SetupCortexRendering()
 {
-	auto cortex = anatomy_provider_.GetCortex();
+	auto& cortex = anatomy_provider_.GetCortexMutable();
 
-	auto vertices = cortex.GetMesh()->GetVertices();
-	auto indices = cortex.GetMesh()->GetIndices();
+	const auto& vertices = cortex.GetMesh().geometry.vertices;
+	auto& indices = cortex.GetMeshMutable().geometry.indices;
 
 	projection_vertices_.resize(vertices.size());
 
@@ -205,8 +205,9 @@ void ProjectionSystem::SetupCortexRendering()
 	cortex_vao_ = CreateRef<VertexArray>();
 	cortex_vao_->Bind();
 
-	cortex_vbo_ = CreateRef<VertexBuffer>(&projection_vertices_[0], projection_vertices_.size() * sizeof(ProjectionVertex));
-	auto ibo = CreateRef<IndexBuffer>(&indices[0], (unsigned int)(indices.size()));
+	cortex_vbo_ = CreateRef<VertexBuffer>(&projection_vertices_[0],
+		static_cast<uint32_t>(projection_vertices_.size() * sizeof(ProjectionVertex)));
+	auto ibo = CreateRef<IndexBuffer>(&indices[0], static_cast<uint32_t>(indices.size()));
 
 	BufferElement pos = { ShaderDataType::Float3, "aPos", false };
 	BufferElement norms = { ShaderDataType::Float3, "aNormal", false };
@@ -224,10 +225,10 @@ void ProjectionSystem::SetupCortexRendering()
 
 void ProjectionSystem::RenderProjectionCortex()
 {
-	auto cortex = anatomy_provider_.GetCortex();
+	auto& cortex = anatomy_provider_.GetCortexMutable();
 
 	auto target_viewport = ViewportType::AnatomyViewport;
-	auto matrix = cortex.GetTransform()->GetMatrix();
+	auto matrix = cortex.GetTransform().GetMatrix();
 
 	UniformData lightPos; // TODO : Move to shared uniform buffer ? 
 	lightPos.Type = UniformDataType::FLOAT3;

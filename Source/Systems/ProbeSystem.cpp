@@ -25,15 +25,14 @@
 
 #include "NIRS/Anatomy/AnatomyManager.h"
 
-void ProbeSystem::OnAttach()
-{
+void ProbeSystem::OnAttach() {
 	auto& app = Application::Get();
 
 	m_FlatColorShader = CreateRef<Shader>(
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
-
-	m_ProbeMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/probe_model.obj");
+	MeshFileDescription fd{"C:/dev/NIRSViz/Assets/Models/probe_model.obj"};
+	m_ProbeMesh = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
 	m_LineRenderer2D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(1.0f), 2.0f);
 	m_LineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
@@ -335,7 +334,7 @@ void ProbeSystem::UpdateProbeVisuals()
 	// --- 1. Initialize Templates and Uniforms ---
 	RenderCommand cmd_template;
 	cmd_template.ShaderPtr = m_FlatColorShader.get();
-	cmd_template.VAOPtr = m_ProbeMesh->GetVAO().get();
+	cmd_template.VAOPtr = m_ProbeMesh->buffers.vao.get();
 	cmd_template.target_viewport = viewport_type_;
 	cmd_template.Mode = DRAW_ELEMENTS;
 
@@ -416,11 +415,11 @@ void ProbeSystem::ProjectChannelsToCortex()
 {
 	channel_intersection_results_.clear();
 
-	auto cortex = anatomy_provider_.GetCortex(); // NIRS::AnatomyManager::Instance().GetCortex();
+	auto& cortex = anatomy_provider_.GetCortexMutable(); // NIRS::AnatomyManager::Instance().GetCortex();
 
-	auto& vertices = cortex.GetMesh()->GetVertices();
-	auto& indices = cortex.GetMesh()->GetIndices();
-	glm::mat4 world_transform = cortex.GetTransform()->GetMatrix(); // Get world space coordiantes
+	auto& vertices = cortex.GetMesh().geometry.vertices;
+	auto& indices = cortex.GetMesh().geometry.indices;
+	const auto& world_transform = cortex.GetTransform().GetMatrix(); // Get world space coordiantes
 
 	// Cache world space vertices
 	std::vector<glm::vec3> world_space_vertices(vertices.size());

@@ -3,7 +3,7 @@
 class IndexBuffer
 {
 public:
-	IndexBuffer(uint32_t * indices, uint32_t count);
+	IndexBuffer(unsigned int * indices, uint32_t count);
 	~IndexBuffer();
 
 	void Bind();

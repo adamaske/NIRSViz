@@ -1,4 +1,6 @@
 #pragma once
+#include <ranges>
+
 #include "Core/Base.h"
 
 #include "../../Renderer/Mesh/Mesh.h"
@@ -6,11 +8,11 @@
 #include "App/Data/MeshGraph.h"
 
 class Anatomy {
-public:
-    Anatomy(std::string& meshPath);
+public: // TODO : Currently we have to supply a valid obj_filepath to create anatomy,
+    // rather the mesh should be opt-in.
+    Anatomy(std::filesystem::path obj_filepath);
+    ~Anatomy() = default;
 
-    Ref<Mesh_old> GetMesh()  { return m_Mesh; }
-    Ref<Transform> GetTransform() { return m_Transform; }
     Ref<Graph> GetGraph() { return m_Graph; }
 
 
@@ -23,13 +25,24 @@ public:
     float& GetOpacity() { return m_Opacity; }
     void SetOpacity(float opacity) { m_Opacity = opacity; }
 
-	std::string GetMeshFilepath() const { return m_MeshFilepath; }
+	std::string GetMeshFilepath() const { return mesh_.fd.filepath.string(); }
+
+    // TODO : This should overtake the Ref's
+    const Mesh& GetMesh() { return mesh_; }
+    Mesh& GetMeshMutable() { return mesh_; }
+
+    const Transform& GetTransform() { return transform_; };
+    Transform& GetTransformMutable() { return transform_; };
+    // To account for the world-local space dynamic as a concsequence of the transform compoent
+    // We need to wrap the spatial index intersection functions
+    bool IntersectAnatomy(const Ray& ray, RayHit& out_hit);
 
 private:
-    Ref<Mesh_old> m_Mesh;
-    Ref<Transform> m_Transform;
+    Mesh mesh_;
+    Transform transform_;
+
+    // TODO : Implement MeshTopology instead..
     Ref<Graph> m_Graph;
-    std::string m_MeshFilepath;
 
     bool m_Visible = true;
     float m_Opacity = 1.0f;

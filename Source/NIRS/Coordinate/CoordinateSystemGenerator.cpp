@@ -148,14 +148,14 @@ void CoordinateSystemGenerator::RenderGUI(bool standalone)
 
 void CoordinateSystemGenerator::RenderCortexSettings() {
 
-	auto cortex = anatomy_provider_.GetCortex();
+	auto& cortex = anatomy_provider_.GetCortex();
 
 	//GUI::RenderAnatomySettings(cortex, "Cortex", "Cortex Anatomy Settings", false);
 }
 
 void CoordinateSystemGenerator::RenderCoordinateSystemSettings()
 {
-	auto head = anatomy_provider_.GetHead();
+	auto& head = anatomy_provider_.GetHead();
 	auto& coordSystem = m_CoordController->GetCoordinateSystem();
 
 

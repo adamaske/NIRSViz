@@ -225,8 +225,8 @@ void ProjectionLayer::RenderWorldSpaceMode()
 	RenderCommand cmd;
 	cmd.target_viewport = viewport_type_;
 	cmd.ShaderPtr = m_ProjectionShader.get();
-	cmd.VAOPtr = cortex->GetMesh()->GetVAO().get();
-	cmd.Transform = cortex->GetTransform()->GetMatrix();
+	cmd.VAOPtr = cortex->GetMesh().buffers.vao.get();
+	cmd.Transform = cortex->GetTransform().GetMatrix();
 	cmd.Mode = DRAW_ELEMENTS;
 
 	cmd.UniformCommands = { lightPos, objectColor };
@@ -249,10 +249,10 @@ void ProjectionLayer::HandleOnProjectionDataChanged(const NIRS::ProjectionData& 
 
 void ProjectionLayer::SetupVertexBasedProjection()
 { 
-	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
+	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
 
-	auto vertices = cortex->GetMesh()->GetVertices();
-	auto indices = cortex->GetMesh()->GetIndices();
+	auto& vertices = cortex->GetMesh().geometry.vertices;
+	auto& indices = cortex->GetMeshMutable().geometry.indices;
 
 	// Create projection vertices 
 	m_VertexModeProjectionVertices.resize(vertices.size());
@@ -267,10 +267,10 @@ void ProjectionLayer::SetupVertexBasedProjection()
 	m_VertexModeVAO = CreateRef<VertexArray>();
 	m_VertexModeVAO->Bind();
 
-	m_VertexModeVBO = CreateRef<VertexBuffer>(&m_VertexModeProjectionVertices[0], 
-		m_VertexModeProjectionVertices.size() * sizeof(ProjectionVertex));
+	m_VertexModeVBO = CreateRef<VertexBuffer>(&m_VertexModeProjectionVertices[0],
+		static_cast<uint32_t>(m_VertexModeProjectionVertices.size() * sizeof(ProjectionVertex)));
 
-	m_VertexModeIBO = CreateRef<IndexBuffer>(&indices[0], (unsigned int)(indices.size()));
+	m_VertexModeIBO = CreateRef<IndexBuffer>(&indices[0], indices.size());
 
 	BufferElement pos = { ShaderDataType::Float3, "aPos", false };
 	BufferElement norms = { ShaderDataType::Float3, "aNormal", false };
@@ -341,7 +341,7 @@ void ProjectionLayer::UpdateVertexBasedProjection(const NIRS::ProjectionData& da
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.target_viewport = viewport_type_;
-	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform().GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 }
 
@@ -382,7 +382,7 @@ void ProjectionLayer::UpdateVertexBasedProjection()
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.target_viewport = viewport_type_;
-	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform().GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 }
 
@@ -417,7 +417,7 @@ void ProjectionLayer::RenderVertexMode()
 	m_VertexModeRenderCmd.ShaderPtr = m_VertexProjectionShader.get();
 	m_VertexModeRenderCmd.VAOPtr = m_VertexModeVAO.get();
 	m_VertexModeRenderCmd.target_viewport = viewport_type_;
-	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform()->GetMatrix();
+	m_VertexModeRenderCmd.Transform = NIRS::AnatomyManager::Instance().GetCortex()->GetTransform().GetMatrix();
 	m_VertexModeRenderCmd.Mode = DRAW_ELEMENTS;
 	m_VertexModeRenderCmd.UniformCommands = { lightPos, objectColor, strengthMin, strengthMax, ambientStrength };
 	Renderer::Submit(m_VertexModeRenderCmd);

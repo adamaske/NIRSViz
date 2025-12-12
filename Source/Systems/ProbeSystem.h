@@ -92,7 +92,7 @@ private:
 	bool m_DrawChannelProjections3D = false;
 
 	Ref<Shader> m_FlatColorShader = nullptr;
-	Ref<Mesh_old> m_ProbeMesh = nullptr;
+	Ref<Mesh> m_ProbeMesh = nullptr;
 	Ref<SNIRF> m_SNIRF = nullptr;
 
 	std::map<NIRS::Probe::OptodeID, ProbeVisual> source_visuals_;
