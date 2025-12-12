@@ -47,8 +47,8 @@ void ChannelSelectorSystem::OnAttach()
 	m_ChannelTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/channel.png");
 	m_BackgroundTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/background.png");
 
-	m_QuadMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/plane.obj");
-	m_PlateMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/plate.obj");
+	m_QuadMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/plane.obj");
+	m_PlateMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/plate.obj");
 
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e){
 		this->HandleSNIRFLoaded();

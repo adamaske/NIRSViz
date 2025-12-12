@@ -166,7 +166,7 @@ void SNIRF::Print()
 void SNIRF::LoadFile(const std::filesystem::path& filepath)
 {
     File file(filepath.string(), File::ReadOnly); 
-	Utils::ParseHDF5(filepath.string());
+	//Utils::ParseHDF5(filepath.string());
 
 	Group root = file.getGroup("/");
     Group nirs = root.getGroup("nirs");

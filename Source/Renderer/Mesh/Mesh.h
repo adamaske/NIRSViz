@@ -1,12 +1,37 @@
 #pragma once
-
-
 #include <vector>
 #include <string>
 #include <filesystem>
 #include <memory>
 
 #include <glm/glm.hpp>
+
+#include <Renderer/Mesh/MeshGeometry.h>
+#include <Renderer/Mesh/MeshBuffers.h>
+#include <Renderer/Mesh/MeshSpatialIndex.h>
+#include <Renderer/Mesh/MeshTopology.h>
+
+struct MeshFileDescription {
+    std::filesystem::path filepath;
+};
+
+struct Mesh {
+    MeshFileDescription fd;
+    MeshGeometry geometry;
+    MeshBuffers buffers;
+
+    MeshSpatialIndex spatial_index;
+    MeshTopology topology;
+};
+
+
+class MeshFactory {
+public:
+
+    static Mesh CreateMesh(const MeshFileDescription& fd);
+};
+
+
 
 #include "Renderer/Buffer/VertexBuffer.h"
 #include "Renderer/Buffer/IndexBuffer.h"
@@ -18,11 +43,11 @@
 
 namespace fs = std::filesystem;
 
-class Mesh {
+class Mesh_old {
 public:
-    Mesh(const fs::path &obj_filepat);
+    Mesh_old(const fs::path &obj_filepat);
 
-    ~Mesh() = default;
+    ~Mesh_old() = default;
 
     bool LoadModel(const std::string &inputFile,
                    std::vector<Vertex> &vertices,
@@ -51,3 +76,4 @@ private:
     int m_VertexCount;
     int m_IndexCount;
 };
+

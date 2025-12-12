@@ -41,7 +41,7 @@ Window::Window(const WindowSpecification& spec)
 	SetVSync(true);
 
 
-	glfwMaximizeWindow(m_Window);
+	//glfwMaximizeWindow(m_Window);
 
 	glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
 		{

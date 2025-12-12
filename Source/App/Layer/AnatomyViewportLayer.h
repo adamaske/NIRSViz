@@ -4,7 +4,7 @@
 #include "Core/Window/Window.h"
 
 #include "Renderer/Renderer.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "../../Renderer/Mesh/Mesh.h"
 #include "Renderer/Camera/OrbitCamera.h"
 #include "Renderer/Camera/RoamCamera.h"
 

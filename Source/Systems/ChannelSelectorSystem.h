@@ -8,7 +8,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Shader.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "../Renderer/Mesh/Mesh.h"
 #include "Renderer/Renderable/Texture.h"
 
 #include "Events/MouseEvent.h"
@@ -64,8 +64,8 @@ private:
 	Ref<Shader> m_TextureShader = nullptr;
 	Ref<Shader> m_FlatColorShader = nullptr;
 
-	Ref<Mesh> m_QuadMesh = nullptr;
-	Ref<Mesh> m_PlateMesh = nullptr;
+	Ref<Mesh_old> m_QuadMesh = nullptr;
+	Ref<Mesh_old> m_PlateMesh = nullptr;
 
 	Ref<Texture> m_SourceTexture = nullptr;
 	Ref<Texture> m_DetectorTexture = nullptr;

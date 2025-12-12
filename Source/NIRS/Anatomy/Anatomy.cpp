@@ -5,7 +5,7 @@
 
 Anatomy::Anatomy(std::string& meshPath)
 {
-	m_Mesh = CreateRef<Mesh> (meshPath);
+	m_Mesh = CreateRef<Mesh_old> (meshPath);
 	m_Transform = CreateRef<Transform>();
 	m_Graph = CreateRef<Graph>(CreateGraphFromTriangleMesh(m_Mesh.get(), m_Transform->GetMatrix()));
 	m_MeshFilepath = meshPath;

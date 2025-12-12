@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Systems/System.h"
 
 #include "NIRS/Anatomy/Head.h"
@@ -12,6 +11,7 @@
 
 #include "NIRS/Anatomy/AnatomyProvider.h"
 
+#include "Renderer/Mesh/Mesh.h"
 
 // TODO : The anatomy system can be told by other system when to start/stop rendering anatomy
 class IAnatomyRenderer {
@@ -71,4 +71,6 @@ private:
     // TODO : Merge AtlasLayer and AnatomyViewport and AnatomyManager into AnatomySystem
     Scope<Viewport3D> anatomy_viewport_;
 
+	Mesh mesh_test_;
+	void RenderTestMesh();
 };

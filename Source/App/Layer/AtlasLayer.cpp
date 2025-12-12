@@ -72,7 +72,7 @@ void AtlasLayer::OnAttach()
 		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
 	);
 
-	m_SphereMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+	m_SphereMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
 
 	m_LandmarkEditor = CreateScope<ManualLandmarkEditor>(
 		m_CoordController->GetCoordinateSystem().GetManualLandmarks(),

@@ -6,7 +6,7 @@
 
 #include "Core/Window/Window.h"
 
-#include "Renderer/Renderable/Mesh.h"
+#include "../Renderer/Mesh/Mesh.h"
 #include "Renderer/Renderable/Shader.h"
 #include "Renderer/Renderable/LineRenderer.h"
 
@@ -92,7 +92,7 @@ private:
 	bool m_DrawChannelProjections3D = false;
 
 	Ref<Shader> m_FlatColorShader = nullptr;
-	Ref<Mesh> m_ProbeMesh = nullptr;
+	Ref<Mesh_old> m_ProbeMesh = nullptr;
 	Ref<SNIRF> m_SNIRF = nullptr;
 
 	std::map<NIRS::Probe::OptodeID, ProbeVisual> source_visuals_;

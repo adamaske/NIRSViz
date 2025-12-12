@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "Renderer/Mesh/Mesh.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -10,20 +10,36 @@
 #include <glad/glad.h>
 #include <unordered_map>
 
-void processAssimpMesh(aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices,
-                       std::vector<unsigned int> &indices);
+Mesh MeshFactory::CreateMesh(const MeshFileDescription &fd) {
+
+    if (!std::filesystem::exists(fd.filepath))
+        NVIZ_RUNTIME_ERROR("File does not exist: {0}", fd.filepath.string());
+
+    Mesh mesh;
+
+    mesh.fd = fd;
+    mesh.geometry = MeshGeometry::CreateFromOBJ(fd.filepath);
+    mesh.buffers = MeshBuffers::CreateFromGeometry(mesh.geometry);
+    mesh.topology = MeshTopology::BuildFromGeometry(mesh.geometry);
+    mesh.spatial_index = MeshSpatialIndex::BuildFromGeometry(mesh.geometry);
+
+    return mesh;
+}
+
+void processAssimpMesh_old(aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices,
+                           std::vector<unsigned int> &indices);
 
 void processAssimpNode(aiNode *node, const aiScene *scene, std::vector<Vertex> &vertices,
                        std::vector<unsigned int> &indices);
 
-Mesh::Mesh(const fs::path &obj_filepath) {
+Mesh_old::Mesh_old(const fs::path &obj_filepath) {
     if (!LoadModel(obj_filepath.string(), m_Vertices, m_Indices))
         NVIZ_RUNTIME_ERROR("Failed to load model from path: {0}", obj_filepath.string());
 
     SetupBuffers();
 }
 
-void Mesh::SetupBuffers() {
+void Mesh_old::SetupBuffers() {
     m_VAO = CreateRef<VertexArray>();
     m_VAO->Bind();
 
@@ -42,7 +58,7 @@ void Mesh::SetupBuffers() {
 
 // --- Assimp Implementation of LoadModel (Replaces tinyobjloader) ---
 
-bool Mesh::LoadModel(const std::string &inputFile,
+bool Mesh_old::LoadModel(const std::string &inputFile,
                      std::vector<Vertex> &vertices,
                      std::vector<unsigned int> &indices) {
     vertices.clear();
@@ -82,9 +98,9 @@ void processAssimpNode(aiNode *node, const aiScene *scene, std::vector<Vertex> &
                        std::vector<unsigned int> &indices) {
     // 1. Process all meshes attached to the current node
     for (unsigned int i = 0; i < node->mNumMeshes; i++) {
-        // The node's mMeshes stores indices to the scene's mMeshes array
+        // The node's mMesh_oldes stores indices to the scene's mMesh_oldes array
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        processAssimpMesh(mesh, scene, vertices, indices);
+        processAssimpMesh_old(mesh, scene, vertices, indices);
     }
 
     // 2. Process the children nodes recursively
@@ -93,7 +109,7 @@ void processAssimpNode(aiNode *node, const aiScene *scene, std::vector<Vertex> &
     }
 }
 
-void processAssimpMesh(aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices,
+void processAssimpMesh_old(aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices,
                        std::vector<unsigned int> &indices) {
     /* * NOTE ON BLENDER EXPORT:
     * Blender often exports meshes where two or more vertices share the

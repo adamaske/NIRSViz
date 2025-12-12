@@ -39,15 +39,9 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	Renderer::Init();
 	ViewportManager::Init();
 
-
 	// --- Systems 
 	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
-	auto fs = system_manager_.AddSystem<FileSystem>();
-
-
-
-
-	// Add systems
+	auto file_system = system_manager_.AddSystem<FileSystem>();
 	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
 	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
 	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system); 
@@ -64,10 +58,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
 	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
 
-
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
-
 
 	system_manager_.GetSystem<FileSystem>()->PostInit();
 }

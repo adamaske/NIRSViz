@@ -32,6 +32,13 @@ void AnatomySystem::OnAttach()
 
 
 	SetupRendering();
+	auto start_time = std::chrono::steady_clock::now();
+	MeshFileDescription mfd{.filepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj"};
+	mesh_test_ = MeshFactory::CreateMesh(mfd);
+	auto end_time = std::chrono::steady_clock::now();
+	// Turn to ms
+	auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+	NVIZ_INFO("Cortex Mesh Loading & BVH took {} ms", duration_ms);
 }
 
 void AnatomySystem::OnDetach()
@@ -45,13 +52,43 @@ void AnatomySystem::OnUpdate(DeltaTime dt)
 	coordinate_generator_->RenderCoordinateSystem();
 
 	RenderAnatomy();
-}
 
+	RenderTestMesh();
+}
+static glm::vec3 intersection_test_start = glm::vec3(0, 0, -10);
+static glm::vec3 intersection_test_end = glm::vec3(0, 0, 10);
 void AnatomySystem::OnGUIRender()
 {
 	anatomy_viewport_->RenderViewportWindow(); 
 
 	ImGui::Begin("Anatomy System Settings");
+
+	ImGui::Separator();
+	GUI::RenderVec3Control("Ray Start", intersection_test_start);
+	GUI::RenderVec3Control("Ray End", intersection_test_end);
+	if (ImGui::Button("Test BVH Intersection")) {
+		auto direction = glm::normalize(intersection_test_end - intersection_test_start);
+		Ray ray{.Origin = intersection_test_start, .End = intersection_test_end};
+		RayHit hit;
+
+		auto start_time = std::chrono::steady_clock::now();
+		bool result = mesh_test_.spatial_index.Intersect(ray, hit);
+
+		auto end_time = std::chrono::steady_clock::now();
+		if (result) {
+			// Get the triangle's vertex indices
+			auto tri_indices = mesh_test_.spatial_index.GetTriangleIndices(hit.prim_id, mesh_test_.geometry);
+			NVIZ_INFO("Triangle vertex indices: {}, {}, {}", tri_indices[0], tri_indices[1], tri_indices[2]);
+
+			// Compute the exact 3D intersection point
+			glm::vec3 intersection_point = mesh_test_.spatial_index.ComputeBarycentricPoint(hit.prim_id, hit.u, hit.v, mesh_test_.geometry);
+			NVIZ_INFO("Intersection point: ({}, {}, {})",
+					  intersection_point.x, intersection_point.y, intersection_point.z);
+		}
+		auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+		NVIZ_INFO("BVH Intersection check took : {} ms", duration_ms);
+	}
+	ImGui::Separator();
 
 	// Anatomy Settings
 	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
@@ -224,4 +261,38 @@ void AnatomySystem::SetDrawMode(DrawMode mode)
 
 			break;
 	}
+}
+
+void AnatomySystem::RenderTestMesh() {
+	const auto& mesh = mesh_test_;
+
+
+	UniformData light_pos;
+	light_pos.Type = UniformDataType::FLOAT3;
+	light_pos.Name = "u_LightPos";
+	light_pos.Data.f3 = anatomy_viewport_->GetActiveCamera()->GetPosition();
+
+	// To Render this we need a render command
+	RenderCommand cmd;
+	cmd.ShaderPtr = phong_shader_.get();
+	cmd.VAOPtr = mesh.buffers.vao.get();
+
+	cmd.target_viewport = ViewportType::AnatomyViewport;
+	cmd.Transform = glm::mat4(1.0);
+	cmd.Mode = DRAW_ELEMENTS;
+
+	UniformData opacity;
+	opacity.Type = UniformDataType::FLOAT1;
+	opacity.Name = "u_Opacity";
+	opacity.Data.f1 = 1;
+
+	UniformData object_color;
+	object_color.Type = UniformDataType::FLOAT4;
+	object_color.Name = "u_ObjectColor";
+	object_color.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
+
+	cmd.UniformCommands = { light_pos, object_color, opacity };
+
+	Renderer::Submit(cmd);
+
 }

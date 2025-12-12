@@ -4,7 +4,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Shader.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "../Mesh/Mesh.h"
 
 #include "Renderer/Buffer/VertexArray.h"
 
@@ -40,7 +40,7 @@ private:
     Ref<VertexBuffer> m_VBO;
 
     Ref<Shader> m_Shader;
-	Ref<Mesh> m_SphereMesh;
+	Ref<Mesh_old> m_SphereMesh;
 
     ViewportType viewport_type_;
 

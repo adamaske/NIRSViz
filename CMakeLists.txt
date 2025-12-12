@@ -1,4 +1,13 @@
 cmake_minimum_required(VERSION 3.15)
+
+# Set CMake policies to suppress warnings
+if(POLICY CMP0144)
+    cmake_policy(SET CMP0144 NEW) # Use upper-case <PACKAGENAME>_ROOT variables
+endif()
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD) # Continue using FindBoost module
+endif()
+
 project(NIRSViz VERSION 1.0 LANGUAGES CXX)
 
 # =============================================================================
@@ -21,7 +30,7 @@ set(ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Assets")
 # Platform-Specific Configuration
 # =============================================================================
 if(MSVC)
-    add_compile_options(/source_charset:utf-8)
+    #add_compile_options(/source_charset:utf-8)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ENTRY:mainCRTStartup")
 
 endif()
@@ -31,12 +40,18 @@ endif()
 # External Dependencies
 # =============================================================================
 
-#Boost
-#find_package(Boost REQUIRED COMPONENTS filesystem system)
+# Boost
+# Set this to your Boost installation path after installing prebuilt binaries
+# Common paths: C:/local/boost_1_84_0 or C:/Program Files/boost/boost_1_84_0
+set(Boost_ROOT "C:/sdk/boost_1_90_0" CACHE PATH "Boost installation directory")
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+# Boost.Graph is header-only, so no COMPONENTS needed
+find_package(Boost REQUIRED)
 
-#Assimp 
 
-
+# Assimp 
 CONFIGURE_FILE(
   ${VENDOR_DIR}/assimp/include/assimp/config.h.in
   ${VENDOR_DIR}/assimp/include/assimp/config.h
@@ -51,6 +66,9 @@ set_target_properties(Assimp::Assimp PROPERTIES
     IMPORTED_LOCATION_DEBUG
     "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll"
 )
+
+# Madman91/BVH
+add_subdirectory(${VENDOR_DIR}/bvh)
 
 # --- RELEASE Configuration ---
 # NOTE: Ensure these paths and file names match your Release configuration!
@@ -68,8 +86,6 @@ set_target_properties(Assimp::Assimp PROPERTIES
 # We use generator expressions to select the correct path (.dll) at build time
 set(ASSIMP_DLL_PATH_DEBUG "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll")
 set(ASSIMP_DLL_PATH_RELEASE "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll")
-
-
 
 # FMTlib
 add_subdirectory(${VENDOR_DIR}/fmt)
@@ -142,6 +158,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/Eigen/include
     ${VENDOR_DIR}/fmt/include            # Added include for FMTlib
     ${VENDOR_DIR}/assimp/include
+    ${VENDOR_DIR}/bvh/include
+    ${Boost_INCLUDE_DIRS}                # Boost headers
 )
 
 # Link libraries
@@ -155,6 +173,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     $<$<BOOL:${MINGW}>:ws2_32>
     fmt
     Assimp::Assimp
+    bvh
 )
 
 # =============================================================================

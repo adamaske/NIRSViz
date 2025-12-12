@@ -3,7 +3,7 @@
 #include "Systems/System.h"
 
 #include "Renderer/Renderer.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "../Renderer/Mesh/Mesh.h"
 #include "Renderer/Renderable/Shader.h"
 
 #include "Renderer/Camera/RoamCamera.h"

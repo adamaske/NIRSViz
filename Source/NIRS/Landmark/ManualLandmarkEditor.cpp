@@ -15,7 +15,7 @@ ManualLandmarkEditor::ManualLandmarkEditor(NIRS::ManualLandmarkRegistry& registr
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
     );
 
-    sphere_mesh_ = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+    sphere_mesh_ = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
 }
 
 void ManualLandmarkEditor::RenderGUI(bool standalone) {

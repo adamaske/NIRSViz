@@ -3,7 +3,7 @@
 #include "Core/Layer.h"
 
 #include "Renderer/Renderer.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "../../Renderer/Mesh/Mesh.h"
 #include "Renderer/Renderable/Shader.h"
 #include "Renderer/Renderable/LineRenderer.h"
 #include "Renderer/Renderable/PointRenderer.h"
@@ -70,7 +70,7 @@ private:
 	// Rendering
 	Ref<Shader> m_PhongShader;
 	Ref<Shader> m_FlatColorShader;
-	Ref<Mesh> m_SphereMesh;
+	Ref<Mesh_old> m_SphereMesh;
 
 	// Renderers for different elements
 	Ref<PointRenderer> m_ManualLandmarkRenderer;

@@ -10,7 +10,7 @@ PointRenderer::PointRenderer(ViewportType type, glm::vec4 color, float size) : v
         "C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
     );
  
-    m_SphereMesh = CreateRef<Mesh>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
+    m_SphereMesh = CreateRef<Mesh_old>("C:/dev/NIRSViz/Assets/Models/sphere.obj");
     m_VAO = CreateRef<VertexArray>();
     m_VAO->Bind();
 

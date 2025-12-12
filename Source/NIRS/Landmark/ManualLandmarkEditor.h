@@ -2,7 +2,7 @@
 #include "NIRS/Landmark/ManualLandmarkRegistry.h"
 #include "Renderer/Renderable/PointRenderer.h"
 #include "Renderer/Renderable/LineRenderer.h"
-#include "Renderer/Renderable/Mesh.h"
+#include "../../Renderer/Mesh/Mesh.h"
 #include "Renderer/Renderable/Shader.h"
 
 /**
@@ -50,6 +50,6 @@ private:
     Ref<Shader> m_FlatColorShader;
     
     Ref<Shader> shader_;
-    Ref<Mesh> sphere_mesh_;
+    Ref<Mesh_old> sphere_mesh_;
 
 };
