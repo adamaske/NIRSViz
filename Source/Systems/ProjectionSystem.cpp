@@ -124,7 +124,7 @@ void ProjectionSystem::UpdateInfluenceMap()
 	// Specifically we want the visual probe / the user modified probe -> 
 
 	const auto& probe_system = Application::Get().GetSystem<ProbeSystem>();
-	const auto& intersections = probe_system->GetChannelProjectionResult();
+	const auto& intersections = probe_system->GetChannelIntersectionResults();
 
 	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	const auto& vertices = cortex->GetMesh().geometry.vertices;
@@ -132,8 +132,10 @@ void ProjectionSystem::UpdateInfluenceMap()
 
 	influenced_vertices_.clear();
 
-	for (auto& [channel_id, intersection_point] : intersections) {
+	for (auto& [channel_id, intersection_result] : intersections) {
+		auto intersection_point = intersection_result.IntersectionPoint3D;
 
+		NVIZ_INFO("Calculating Influece from intersection point ( {}, {}, {} ) ", intersection_point.x, intersection_point.y, intersection_point.z);
 		for (int i = 0; i < vertices.size(); i++) {
 
 			glm::vec3 world_pos = transform * glm::vec4(vertices[i].position, 1.0f);

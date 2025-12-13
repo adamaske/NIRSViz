@@ -66,14 +66,11 @@ public:
 	void UpdateChannelVisuals();
 
 	void ProjectChannelsToCortex();
-	void InitHitDataTexture();
-	void UpdateHitDataTexture();
 
 	const NIRS::Probe::Probe& GetProbe() const { return m_SNIRF->GetProbe(); };
 	NIRS::Probe::Probe& GetProbeMutable() { return m_SNIRF->GetProbe(); };
 
 	std::map<NIRS::Probe::ChannelID, NIRS::ChannelVisualization> GetChannelVisualizations() const { return m_ChannelVisualsMap; };
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Position3D> GetChannelProjectionResult() const { return m_ChannelProjectionIntersections; };
 
 	const std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> GetChannelIntersectionResults() override {
 		return channel_intersection_results_; 
@@ -119,7 +116,8 @@ private:
 	float		m_Probe3DRotationAngle = 180.0f;
 	float		m_Probe3DSpreadFactor = 0.11f;
 	float		m_Probe3DMeshScale = 0.8f;
-	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+	float		ray_max_distance_factor_ = 0.5f;
+	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 2.f, 0.0f);
 
 	// 2D Probe Alignment Parameters
 	glm::vec3 m_Probe2DTranslationOffset = glm::vec3(0.0f, 0.0f, 0.0f);

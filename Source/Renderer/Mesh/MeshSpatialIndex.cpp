@@ -63,10 +63,10 @@ bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit, const MeshGeom
     const auto& origin = ray.Origin;
     const auto& end = ray.End;
     auto distance = glm::distance(origin, end);
-    auto direction = end - origin;
+    auto direction = end - origin;  // Direction from origin to end
 
     auto bvh_ray = BvhRay{
-        Vec3(origin.x, origin.y, origin.z),
+        Vec3(origin.x, origin.y, origin.z),  // Start from origin
         Vec3(direction.x, direction.y, direction.z),
         0,
         distance
@@ -84,11 +84,13 @@ bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit, const MeshGeom
     bvh.intersect<false, use_robust_traversal>(bvh_ray, bvh.get_root().index, stack,
         [&](size_t begin, size_t end) {
                 for (size_t i = begin; i < end; ++i) {
-
+                    // When permuting: precomputed_triangles is already permuted, use i directly
+                    // When not permuting: need to map through prim_ids
                     size_t j = should_permute ? i : bvh.prim_ids[i];
                     if (auto hit = precomputed_triangles[j].intersect(bvh_ray)) {
                         prim_id = i;
                         std::tie(bvh_ray.tmax, u, v) = *hit;
+                        NVIZ_INFO("Tmax: {}", bvh_ray.tmax);
                     }
                 }
 
@@ -114,6 +116,7 @@ bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit, const MeshGeom
 
     glm::vec3 hit_point = ComputeBarycentricPoint(prim_id, u, v, geometry);
     out_hit.intersection_point = hit_point;
+    NVIZ_INFO("Intersection point from SpatialIndex: {}, {}, {}", hit_point.x, hit_point.y, hit_point.z);
 
     // Find closest of the 3 triangle vertices
     float min_dist = std::numeric_limits<float>::max();

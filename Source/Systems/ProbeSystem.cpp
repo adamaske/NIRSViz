@@ -37,17 +37,11 @@ void ProbeSystem::OnAttach() {
 	m_LineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
 
-	InitHitDataTexture();
 
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
 		this->HandleSNIRFLoaded();
 
 	});
-
-	EventBus::Instance().Subscribe<OnChannelValuesUpdated>([this](const OnChannelValuesUpdated& e) {
-		this->UpdateHitDataTexture();
-	});
-
 }
 
 void ProbeSystem::OnDetach()
@@ -212,7 +206,9 @@ void ProbeSystem::Render3DProbeTransformControls(bool standalone)
 	);
 	ImGui::PopItemWidth();
 	ImGui::Columns(1);
-	
+
+	ImGui::DragFloat("Distance To Target Factor", &ray_max_distance_factor_, 0.01f, 0.0f, 1.0f, "%.2f");
+
 	GUI::RenderVec3Control("Projection Target Position", m_TargetProbePosition, 0.0f, columnLabelWidth);
 	GUI::RenderVec3Control("Translation", m_Probe3DTranslationOffset, 0.0f, columnLabelWidth);
 	GUI::RenderVec3Control("Rotation Axis", m_Probe3DRotationAxis, 0.0f, columnLabelWidth);
@@ -382,8 +378,8 @@ void ProbeSystem::UpdateChannelVisuals()
 		auto start2D = detector_visuals_[channel.detector_id ].RenderCmd2D.Transform[3];
 		auto end2D	= source_visuals_	[channel.source_id].RenderCmd2D.Transform[3];
 
-		auto start3D = detector_visuals_[channel.detector_id].RenderCmd3D.Transform[3];
-		auto end3D	= source_visuals_	[channel.source_id].RenderCmd3D.Transform[3];
+		glm::vec3 start3D = detector_visuals_[channel.detector_id].RenderCmd3D.Transform[3];
+		glm::vec3 end3D	= source_visuals_	[channel.source_id].RenderCmd3D.Transform[3];
 
 		cv.Line2D = NIRS::Line{
 				start2D,
@@ -395,8 +391,13 @@ void ProbeSystem::UpdateChannelVisuals()
 				end3D
 		};
 
-		auto projStart3D = (start3D + end3D) / 2.0f; 
-		auto projEnd3D = m_TargetProbePosition;
+		auto projStart3D = (start3D + end3D) / 2.0f;
+
+		float max_factor = 1.f;
+
+		auto direction = m_TargetProbePosition - projStart3D;
+
+		auto projEnd3D = projStart3D + (direction * max_factor);
 
 		cv.ProjectionLine3D = NIRS::Line{
 			projStart3D,
@@ -416,6 +417,31 @@ void ProbeSystem::ProjectChannelsToCortex()
 	channel_intersection_results_.clear();
 
 	auto& cortex = anatomy_provider_.GetCortexMutable(); // NIRS::AnatomyManager::Instance().GetCortex();
+
+	for (const auto& [id, channel] : channel_map_) {
+		const auto& cv = m_ChannelVisualsMap[id];
+
+		auto line = cv.ProjectionLine3D;
+		Ray ray{ .Origin=line.Start, .End=line.End };
+
+		RayHit hit;
+		auto did_hit = cortex.IntersectAnatomy(ray, hit);
+
+		if (!did_hit) {
+			NVIZ_WARN("Channel {} Projection did not hit...", id);
+			continue;;
+		}
+
+		// Find the which of the 3 vertices are closest,
+		ChannelIntersectionResult result;
+		result.ChannelID = id;
+		result.IntersectionPoint3D = hit.intersection_point;
+		result.vertex_index =  hit.closest_vertex_index; // Just pick one for now
+		channel_intersection_results_[id] = result;
+
+	}
+
+	return;
 
 	auto& vertices = cortex.GetMesh().geometry.vertices;
 	auto& indices = cortex.GetMesh().geometry.indices;
@@ -497,16 +523,5 @@ void ProbeSystem::ProjectChannelsToCortex()
 			channel_intersection_results_[id] = result;
 		}
 	}
-
-	UpdateHitDataTexture();
-
-}
-
-void ProbeSystem::InitHitDataTexture()
-{
-}
-
-void ProbeSystem::UpdateHitDataTexture()
-{
 }
 
