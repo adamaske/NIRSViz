@@ -109,19 +109,9 @@ void ProjectionSystem::OnProjectionTimeChanged(size_t index, double actualTime)
 	UpdateActivatedVertices();
 }
 
-
-
-
 void ProjectionSystem::UpdateInfluenceMap()
 {
-	// Where does each channel intersect the cortex ? 
-	// 1. Load the probe
-	// 2. Load the cortex mesh
-	// 3. For each channel, cast a ray from source to detector, find intersection with cortex
-	// 4. From this point, find all vertices within the sensitivity radius. 
-	// 5. Store these vertices as influenced by this channel.
-
-	// Specifically we want the visual probe / the user modified probe -> 
+	NVIZ_PROFILE_FUNCTION();
 
 	const auto& probe_system = Application::Get().GetSystem<ProbeSystem>();
 	const auto& intersections = probe_system->GetChannelIntersectionResults();
@@ -129,23 +119,21 @@ void ProjectionSystem::UpdateInfluenceMap()
 	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
 	const auto& vertices = cortex->GetMesh().geometry.vertices;
 	const auto& transform = cortex->GetTransform().GetMatrix();
+	auto& spatial_index = cortex->GetMesh().spatial_index;
 
 	influenced_vertices_.clear();
 
 	for (auto& [channel_id, intersection_result] : intersections) {
 		auto intersection_point = intersection_result.IntersectionPoint3D;
 
-		NVIZ_INFO("Calculating Influece from intersection point ( {}, {}, {} ) ", intersection_point.x, intersection_point.y, intersection_point.z);
-		for (int i = 0; i < vertices.size(); i++) {
+		// Use KD-tree for efficient radius search
+		auto influenced = spatial_index.GetVertcesWithinRadius(intersection_point, settings_.Radius, cortex->GetMesh().geometry);
 
-			glm::vec3 world_pos = transform * glm::vec4(vertices[i].position, 1.0f);
-
+		for (auto& vert : influenced) {
+			glm::vec3 world_pos = transform * glm::vec4(vertices[vert].position, 1.0f);
 			float distance = glm::distance(intersection_point, world_pos);
-			if (distance <= settings_.Radius) {
-
-				InfluencedVertex iv = { i, distance };
-				influenced_vertices_[channel_id].push_back(iv);
-			}
+			InfluencedVertex iv = { vert, distance };
+			influenced_vertices_[channel_id].push_back(iv);
 		}
 	}
 }

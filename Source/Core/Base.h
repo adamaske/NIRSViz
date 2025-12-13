@@ -34,3 +34,4 @@ using DeltaTime = double;
 #include "Core/Except.h"
 #include "Core/Log.h"
 #include "Core/Assert.h"
+#include "Core/Profiler.h"

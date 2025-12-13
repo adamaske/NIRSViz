@@ -34,6 +34,25 @@ struct ChannelIntersectionResult {
 	unsigned int vertex_index = 0;
 };
 
+// Settings to visualize and configure the probe
+struct Probe3DTransformSettings {
+	glm::vec3 position = glm::vec3(0.0f, -1.45f, -1.5f);
+	glm::vec3 rotation{ 0.0f, 180.0f, 0.0f };
+
+	float spread_factor = 0.11f;
+	float optode_mesh_scale = 0.8f;
+	float projection_ray_distance_factor = 0.5f;
+
+	glm::vec3 projection_target_position = glm::vec3(0.0f, 0.0f, 0.0f);
+};
+
+struct Probe2DTransformSettings {
+	glm::vec3 position = glm::vec3(0.0f, -1.45f, -1.5f);
+	glm::vec3 rotation{ 0.0f, 0.0f, 0.0f };
+	glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
+};
+
+
 class IProbeProvider {
 public:
 	// TODO : We need a cleaner method of condesning the visual probes into a data strcture, then we can pass it
@@ -76,8 +95,19 @@ public:
 		return channel_intersection_results_; 
 	};
 
+	struct RenderSettings {
+		bool draw_probes_2D = false;
+		bool draw_channels_2D = false;
+
+		bool draw_probes_3D = false;
+		bool draw_channels_3D = false;
+		bool draw_channel_projections_3D= false;
+	};
+
+
 private:
 	IAnatomyProvider& anatomy_provider_;
+	ViewportType viewport_type_ = ViewportType::AnatomyViewport;
 
 	std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> channel_intersection_results_;
 
@@ -111,22 +141,24 @@ private:
 	Ref<LineRenderer> m_ProjLineRenderer3D = nullptr;
 
 	// 3D Probe Alignment Parameters
-	glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, -1.45f, -1.5f);
-	glm::vec3	m_Probe3DRotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-	float		m_Probe3DRotationAngle = 180.0f;
-	float		m_Probe3DSpreadFactor = 0.11f;
-	float		m_Probe3DMeshScale = 0.8f;
-	float		ray_max_distance_factor_ = 0.5f;
-	glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 2.f, 0.0f);
+	Probe3DTransformSettings probe_3D_transform_settings_;
 
-	// 2D Probe Alignment Parameters
-	glm::vec3 m_Probe2DTranslationOffset = glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 m_Probe2DScale = glm::vec3(1.0f, 1.0f, 1.0f);
-	glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
+	Probe2DTransformSettings probe_2D_transform_settings_;
+	//
+	// glm::vec3	m_Probe3DTranslationOffset = glm::vec3(0.0f, -1.45f, -1.5f);
+	// glm::vec3	m_Probe3DRotationAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+	// float		m_Probe3DRotationAngle = 180.0f;
+	// float		m_Probe3DSpreadFactor = 0.11f;
+	// float		m_Probe3DMeshScale = 0.8f;
+	// float		ray_max_distance_factor_ = 0.5f;
+	// glm::vec3   m_TargetProbePosition = glm::vec3(0.0f, 2.f, 0.0f);
+	//
+	// // 2D Probe Alignment Parameters
+	// glm::vec3 m_Probe2DTranslationOffset = glm::vec3(0.0f, 0.0f, 0.0f);
+	// glm::vec3 m_Probe2DScale = glm::vec3(1.0f, 1.0f, 1.0f);
+	// glm::vec3 m_Probe2DRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
-	uint32_t m_HitDataTextureID = 0;
 
 	bool m_InitalProjectionToCortex = false;
 
-	ViewportType viewport_type_ = ViewportType::AnatomyViewport;
 };

@@ -25,6 +25,16 @@
 
 #include "NIRS/Anatomy/AnatomyManager.h"
 
+namespace Utils {
+	glm::quat EulerAnglesToQuaternionDeg(const glm::vec3& rotation) {
+		return glm::quat(glm::radians(rotation));
+	}
+
+	glm::mat4 EulerAnglesToQuaterionMat4Deg(const glm::vec3& rotation) {
+		return glm::toMat4(EulerAnglesToQuaternionDeg(rotation));
+	}
+}
+
 void ProbeSystem::OnAttach() {
 	auto& app = Application::Get();
 
@@ -57,16 +67,16 @@ void ProbeSystem::OnUpdate(DeltaTime dt)
 
 		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
-
+	auto mesh_scale = glm::vec3(probe_3D_transform_settings_.optode_mesh_scale);
 	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
 		for (auto& [id, pv] : source_visuals_) {
 			RenderCommand cmd = pv.RenderCmd3D;
-			cmd.Transform = glm::scale(cmd.Transform, glm::vec3(m_Probe3DMeshScale));
+			cmd.Transform = glm::scale(cmd.Transform, mesh_scale);
 			Renderer::Submit(cmd);
 		}
 		for (auto& [id, pv] : detector_visuals_) {
 			RenderCommand cmd = pv.RenderCmd3D;
-			cmd.Transform = glm::scale(cmd.Transform, glm::vec3(m_Probe3DMeshScale));
+			cmd.Transform = glm::scale(cmd.Transform, mesh_scale);
 			Renderer::Submit(cmd);
 		}
 	}
@@ -150,29 +160,9 @@ void ProbeSystem::Render2DProbeTransformControls(bool standalone)
 		ImGui::Checkbox("Draw 2D Probes", &m_DrawProbes2D);
 		ImGui::Checkbox("Draw 2D Channels", &m_DrawChannels2D);
 
-		ImGui::DragFloat3("Translation Offset (X, Y)", &m_Probe2DTranslationOffset.x,
-			0.1f, -1000.0f, 1000.0f, "%.1f"
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##2DOffset")) {
-			m_Probe2DTranslationOffset = glm::vec3(0.0f);
-		}
-
-		ImGui::DragFloat3("Scale (X, Y)", &m_Probe2DScale.x,
-			0.01f, 0.01f, 10.0f, "%.2f"
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##2DScale")) {
-			m_Probe2DScale = glm::vec3(1.0f);
-		}
-
-		ImGui::DragFloat3("Rotation (X, Y, Z)", &m_Probe2DRotation.x,
-			1.0f, -360.0f, 360.0f, "%.0f deg"
-		);
-		ImGui::SameLine();
-		if (ImGui::Button("Reset##2DRot")) {
-			m_Probe2DRotation = glm::vec3(0.0f);
-		}
+		GUI::RenderVec3Control("2D Position", probe_2D_transform_settings_.position);
+		GUI::RenderVec3Control("2D Scale", probe_2D_transform_settings_.scale);
+		GUI::RenderVec3Control("2D Rotation", probe_2D_transform_settings_.rotation);
 	}
 	if (standalone) ImGui::End();
 }
@@ -192,7 +182,7 @@ void ProbeSystem::Render3DProbeTransformControls(bool standalone)
 	ImGui::Text("Spread Factor");
 	ImGui::NextColumn();
 	ImGui::PushItemWidth(-1); // Fill remaining space
-	ImGui::DragFloat("##SpreadFactor", &m_Probe3DSpreadFactor,
+	ImGui::DragFloat("##SpreadFactor", &probe_3D_transform_settings_.spread_factor,
 		0.01f, 0.0f, 5.0f, "%.2f"
 	);
 	ImGui::PopItemWidth();
@@ -201,28 +191,18 @@ void ProbeSystem::Render3DProbeTransformControls(bool standalone)
 	ImGui::Text("Mesh Scale");
 	ImGui::NextColumn();
 	ImGui::PushItemWidth(-1);
-	ImGui::DragFloat("##MeshScale", &m_Probe3DMeshScale,
+	ImGui::DragFloat("##MeshScale", &probe_3D_transform_settings_.optode_mesh_scale,
 		0.01f, 0.0f, 2.0f, "%.2f"
 	);
 	ImGui::PopItemWidth();
 	ImGui::Columns(1);
 
-	ImGui::DragFloat("Distance To Target Factor", &ray_max_distance_factor_, 0.01f, 0.0f, 1.0f, "%.2f");
+	ImGui::DragFloat("Distance To Target Factor", &probe_3D_transform_settings_.projection_ray_distance_factor, 0.01f, 0.0f, 1.0f, "%.2f");
 
-	GUI::RenderVec3Control("Projection Target Position", m_TargetProbePosition, 0.0f, columnLabelWidth);
-	GUI::RenderVec3Control("Translation", m_Probe3DTranslationOffset, 0.0f, columnLabelWidth);
-	GUI::RenderVec3Control("Rotation Axis", m_Probe3DRotationAxis, 0.0f, columnLabelWidth);
-	
-	ImGui::Columns(2, nullptr, false);
-	ImGui::SetColumnWidth(0, columnLabelWidth); // Label column
-	ImGui::Text("Rotation Angle");
-	ImGui::NextColumn();
-	ImGui::PushItemWidth(-1); // Fill remaining space
-	ImGui::DragFloat(
-		"##Rotation Angle", &m_Probe3DRotationAngle,
-		1.0f, -360.0f, 360.0f, "%.0f deg"
-	);
-	ImGui::PopItemWidth();
+	GUI::RenderVec3Control("3D Position", probe_3D_transform_settings_.position, 0.0f, columnLabelWidth);
+	GUI::RenderVec3Control("3D Rotation", probe_3D_transform_settings_.rotation, 0.0f, columnLabelWidth);
+	GUI::RenderVec3Control("Target Position", probe_3D_transform_settings_.projection_target_position, 0.0f, columnLabelWidth);
+
 	ImGui::Columns(1);
 	
 	ImGui::Separator();
@@ -281,7 +261,7 @@ void ProbeSystem::HandleSNIRFLoaded()
 glm::mat4 ProbeSystem::CalculateProbeRotationMatrix(const glm::vec3& worldPos) const
 {
 	// Calculate direction from worldPos towards m_TargetProbePosition
-	glm::vec3 direction = glm::normalize(m_TargetProbePosition - worldPos);
+	glm::vec3 direction = glm::normalize(probe_3D_transform_settings_.projection_target_position - worldPos);
 
 	// Create an orthonormal basis for the local rotation matrix
 	glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -306,7 +286,7 @@ void ProbeSystem::UpdateProbeVisual(	ProbeVisual& pv,
 									const glm::mat4& base3DTransform)
 {
 	// --- 3D Calculations ---
-	auto worldPos = pv.optode.position_3D * m_Probe3DSpreadFactor;
+	auto worldPos = pv.optode.position_3D * probe_3D_transform_settings_.spread_factor;
 	glm::mat4 localRotation = CalculateProbeRotationMatrix(worldPos);
 	glm::mat4 translation = glm::translate(glm::mat4(1.0f), worldPos);
 
@@ -343,9 +323,10 @@ void ProbeSystem::UpdateProbeVisuals()
 	flatColor.Name = "u_Color";
 
 	// --- 2. Calculate Base 3D Transform (Pre-calculated for efficiency) ---
-	glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(m_Probe3DRotationAngle), m_Probe3DRotationAxis);
-	glm::mat4 offset = glm::translate(glm::mat4(1.0f), m_Probe3DTranslationOffset);
-	glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(m_Probe3DMeshScale));
+	glm::mat4 rotation = Utils::EulerAnglesToQuaterionMat4Deg(probe_3D_transform_settings_.rotation);
+
+	glm::mat4 offset = glm::translate(glm::mat4(1.0f), probe_3D_transform_settings_.position);
+	glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(probe_3D_transform_settings_.optode_mesh_scale));
 
 	// Base transform: Offset * Rotation * Scale (Translation and localRotation are per-probe)
 	glm::mat4 base3DTransform = offset * rotation;
@@ -392,17 +373,10 @@ void ProbeSystem::UpdateChannelVisuals()
 		};
 
 		auto projStart3D = (start3D + end3D) / 2.0f;
+		auto direction = probe_3D_transform_settings_.position - projStart3D;
+		auto projEnd3D = projStart3D + (direction * probe_3D_transform_settings_.projection_ray_distance_factor);
 
-		float max_factor = 1.f;
-
-		auto direction = m_TargetProbePosition - projStart3D;
-
-		auto projEnd3D = projStart3D + (direction * max_factor);
-
-		cv.ProjectionLine3D = NIRS::Line{
-			projStart3D,
-			projEnd3D
-		};
+		cv.ProjectionLine3D = NIRS::Line{ .Start = projStart3D, .End = projEnd3D };
 
 		m_ChannelVisualsMap[idx] = cv;
 
@@ -414,9 +388,11 @@ void ProbeSystem::UpdateChannelVisuals()
 
 void ProbeSystem::ProjectChannelsToCortex()
 {
+	NVIZ_PROFILE_FUNCTION();
+
 	channel_intersection_results_.clear();
 
-	auto& cortex = anatomy_provider_.GetCortexMutable(); // NIRS::AnatomyManager::Instance().GetCortex();
+	auto& cortex = anatomy_provider_.GetCortexMutable();
 
 	for (const auto& [id, channel] : channel_map_) {
 		const auto& cv = m_ChannelVisualsMap[id];
@@ -425,10 +401,7 @@ void ProbeSystem::ProjectChannelsToCortex()
 		Ray ray{ .Origin=line.Start, .End=line.End };
 
 		RayHit hit;
-		auto did_hit = cortex.IntersectAnatomy(ray, hit);
-
-		if (!did_hit) {
-			NVIZ_WARN("Channel {} Projection did not hit...", id);
+		if (!cortex.IntersectAnatomy(ray, hit)) {
 			continue;;
 		}
 
@@ -439,89 +412,6 @@ void ProbeSystem::ProjectChannelsToCortex()
 		result.vertex_index =  hit.closest_vertex_index; // Just pick one for now
 		channel_intersection_results_[id] = result;
 
-	}
-
-	return;
-
-	auto& vertices = cortex.GetMesh().geometry.vertices;
-	auto& indices = cortex.GetMesh().geometry.indices;
-	const auto& world_transform = cortex.GetTransform().GetMatrix(); // Get world space coordiantes
-
-	// Cache world space vertices
-	std::vector<glm::vec3> world_space_vertices(vertices.size());
-	for (size_t i = 0; i < vertices.size(); i++)
-	{
-		glm::mat4 world_pos = glm::translate(world_transform, vertices[i].position);
-		world_space_vertices[i] = world_pos[3];
-	}
-
-	// It is already intialized to 0, therefore we dont need to clear it
-	//m_ChannelProjectionIntersections.clear(); 
-
-	for (const auto& [id, channel] : channel_map_) {
-		const auto& cv = m_ChannelVisualsMap[id];
-
-		auto line = cv.ProjectionLine3D;
-		const auto& origin = line.Start;
-		const auto& end = line.End;
-		const auto& direction = glm::normalize(end - origin);
-
-		RayHit hit;
-		for (unsigned int i = 0; i < indices.size(); i += 3) { // TODO : Use a BVH to increase performance and avoid checking every triangle
-
-			auto v0 = world_space_vertices[indices[i]];
-			auto v1 = world_space_vertices[indices[i + 1]];
-			auto v2 = world_space_vertices[indices[i + 2]];
-
-			float t;
-			if (RayIntersectsTriangle(origin, direction, v0, v1, v2, t)) {
-				if (t < hit.t_distance) {
-					hit.t_distance = t;
-					hit.hit_v0 = indices[i];
-					hit.hit_v1 = indices[i + 1];
-					hit.hit_v2 = indices[i + 2];
-				}
-			}
-		}
-
-
-
-
-		if (hit.t_distance < std::numeric_limits<float>::max()) {
-			// We have a hit
-			glm::vec3 intersection_point = origin + direction * hit.t_distance;
-			m_ChannelProjectionIntersections[id] = intersection_point;
-
-			// Go through each hit.hit_vX to find closest vertex
-
-			auto v0_pos = world_space_vertices[hit.hit_v0];
-			auto v1_pos = world_space_vertices[hit.hit_v1];
-			auto v2_pos = world_space_vertices[hit.hit_v2];
-
-			auto v0_dist = glm::distance(intersection_point, v0_pos);
-			auto v1_dist = glm::distance(intersection_point, v1_pos);
-			auto v2_dist = glm::distance(intersection_point, v2_pos);
-
-			int closest_vertex_index = hit.hit_v0;
-			float min_distance = v0_dist;
-
-			if (v1_dist < min_distance) {
-				min_distance = v1_dist;
-				closest_vertex_index = hit.hit_v1;
-			}
-
-			if (v2_dist < min_distance) {
-				closest_vertex_index = hit.hit_v2;
-			}
-
-			// Find the which of the 3 vertices are closest, 
-			ChannelIntersectionResult result;
-			result.ChannelID = id;
-			result.IntersectionPoint3D = intersection_point;
-			result.vertex_index = closest_vertex_index; // Just pick one for now
-
-			channel_intersection_results_[id] = result;
-		}
 	}
 }
 

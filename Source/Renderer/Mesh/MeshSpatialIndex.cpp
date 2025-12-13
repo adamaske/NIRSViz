@@ -6,6 +6,7 @@
 #include <bvh/v2/default_builder.h>
 #include <bvh/v2/stack.h>
 
+
 MeshSpatialIndex MeshSpatialIndex::BuildFromGeometry(const MeshGeometry &geometry) {
     MeshSpatialIndex index;
 
@@ -13,6 +14,7 @@ MeshSpatialIndex MeshSpatialIndex::BuildFromGeometry(const MeshGeometry &geometr
     auto &vertices = geometry.vertices;
     auto &indices = geometry.indices;
 
+    // BVH
     for (int i = 0; i < indices.size(); i+=3) {
         auto &v1 = vertices[indices[i]].position;
         auto &v2 = vertices[indices[i + 1]].position;
@@ -54,6 +56,16 @@ MeshSpatialIndex MeshSpatialIndex::BuildFromGeometry(const MeshGeometry &geometr
         };
     });
 
+    // Build KD-tree for vertex queries using nanoflann
+    // We store the adapter to keep it alive for the lifetime of the KD-tree
+    // The adapter holds a reference to the geometry, so the geometry must outlive the index
+    index.vertex_adapter = std::make_unique<MeshVertexAdapter>(geometry);
+    index.vertex_kdtree = std::make_unique<VertexKDTree>(
+        3 /* dimensionality */,
+        *index.vertex_adapter,
+        nanoflann::KDTreeSingleIndexAdaptorParams(10 /* max leaf size */)
+    );
+    index.vertex_kdtree->buildIndex();
 
     return index;
 }
@@ -90,7 +102,6 @@ bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit, const MeshGeom
                     if (auto hit = precomputed_triangles[j].intersect(bvh_ray)) {
                         prim_id = i;
                         std::tie(bvh_ray.tmax, u, v) = *hit;
-                        NVIZ_INFO("Tmax: {}", bvh_ray.tmax);
                     }
                 }
 
@@ -116,7 +127,6 @@ bool MeshSpatialIndex::Intersect(const Ray& ray, RayHit &out_hit, const MeshGeom
 
     glm::vec3 hit_point = ComputeBarycentricPoint(prim_id, u, v, geometry);
     out_hit.intersection_point = hit_point;
-    NVIZ_INFO("Intersection point from SpatialIndex: {}, {}, {}", hit_point.x, hit_point.y, hit_point.z);
 
     // Find closest of the 3 triangle vertices
     float min_dist = std::numeric_limits<float>::max();
@@ -161,4 +171,42 @@ glm::vec3 MeshSpatialIndex::ComputeBarycentricPoint(size_t prim_id, float u, flo
     // Barycentric interpolation: P = (1-u-v)*v0 + u*v1 + v*v2
     float w = 1.0f - u - v;
     return w * v0 + u * v1 + v * v2;
+}
+
+std::vector<unsigned int> MeshSpatialIndex::GetVertcesWithinRadius(
+    const glm::vec3 &center,
+    const float &radius,
+    const MeshGeometry &geometry) const
+{
+    std::vector<unsigned int> result_indices;
+
+    if (!vertex_kdtree) {
+        return result_indices;
+    }
+
+    // Prepare query point
+    const float query_pt[3] = { center.x, center.y, center.z };
+
+    // Use nanoflann's radius search
+    // Note: radiusSearch expects squared radius when using L2_Simple_Adaptor
+    const float search_radius_squared = radius * radius;
+
+    std::vector<nanoflann::ResultItem<unsigned int, float>> matches;
+    nanoflann::SearchParameters params;
+    params.sorted = false; // We don't need sorted results for this use case
+
+    const size_t num_results = vertex_kdtree->radiusSearch(
+        query_pt,
+        search_radius_squared,
+        matches,
+        params
+    );
+
+    // Extract just the indices from the matches
+    result_indices.reserve(num_results);
+    for (const auto& match : matches) {
+        result_indices.push_back(static_cast<unsigned int>(match.first));
+    }
+
+    return result_indices;
 }

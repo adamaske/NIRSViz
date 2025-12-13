@@ -53,3 +53,6 @@
 [submodule "Vendor/assimp"]
 	path = Vendor/assimp
 	url = https://github.com/assimp/assimp.git
+[submodule "Vendor/nanoflann"]
+	path = Vendor/nanoflann
+	url = https://github.com/jlblancoc/nanoflann.git

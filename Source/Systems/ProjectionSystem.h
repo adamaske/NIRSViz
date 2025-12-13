@@ -90,7 +90,7 @@ private:
 
 	// 1. Influenced Vertices Data Structure
 	struct InfluencedVertex {
-		int vertex_index;
+		unsigned int vertex_index;
 		double distance;
 	};
 	using InfluencedVertexList = std::vector<InfluencedVertex>;

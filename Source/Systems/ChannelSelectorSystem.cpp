@@ -51,7 +51,7 @@ void ChannelSelectorSystem::OnAttach()
 	MeshFileDescription plate_fd{.filepath = "C:/dev/NIRSViz/Assets/Models/plate.obj"};
 
 	m_QuadMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(quad_fd));
-	m_PlateMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(quad_fd));
+	m_PlateMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(plate_fd));
 
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e){
 		this->HandleSNIRFLoaded();

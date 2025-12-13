@@ -70,6 +70,9 @@ set_target_properties(Assimp::Assimp PROPERTIES
 # Madman91/BVH
 add_subdirectory(${VENDOR_DIR}/bvh)
 
+#jblancoc/nanoflann
+add_subdirectory(${VENDOR_DIR}/nanoflann)
+
 # --- RELEASE Configuration ---
 # NOTE: Ensure these paths and file names match your Release configuration!
 set_target_properties(Assimp::Assimp PROPERTIES
@@ -160,6 +163,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/assimp/include
     ${VENDOR_DIR}/bvh/include
     ${Boost_INCLUDE_DIRS}                # Boost headers
+    ${VENDOR_DIR}/nanoflann/include
 )
 
 # Link libraries

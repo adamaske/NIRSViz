@@ -47,10 +47,6 @@ unsigned int Anatomy::FindClosestVertex(const glm::vec3& position) const
 }
 
 bool Anatomy::IntersectAnatomy(const Ray &ray, RayHit &out_hit) {
-
-
-	// Debug - Input Ray In world Pos
-
 	auto local_to_world = transform_.GetMatrix();
 	auto world_to_local = glm::inverse(local_to_world);
 
@@ -60,32 +56,13 @@ bool Anatomy::IntersectAnatomy(const Ray &ray, RayHit &out_hit) {
 
 
 	RayHit hit;
-	auto result = mesh_.spatial_index.Intersect(world_ray, hit, mesh_.geometry);
-	if (!result) {
-		NVIZ_WARN("IntersectAnatomy did not hit. ");
+	if (!mesh_.spatial_index.Intersect(world_ray, hit, mesh_.geometry)) {
 		return false;
 	}
 
-	auto ip_mat = glm::translate(glm::mat4(1.0f), hit.intersection_point);
-	hit.intersection_point = (world_to_local * ip_mat)[3];
-
-	// We got a hit, now we need to turn the local interscetion point back to world spcae
+	hit.intersection_point = (world_to_local * glm::translate(glm::mat4(1.0f), hit.intersection_point))[3];
 
 	out_hit = hit;
 
-
-
-	NVIZ_DEBUG("Input Ray : ( {}, {}, {} ) to ( {}, {}, {} )",
-		ray.Origin.x, ray.Origin.y, ray.Origin.z,
-		ray.End.x, ray.End.y, ray.End.z);
-
-	NVIZ_DEBUG("World Ray : ( {}, {}, {} ) to ( {}, {}, {} )",
-		world_ray.Origin.x, world_ray.Origin.y, world_ray.Origin.z,
-		world_ray.End.x, world_ray.End.y, world_ray.End.z);
-
-	NVIZ_DEBUG("Intersection Point : ( {}, {}, {} )", hit.intersection_point.x, hit.intersection_point.y, hit.intersection_point.z);
-	NVIZ_DEBUG("Closest Vertex Index : {}", hit.closest_vertex_index);
-
-	NVIZ_INFO("Intersection point from Anatomy: {}, {}, {}", hit.intersection_point.x, hit.intersection_point.y, hit.intersection_point.z);
 	return true;
 };
