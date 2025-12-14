@@ -7,8 +7,7 @@
 
 #include "GUI/GUI.h"
 
-#include "Events/EventBus.h"	
-#include "NIRS/Anatomy/AnatomyManager.h"
+#include "Events/EventBus.h"
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Texture.h"
@@ -23,6 +22,7 @@ void ProjectionSystem::OnAttach()
 
 	SetupSubscriptions();
 
+	SetupCortexRendering();
 }
 
 void ProjectionSystem::OnDetach()
@@ -51,13 +51,6 @@ void ProjectionSystem::RenderMenuBar() {
 void ProjectionSystem::SetupSubscriptions()
 {
 	auto& bus = EventBus::Instance();
-
-	// TODO : Defer this command to a projection queue to avoid threading issues
-	bus.Subscribe<OnAnatomyLoaded>([&](const OnAnatomyLoaded& e) {
-		if (e.Type == OnAnatomyLoaded::AnatomyTpye::Cortex) {
-			SetupCortexRendering();
-		}
-		});
 
 	bus.Subscribe<OnUserStartProjectionCommand>([&](const OnUserStartProjectionCommand& e) {
 		StartProjection();
@@ -116,10 +109,10 @@ void ProjectionSystem::UpdateInfluenceMap()
 	const auto& probe_system = Application::Get().GetSystem<ProbeSystem>();
 	const auto& intersections = probe_system->GetChannelIntersectionResults();
 
-	const auto& cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	const auto& vertices = cortex->GetMesh().geometry.vertices;
-	const auto& transform = cortex->GetTransform().GetMatrix();
-	auto& spatial_index = cortex->GetMesh().spatial_index;
+	auto& cortex = anatomy_provider_.GetCortexMutable();
+	const auto& vertices = cortex.GetMesh().geometry.vertices;
+	const auto& transform = cortex.GetTransform().GetMatrix();
+	auto& spatial_index = cortex.GetMesh().spatial_index;
 
 	influenced_vertices_.clear();
 
@@ -127,7 +120,7 @@ void ProjectionSystem::UpdateInfluenceMap()
 		auto intersection_point = intersection_result.IntersectionPoint3D;
 
 		// Use KD-tree for efficient radius search
-		auto influenced = spatial_index.GetVertcesWithinRadius(intersection_point, settings_.Radius, cortex->GetMesh().geometry);
+		auto influenced = spatial_index.GetVertcesWithinRadius(intersection_point, settings_.Radius, cortex.GetMesh().geometry);
 
 		for (auto& vert : influenced) {
 			glm::vec3 world_pos = transform * glm::vec4(vertices[vert].position, 1.0f);
@@ -153,16 +146,25 @@ void ProjectionSystem::UpdateActivatedVertices()
 		// selected_channels is a vector of ChannelID
 		for(auto& sel_channel_id : selected_channels) {
 			if(sel_channel_id == channel_id) {
-				// Channel is selected, proceed
+				// I want that distance = radius -> influence = 0, but if distance = 0, then infuelnce = 1
+				// is my equation correct?
 				double activation_strength = channels[channel_id];
 
 				for (const auto& iv : influenced_vertices) {
 					int vertex_index = iv.vertex_index;
+					// 1. Normalize the distance (0 to 1 range)
+					float d = iv.distance / settings_.Radius;
 
-					float falloff = 1.0f - (iv.distance / settings_.Radius);
+					// 2. Exponential falloff: e^(-decay * d^2)
+					// When d=0, influence is 1.0. When d=1, influence is e^-decay (near 0).
+					float influence = std::exp(-settings_.decay_constant * (d * d));
 
+					// 3. Optional: Smoothly bring it to exactly 0 at the radius boundary
+					// This prevents a "hard edge" if the exponential value is still > 0 at d=1
+					float boundary_fade = 1.0f - d;
+					influence *= (boundary_fade > 0) ? 1.0f : 0.0f;
 
-					projection_vertices[vertex_index].activity_level += activation_strength * falloff;
+					projection_vertices[vertex_index].activity_level += influence * activation_strength;
 				}
 			}
 		}
@@ -317,7 +319,7 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 
 	ImGui::Text("Decay Power"); 
 	ImGui::NextColumn(); 
-	ImGui::DragFloat("##DecayPower", &settings_.DecayPower, 0.1f, 0.1f, 20.0f);
+	ImGui::DragFloat("##DecayPower", &settings_.decay_constant, 0.1f, 0.1f, 20.0f);
 	ImGui::NextColumn();
 
 	ImGui::Text("Cortex Color"); 

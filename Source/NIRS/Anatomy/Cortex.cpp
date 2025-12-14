@@ -2,8 +2,8 @@
 #include "NIRS/Anatomy/Cortex.h"
 
 namespace NIRS {
-	Cortex::Cortex(std::string& meshPath)
-		: Anatomy(meshPath)
+	Cortex::Cortex(const std::filesystem::path& obj_filepath)
+		: Anatomy(obj_filepath)
 	{
 
 	}

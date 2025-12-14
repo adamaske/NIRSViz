@@ -14,18 +14,11 @@ public:
 	void RenderMenuBar() override;
 
 	void PostInit();
+
 	void UserLoadSNIRF();
 
-	void OpenProject();
 
-	void RenderNewProjectEditor();
-	void RenderProjectExplorer();
-	
-	void RenderProjectDetails(bool standalone);
 private:
 
-	bool m_ShowNewProjectEditor = false;
-
-	Ref<NIRS::ProjectDatabase> m_ProjectDatabase;
 
 };

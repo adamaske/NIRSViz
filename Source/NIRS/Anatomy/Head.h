@@ -5,7 +5,7 @@ namespace NIRS {
 
 	class Head : public Anatomy {
 	public:
-		Head(std::string& meshPath);
+		Head(const std::filesystem::path& meshPath);
 	};
 
 }

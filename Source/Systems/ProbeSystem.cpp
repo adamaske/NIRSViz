@@ -4,14 +4,11 @@
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <set>
-
 #include "Core/Application.h"
 #include "Core/AssetManager.h"
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Shader.h"
-#include "Renderer/Buffer/VertexBuffer.h"
 #include "Renderer/ViewportManager.h"
 
 #include "NIRS/NIRS.h"
@@ -22,8 +19,6 @@
 
 #include "Events/EventBus.h"
 #include "GUI/GUI.h"
-
-#include "NIRS/Anatomy/AnatomyManager.h"
 
 namespace Utils {
 	glm::quat EulerAnglesToQuaternionDeg(const glm::vec3& rotation) {

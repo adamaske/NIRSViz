@@ -8,7 +8,7 @@ CoordinateSystemGenerator::CoordinateSystemGenerator(ViewportType viewport, IAna
 	viewport_type_(viewport), anatomy_provider_(anatomy_provider)
 {
 
-	m_CoordController = CreateScope<App::CoordinateSystemController>();
+	m_CoordController = CreateScope<App::CoordinateSystemController>(anatomy_provider_);
 
 	manual_landmark_editor_ = CreateScope<ManualLandmarkEditor>(
 		m_CoordController->GetCoordinateSystem().GetManualLandmarks(),

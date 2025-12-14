@@ -8,7 +8,6 @@
 #include "Core/AssetManager.h"
 #include "Events/EventBus.h"
 
-#include "NIRS/Anatomy/AnatomyManager.h"
 
 #include "NIRS/Snirf.h"
 #include "NIRS/SNIRFFactory.h"

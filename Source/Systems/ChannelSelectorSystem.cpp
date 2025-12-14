@@ -16,18 +16,15 @@
 #define DETECTOR_OFFSET 1024
 #define CHANNEL_OFFSET 2048
 
-ChannelSelectorSystem::ChannelSelectorSystem() 
-{
-}
-ChannelSelectorSystem::~ChannelSelectorSystem()
-{
-}
-
 void ChannelSelectorSystem::OnAttach()
 {
 	FramebufferSpecification fbSpec; // Init a framebuffer to show the probe
 	// Double Color
-	fbSpec.Attachments = { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::Depth };
+	fbSpec.Attachments = {
+		FramebufferTextureFormat::RGBA8,
+		FramebufferTextureFormat::RED_INTEGER,
+		FramebufferTextureFormat::Depth
+	};
 	fbSpec.Width = 800;
 	fbSpec.Height = 600;
 	m_Framebuffer = CreateRef<Framebuffer>(fbSpec);

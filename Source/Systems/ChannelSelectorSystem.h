@@ -32,8 +32,8 @@ struct Channel2DVisual {
 class ChannelSelectorSystem : public System, public ISelectedChannelsProvider
 {
 public:
-	ChannelSelectorSystem();
-	~ChannelSelectorSystem();
+	ChannelSelectorSystem() = default;
+	~ChannelSelectorSystem() = default;
 
 	const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() override {
 		return m_SelectedChannels;

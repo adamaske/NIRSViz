@@ -4,7 +4,7 @@
 #include <ranges>
 #include <glm/glm.hpp>
 
-Anatomy::Anatomy(std::filesystem::path obj_filepath) : mesh_({})
+Anatomy::Anatomy(const std::filesystem::path& obj_filepath) : mesh_({})
 {
 	MeshFileDescription fd{ .filepath = obj_filepath };
 	mesh_ = MeshFactory::CreateMesh(fd);

@@ -4,14 +4,12 @@
 
 #include "Events/EventBus.h"
 
-#include "NIRS/Anatomy/AnatomyManager.h"
-
 namespace App {
 
-	CoordinateSystemController::CoordinateSystemController()
-	    : m_CoordinateSystem(), m_Sampler()
-	{
+	CoordinateSystemController::CoordinateSystemController(IAnatomyProvider &anatomy_provider) :
+	m_CoordinateSystem(), m_Sampler(), anatomy_provider_(anatomy_provider){
 	}
+
 	void CoordinateSystemController::GenerateCoordinateSystem(NIRS::Head* head)
 	{
 	    if (!head) {
@@ -247,8 +245,8 @@ namespace App {
 	{
 		using namespace NIRS;
 		using namespace NIRS::Landmarks;
-		auto head = AnatomyManager::Instance().GetHead();
-		auto worldVertices = head->GetWorldSpaceVertexPositions();
+		auto& head = anatomy_provider_.GetHeadMutable();
+		auto worldVertices = head.GetWorldSpaceVertexPositions();
 		  
 
 		auto& landmarks = m_CoordinateSystem.GetLandmarks();
@@ -284,11 +282,11 @@ namespace App {
 			c4->ClosestVertexIndex
 		};
 
-		auto f7_fz_fine = PathFinder::RefinePath(*head->GetGraph(), f7_fz_path);
-		auto fp1_c3_fine = PathFinder::RefinePath(*head->GetGraph(), fp1_c3_path);
+		auto f7_fz_fine = PathFinder::RefinePath(*head.GetGraph(), f7_fz_path);
+		auto fp1_c3_fine = PathFinder::RefinePath(*head.GetGraph(), fp1_c3_path);
 
-		auto f8_fz_fine = PathFinder::RefinePath(*head->GetGraph(), f8_fz_path);
-		auto fp2_c4_fine = PathFinder::RefinePath(*head->GetGraph(), fp2_c4_path);
+		auto f8_fz_fine = PathFinder::RefinePath(*head.GetGraph(), f8_fz_path);
+		auto fp2_c4_fine = PathFinder::RefinePath(*head.GetGraph(), fp2_c4_path);
 
 
 		auto f7fz = LandmarkCalculator::FindPointAtPercentage(worldVertices, f7_fz_fine, 0.5f);
@@ -304,13 +302,13 @@ namespace App {
 		LandmarkData f3Data;
 		f3Data.Type = F3;
 		f3Data.Position = f3;
-		f3Data.ClosestVertexIndex = head->FindClosestVertex(fp1c3);
+		f3Data.ClosestVertexIndex = head.FindClosestVertex(fp1c3);
 		f3Data.IsVisible = true;
 		landmarks.SetLandmark(F3, f3Data);
 		LandmarkData f4Data;
 		f4Data.Type = F4;
 		f4Data.Position = f4;
-		f4Data.ClosestVertexIndex = head->FindClosestVertex(fp2c4);
+		f4Data.ClosestVertexIndex = head.FindClosestVertex(fp2c4);
 		f4Data.IsVisible = true;
 		landmarks.SetLandmark(F4, f4Data);
 		// Now generate the F3-F4 path
@@ -322,8 +320,8 @@ namespace App {
 		using namespace NIRS;
 		using namespace Landmarks;
 
-		auto head = AnatomyManager::Instance().GetHead();
-		auto worldVertices = head->GetWorldSpaceVertexPositions();
+		auto& head = anatomy_provider_.GetHeadMutable();
+		auto worldVertices = head.GetWorldSpaceVertexPositions();
 		auto& landmarks = m_CoordinateSystem.GetLandmarks();
 
 		auto pz = landmarks.GetLandmark(Pz);
@@ -358,11 +356,11 @@ namespace App {
 		};
 
 
-		auto t5_Pz_fine = PathFinder::RefinePath(*head->GetGraph(), t5_Pz_path);
-		auto o1_c3_fine = PathFinder::RefinePath(*head->GetGraph(), o1_c3_path);
+		auto t5_Pz_fine = PathFinder::RefinePath(*head.GetGraph(), t5_Pz_path);
+		auto o1_c3_fine = PathFinder::RefinePath(*head.GetGraph(), o1_c3_path);
 
-		auto t6_Pz_fine = PathFinder::RefinePath(*head->GetGraph(), t6_Pz_path);
-		auto o2_c4_fine = PathFinder::RefinePath(*head->GetGraph(), o2_c4_path);
+		auto t6_Pz_fine = PathFinder::RefinePath(*head.GetGraph(), t6_Pz_path);
+		auto o2_c4_fine = PathFinder::RefinePath(*head.GetGraph(), o2_c4_path);
 
 
 		auto t5pz = LandmarkCalculator::FindPointAtPercentage(worldVertices, t5_Pz_fine, 0.5f);
@@ -378,14 +376,14 @@ namespace App {
 		LandmarkData p3Data;
 		p3Data.Type = P3;
 		p3Data.Position = p3;
-		p3Data.ClosestVertexIndex = head->FindClosestVertex(o1c3);
+		p3Data.ClosestVertexIndex = head.FindClosestVertex(o1c3);
 		p3Data.IsVisible = true;
 		landmarks.SetLandmark(P3, p3Data);
 
 		LandmarkData p4Data;
 		p4Data.Type = P4;
 		p4Data.Position = p4;
-		p4Data.ClosestVertexIndex = head->FindClosestVertex(o2c4);
+		p4Data.ClosestVertexIndex = head.FindClosestVertex(o2c4);
 		p4Data.IsVisible = true;
 		landmarks.SetLandmark(P4, p4Data);
 

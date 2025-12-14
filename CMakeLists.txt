@@ -66,24 +66,23 @@ set_target_properties(Assimp::Assimp PROPERTIES
     IMPORTED_LOCATION_DEBUG
     "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll"
 )
+# --- RELEASE Configuration ---
+# NOTE: Ensure these paths and file names match your Release configuration!
+set_target_properties(Assimp::Assimp PROPERTIES
+        # IMPLIB for Release configuration
+        IMPORTED_IMPLIB_RELEASE
+        "${VENDOR_DIR}/assimp/build/lib/Release/assimp-vc143-mt.lib"
+
+        # LOCATION for Release configuration
+        IMPORTED_LOCATION_RELEASE
+        "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll"
+)
 
 # Madman91/BVH
 add_subdirectory(${VENDOR_DIR}/bvh)
 
 #jblancoc/nanoflann
 add_subdirectory(${VENDOR_DIR}/nanoflann)
-
-# --- RELEASE Configuration ---
-# NOTE: Ensure these paths and file names match your Release configuration!
-set_target_properties(Assimp::Assimp PROPERTIES
-    # IMPLIB for Release configuration
-    IMPORTED_IMPLIB_RELEASE
-    "${VENDOR_DIR}/assimp/build/lib/Release/assimp-vc143-mt.lib"
-
-    # LOCATION for Release configuration
-    IMPORTED_LOCATION_RELEASE
-    "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll"
-)
 
 # Get the DLL path based on the build configuration
 # We use generator expressions to select the correct path (.dll) at build time
@@ -111,6 +110,23 @@ add_subdirectory(${VENDOR_DIR}/spdlog)
 
 # Native File Dialog Extended
 add_subdirectory(${VENDOR_DIR}/nativefiledialog-extended)
+
+# ITK
+#find_package(ITK REQUIRED)
+#include(${ITK_USE_FILE})
+
+# CTD
+#add_subdirectory(${VENDOR_DIR}/CDT/CDT)# In consuming CMakeLists.txt
+# THe .lib is located in ${VENDOR_DIR}/CDT/CDT/build/Debug/CDT.lib
+# and ${VENDOR_DIR}/CDT/CDT/build/Release/CDT.lib
+add_library(CDT_Static STATIC IMPORTED)
+
+set_target_properties(CDT_Static PROPERTIES
+        IMPORTED_LOCATION_DEBUG "${VENDOR_DIR}/CDT/CDT/build/Debug/CDT.lib"
+        IMPORTED_LOCATION_RELEASE "${VENDOR_DIR}/CDT/CDT/build/Release/CDT.lib"
+        INTERFACE_INCLUDE_DIRECTORIES "${VENDOR_DIR}/CDT/CDT/include"
+)
+
 
 # =============================================================================
 # ImGui Library
@@ -164,6 +180,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/bvh/include
     ${Boost_INCLUDE_DIRS}                # Boost headers
     ${VENDOR_DIR}/nanoflann/include
+    ${ITK_USE_FILE}
+        ${VENDOR_DIR}/CDT/CDT/include
 )
 
 # Link libraries
@@ -178,6 +196,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     fmt
     Assimp::Assimp
     bvh
+    ${ITK_LIBRARIES}
+    CDT_Static
 )
 
 # =============================================================================

@@ -10,7 +10,7 @@
 class Anatomy {
 public: // TODO : Currently we have to supply a valid obj_filepath to create anatomy,
     // rather the mesh should be opt-in.
-    Anatomy(std::filesystem::path obj_filepath);
+    Anatomy(const std::filesystem::path& obj_filepath);
     ~Anatomy() = default;
 
     Ref<Graph> GetGraph() { return m_Graph; }

@@ -7,13 +7,14 @@
 #include "NIRS/Coordinate/PathFinder.h"
 #include "NIRS/Coordinate/LandmarkCalculator.h"
 #include "NIRS/Anatomy/Head.h"
+#include <NIRS/Anatomy/AnatomyProvider.h>
 
 namespace App
 {
 
     class CoordinateSystemController {
     public:
-        CoordinateSystemController();
+        CoordinateSystemController(IAnatomyProvider& anatomy_provider);
 
         // Main generation function
         void GenerateCoordinateSystem(NIRS::Head* head);
@@ -36,5 +37,8 @@ namespace App
 
         NIRS::CoordinateSystem m_CoordinateSystem;
         NIRS::RaycastSampler m_Sampler;
+
+        IAnatomyProvider& anatomy_provider_;
+
     };
 }

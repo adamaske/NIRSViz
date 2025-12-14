@@ -4,7 +4,7 @@
 namespace NIRS {
 	class Cortex : public Anatomy {
 	public:
-		Cortex(std::string& meshPath);
+		Cortex(const std::filesystem::path& obj_filepath);
 	};
 }
 

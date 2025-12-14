@@ -56,3 +56,9 @@
 [submodule "Vendor/nanoflann"]
 	path = Vendor/nanoflann
 	url = https://github.com/jlblancoc/nanoflann.git
+[submodule "Vendor/CDT"]
+	path = Vendor/CDT
+	url = https://github.com/artem-ogre/CDT.git
+[submodule "Vendor/ITK"]
+	path = Vendor/ITK
+	url = https://github.com/InsightSoftwareConsortium/ITK.git

@@ -1,19 +1,8 @@
 #include "pch.h"
 #include "Systems/AnatomySystem.h"
 
-#include "NIRS/Anatomy/AnatomyManager.h"
-
 #include <imgui.h>
 #include "GUI/GUI.h"
-
-AnatomySystem::AnatomySystem()
-{
-
-}
-
-AnatomySystem::~AnatomySystem()
-{
-}
 
 void AnatomySystem::OnAttach()
 {
@@ -30,6 +19,12 @@ void AnatomySystem::OnAttach()
 	anatomy_viewport_ = CreateScope<Viewport3D>(config);
 
 	SetupRendering();
+
+	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
+	LoadHead(headFilepath);
+
+	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
+	LoadCortex(cortexFilepath);
 }
 
 void AnatomySystem::OnDetach()
@@ -48,18 +43,16 @@ void AnatomySystem::OnUpdate(DeltaTime dt)
 
 void AnatomySystem::OnGUIRender()
 {
-	anatomy_viewport_->RenderViewportWindow(); 
+	anatomy_viewport_->RenderViewportWindow();
 
 	ImGui::Begin("Anatomy System Settings");
 
-	// Anatomy Settings
-	auto cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	auto head = NIRS::AnatomyManager::Instance().GetHead();
 
 	ImGui::SeparatorText("Cortex Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex, "Cortex", "Cortex Anatomy Settings", false);
+	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);
+
 	ImGui::SeparatorText("Head Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Head>(head, "Head", "Head Anatomy Settings", false);
+	GUI::RenderAnatomySettings<NIRS::Head>(head_.get(), "Head", "Head Anatomy Settings", false);
 
 
 	ImGui::SeparatorText("Coordinate System Generation");
@@ -83,6 +76,50 @@ void AnatomySystem::OnEvent(Event& event)
 
 void AnatomySystem::RenderMenuBar()
 {
+	if (ImGui::BeginMenu("Anatomy"))
+	{
+
+
+		if (ImGui::MenuItem("Load Cortex")) {
+			// Open Editor Panel
+			char filePath[MAX_PATH] = "";
+			OPENFILENAMEA ofn;
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = NULL;
+			ofn.lpstrFile = filePath;
+			ofn.nMaxFile = sizeof(filePath);
+			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
+			ofn.nFilterIndex = 1;
+			ofn.lpstrInitialDir = NULL;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+			GetOpenFileNameA(&ofn);
+			std::string path(filePath);
+			LoadCortex(std::filesystem::path(path));
+		}
+
+		if (ImGui::MenuItem("Load Head")) {
+			// Open Editor Panel
+
+			// Open Editor Panel
+			char filePath[MAX_PATH] = "";
+			OPENFILENAMEA ofn;
+			ZeroMemory(&ofn, sizeof(ofn));
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = NULL;
+			ofn.lpstrFile = filePath;
+			ofn.nMaxFile = sizeof(filePath);
+			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
+			ofn.nFilterIndex = 1;
+			ofn.lpstrInitialDir = NULL;
+			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+			GetOpenFileNameA(&ofn);
+			std::string path(filePath);
+			LoadHead(std::filesystem::path(path));
+		}
+
+		ImGui::EndMenu();
+	}
 }
 
 void AnatomySystem::SetupRendering()
@@ -112,21 +149,20 @@ void AnatomySystem::RenderAnatomy()
 	light_pos.Name = "u_LightPos";
 	light_pos.Data.f3 = anatomy_viewport_->GetActiveCamera()->GetPosition();
 
-	auto* cortex = NIRS::AnatomyManager::Instance().GetCortex();
-	if (cortex && cortex->IsVisible()) {
+	if (cortex_ && cortex_->IsVisible()) {
 
 		RenderCommand cmd;
 		cmd.ShaderPtr = phong_shader_.get();
-		cmd.VAOPtr = cortex->GetMesh().buffers.vao.get();
+		cmd.VAOPtr = cortex_->GetMesh().buffers.vao.get();
 		cmd.target_viewport = ViewportType::AnatomyViewport;
-		cmd.Transform = cortex->GetTransform().GetMatrix();
+		cmd.Transform = cortex_->GetTransform().GetMatrix();
 		cmd.Mode = DRAW_ELEMENTS;
 
 
 		UniformData opacity;
 		opacity.Type = UniformDataType::FLOAT1;
 		opacity.Name = "u_Opacity";
-		opacity.Data.f1 = cortex->GetOpacity();
+		opacity.Data.f1 = cortex_->GetOpacity();
 
 		UniformData object_color;
 		object_color.Type = UniformDataType::FLOAT4;
@@ -139,20 +175,19 @@ void AnatomySystem::RenderAnatomy()
 
 	}
 
-	auto* head = NIRS::AnatomyManager::Instance().GetHead();
-	if (head && head->IsVisible()) {
+	if (head_ && head_->IsVisible()) {
 
 		RenderCommand cmd;
 		cmd.ShaderPtr = phong_shader_.get();
-		cmd.VAOPtr = head->GetMesh().buffers.vao.get();
+		cmd.VAOPtr = head_->GetMesh().buffers.vao.get();
 		cmd.target_viewport = ViewportType::AnatomyViewport;
-		cmd.Transform = head->GetTransform().GetMatrix();
+		cmd.Transform = head_->GetTransform().GetMatrix();
 		cmd.Mode = DRAW_ELEMENTS;
 
 		UniformData opacity;
 		opacity.Type = UniformDataType::FLOAT1;
 		opacity.Name = "u_Opacity";
-		opacity.Data.f1 = head->GetOpacity();
+		opacity.Data.f1 = head_->GetOpacity();
 
 		UniformData object_color;
 		object_color.Type = UniformDataType::FLOAT4;
@@ -164,6 +199,14 @@ void AnatomySystem::RenderAnatomy()
 		Renderer::Submit(cmd);
 	}
 }
+
+
+void AnatomySystem::StopRenderingAnatomy() {
+
+};
+void AnatomySystem::StartRenderingAnatomy() {
+
+};
 
 void AnatomySystem::GenerateCoordinateSystem()
 {
@@ -178,24 +221,12 @@ void AnatomySystem::GenerateCoordinateSystem()
 			NVIZ_ERROR("AnatomySystem: Coordinate system generation error: {}", error.Message);
 }
 
-const NIRS::Head& AnatomySystem::GetHead()
-{
-	return *NIRS::AnatomyManager::Instance().GetHead();
+void AnatomySystem::LoadHead(const std::filesystem::path &obj_filepath) {
+		head_ = CreateScope<NIRS::Head>(obj_filepath);
 }
 
-const NIRS::Cortex& AnatomySystem::GetCortex()
-{
-	return *NIRS::AnatomyManager::Instance().GetCortex();
-}
-
-NIRS::Head& AnatomySystem::GetHeadMutable()
-{
-	return *NIRS::AnatomyManager::Instance().GetHead();
-}
-
-NIRS::Cortex& AnatomySystem::GetCortexMutable()
-{
-	return *NIRS::AnatomyManager::Instance().GetCortex();
+void AnatomySystem::LoadCortex(const std::filesystem::path &obj_filepath) {
+	cortex_ = CreateScope<NIRS::Cortex>(obj_filepath);
 }
 
 void AnatomySystem::SetDrawMode(DrawMode mode)

@@ -13,19 +13,15 @@
 
 #include "Renderer/Mesh/Mesh.h"
 
-// TODO : The anatomy system can be told by other system when to start/stop rendering anatomy
-class IAnatomyRenderer {
-public:
-    virtual void StopRenderingAnatomy() = 0;
-	virtual void StartRenderingAnatomy() = 0;
-};
+#include "NIRS/Anatomy/Head.h"
+#include "NIRS/Anatomy/Cortex.h"
 
 // TODO : Delete Anatomy Manager, this system takes all of AnatomyManager's roles
 
-class AnatomySystem : public System, public IAnatomyProvider {
+class AnatomySystem : public System, public IAnatomyProvider, public IAnatomyRenderer {
 public:
-    AnatomySystem();
-    ~AnatomySystem();
+    AnatomySystem() = default;
+    ~AnatomySystem() = default;
 
     void OnAttach() override;
     void OnDetach() override;
@@ -39,13 +35,20 @@ public:
     void SetupRendering();
     void RenderAnatomy();
 
+
+	void StopRenderingAnatomy() override;
+	void StartRenderingAnatomy() override;
+
 	void GenerateCoordinateSystem();
 
-    const NIRS::Head& GetHead() override;
-    const NIRS::Cortex& GetCortex() override;
+	void LoadHead(const std::filesystem::path& obj_filepath);
+	void LoadCortex(const std::filesystem::path& obj_filepath);
 
-	NIRS::Head& GetHeadMutable() override;
-	NIRS::Cortex& GetCortexMutable() override;
+	const NIRS::Head& GetHead() override { return *head_; };
+	NIRS::Head& GetHeadMutable() override { return *head_; };
+
+	const NIRS::Cortex& GetCortex() override { return *cortex_; };
+	NIRS::Cortex& GetCortexMutable() override { return *cortex_; };
 
     const CoordinateSystemGenerator& GetCoordinateSystemGenerator()
 		{return *coordinate_generator_; };
@@ -60,7 +63,12 @@ public:
 		COORDINATES_ONLY = 4
     };
     void SetDrawMode(DrawMode mode);
+
 private:
+
+	Scope<NIRS::Head> head_;
+	Scope<NIRS::Cortex> cortex_;
+
 	Ref<Shader> phong_shader_;
 	Ref<Shader> flat_shader_;
     // TODO : Create a generic viewport class ?
@@ -72,5 +80,6 @@ private:
 
     // TODO : Merge AtlasLayer and AnatomyViewport and AnatomyManager into AnatomySystem
     Scope<Viewport3D> anatomy_viewport_;
+
 
 };
