@@ -2,6 +2,7 @@
 #include "Systems/FileSystem.h"
 
 #include <imgui.h>
+#include <itkMath.h>
 
 #include <SQLiteCpp/SQLiteCpp.h>
 

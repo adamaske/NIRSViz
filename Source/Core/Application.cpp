@@ -58,6 +58,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
 	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
 
+	auto mri_system = system_manager_.AddSystem<MRISystem>();
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 

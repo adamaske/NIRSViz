@@ -102,31 +102,36 @@ find_package(HDF5 REQUIRED)
 # GLFW
 add_subdirectory(${VENDOR_DIR}/glfw)
 
-# SQLiteCpp
-add_subdirectory(${VENDOR_DIR}/SQLiteCpp)
-
 # spdlog
 add_subdirectory(${VENDOR_DIR}/spdlog)
 
 # Native File Dialog Extended
 add_subdirectory(${VENDOR_DIR}/nativefiledialog-extended)
 
-# ITK
-#find_package(ITK REQUIRED)
-#include(${ITK_USE_FILE})
+# ITK - Using pre-built installation
+# use vcpkg - install itk:x64-windows, refresech cmake chache
+find_package(ITK REQUIRED COMPONENTS
+    ITKIOImageBase
+    ITKIONIFTI
+    ITKIOGDCM
+    ITKWatersheds
+    ITKSmoothing
+    ITKImageGradient
+)
 
 # CTD
 #add_subdirectory(${VENDOR_DIR}/CDT/CDT)# In consuming CMakeLists.txt
 # THe .lib is located in ${VENDOR_DIR}/CDT/CDT/build/Debug/CDT.lib
 # and ${VENDOR_DIR}/CDT/CDT/build/Release/CDT.lib
 add_library(CDT_Static STATIC IMPORTED)
-
 set_target_properties(CDT_Static PROPERTIES
         IMPORTED_LOCATION_DEBUG "${VENDOR_DIR}/CDT/CDT/build/Debug/CDT.lib"
         IMPORTED_LOCATION_RELEASE "${VENDOR_DIR}/CDT/CDT/build/Release/CDT.lib"
         INTERFACE_INCLUDE_DIRECTORIES "${VENDOR_DIR}/CDT/CDT/include"
 )
 
+# SQLiteCpp
+add_subdirectory(${VENDOR_DIR}/SQLiteCpp)
 
 # =============================================================================
 # ImGui Library
@@ -159,7 +164,6 @@ add_executable(${PROJECT_NAME}
     ${IMGUI_SOURCES}
     ${VENDOR_DIR}/glad/src/glad.cpp
 )
-
 # Precompiled headers (if you have pch.h in src/)
 target_precompile_headers(${PROJECT_NAME} PRIVATE ${INCLUDE_DIR}/pch.h)
 
@@ -180,8 +184,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/bvh/include
     ${Boost_INCLUDE_DIRS}                # Boost headers
     ${VENDOR_DIR}/nanoflann/include
-    ${ITK_USE_FILE}
-        ${VENDOR_DIR}/CDT/CDT/include
+    ${VENDOR_DIR}/CDT/CDT/include
+    ${VENDOR_DIR}/SQLiteCpp/include
 )
 
 # Link libraries
@@ -191,13 +195,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     spdlog::spdlog
     HDF5::HDF5
     nfd
-    SQLiteCpp
     $<$<BOOL:${MINGW}>:ws2_32>
     fmt
     Assimp::Assimp
     bvh
     ${ITK_LIBRARIES}
     CDT_Static
+    SQLiteCpp
 )
 
 # =============================================================================
