@@ -1,0 +1,11 @@
+#pragma once
+
+#include "Plotting/Plot.h"
+
+class ChannelDataPlotter : public Plot {
+public:
+    void OnAttach() override;
+    void OnDettach() override;
+
+    void OnPlot() override;
+}

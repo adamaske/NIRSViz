@@ -15,6 +15,8 @@ Mesh MeshFactory::CreateMesh(const MeshFileDescription &fd) {
     if (!std::filesystem::exists(fd.filepath))
         NVIZ_RUNTIME_ERROR("File does not exist: {0}", fd.filepath.string());
 
+    NVIZ_PROFILE_FUNCTION_MSG("{}", fd.filepath.string());
+
     Mesh mesh;
 
     mesh.fd = fd;

@@ -442,11 +442,7 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
 
         auto stim = nirs.getGroup(stim_name);
 
-        Event event;
-
         // 1. Name
-        std::string name;
-        stim.getDataSet("name").read(name);
 
         std::vector<std::vector<double>> data;
         try {
@@ -457,8 +453,10 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
             continue; // Skip this stimulus group
         }
 
-		event.name = name;
+        Event event;
 
+        // 1. Name
+        stim.getDataSet("name").read<std::string>(event.name);
 
         // 2. Markers
         event.markers.reserve(data.size());
@@ -470,13 +468,16 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
                 continue;
             }
 
-            event.markers.emplace_back(EventMarker{
-                row[0], // onset
-                row[1], // duration
-                row[2]  // value
-                });
+            EventMarker marker{
+                .onset = row[0],
+                .duration = row[1],
+                .value = row[2]
+            };
+
+            event.markers.emplace_back(marker);
         }
 
+        // Sorts by the onset.
         std::sort(event.markers.begin(), event.markers.end(), [](const EventMarker& a, const EventMarker& b) {
             return a.onset < b.onset;
         });

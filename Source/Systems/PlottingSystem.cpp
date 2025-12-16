@@ -32,13 +32,6 @@ void PlottingSystem::OnAttach()
 	EventBus::Instance().Subscribe<OnChannelsSelected>([this](const OnChannelsSelected& e) {
 		this->HandleSelectedChannels(e.selectedIDs);
 	});
-	
-	EventBus::Instance().Subscribe<OnStartProjection>([this](const OnStartProjection& e) {
-		m_IsProjecting = true;
-	});
-	EventBus::Instance().Subscribe<OnStopProjection>([this](const OnStopProjection& e) {
-		m_IsProjecting = false;
-	});
 }
 
 void PlottingSystem::OnDetach()
