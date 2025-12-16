@@ -10,6 +10,7 @@
 #include "Renderer/Camera/OrbitCamera.h"
 
 #include "NIRS/Snirf.h"
+#include "Plotting/PlotManager.h"
 
 // Plotting system : Is the single truth of channel data. 
 // Must be alerted when projection starts to provide a projeciton time tag. 
@@ -72,6 +73,8 @@ public:
 		wavelength_visibility_[wavelength] = isVisible;
 	}
 private:
+	PlotManager plot_manager_;
+
 	// Use a map so we can easily extend to more wavelengths in the future
 	std::map<NIRS::WavelengthType, bool> wavelength_visibility_ = {
 		{NIRS::WavelengthType::HBO, true},

@@ -456,7 +456,10 @@ void SNIRF::ParseStims(const HighFive::Group& nirs)
         Event event;
 
         // 1. Name
-        stim.getDataSet("name").read<std::string>(event.name);
+        std::string name;
+        stim.getDataSet("name").read<std::string>(name);
+
+        event.name = name;
 
         // 2. Markers
         event.markers.reserve(data.size());

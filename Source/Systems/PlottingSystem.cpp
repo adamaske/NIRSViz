@@ -12,6 +12,8 @@
 #include "GUI/GUI.h"
 #include "Core/Application.h"
 
+#include "Plotting/ChannelDataPlotter.h"
+
 PlottingSystem::PlottingSystem() 
 {
 }
@@ -32,6 +34,10 @@ void PlottingSystem::OnAttach()
 	EventBus::Instance().Subscribe<OnChannelsSelected>([this](const OnChannelsSelected& e) {
 		this->HandleSelectedChannels(e.selectedIDs);
 	});
+
+
+	plot_manager_.AddPlot<ChannelDataPlotter>();
+	//AddMultiPlotter<SNIRFChannelDataPlotter>()
 }
 
 void PlottingSystem::OnDetach()
@@ -45,6 +51,11 @@ void PlottingSystem::OnUpdate(DeltaTime dt)
 
 void PlottingSystem::OnGUIRender()
 {
+	for (auto& plot : plot_manager_) {
+		plot->OnPlot();
+	}
+
+
 	if (m_EditingProcessingStream) EditProcessingStream();
 
 	ImGui::Begin("Data Plotter");
