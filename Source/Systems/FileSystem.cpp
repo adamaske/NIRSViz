@@ -18,12 +18,14 @@
 
 void FileSystem::OnAttach()
 {
-
+	snirf_loader_panel_ = new SNIRFFileLoaderPanel();
 }
+
 
 void FileSystem::OnGUIRender()
 {
-
+	if (snirf_loader_panel_open_)
+		snirf_loader_panel_->OnGUIRender(true, snirf_loader_panel_open_);
 }
 
 void FileSystem::RenderMenuBar()
@@ -32,7 +34,7 @@ void FileSystem::RenderMenuBar()
 	if (ImGui::BeginMenu("File")) {
 		
 		if(ImGui::Button("Open sNIRF")) {
-			UserLoadSNIRF();
+			snirf_loader_panel_open_ = true;
 		};
 
 		ImGui::EndMenu();
@@ -48,9 +50,17 @@ void FileSystem::PostInit() {
 	//NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
 	//NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
 	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
+	std::string raw_data_filepath = "C:/nirs/hd_fnirs/raw_data/left hemisphere/active/sub01_run01.snirf";
+	std::string homer3_data_filepath = "C:/nirs/hd_fnirs/hd/left hemisphere/active/sub01_run01.snirf";
 
+	NVIZ_CRITICAL("LOADING RAW_DATA");
+	auto raw = SNIRF(raw_data_filepath);
 
-	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(snirfFilepath)));
+	NVIZ_CRITICAL("LOADING HOMER3_DATA");
+	auto homer3 = SNIRF(homer3_data_filepath);
+
+	NVIZ_CRITICAL("LOADING SATORI_DATA");
+	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(raw_data_filepath)));
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
@@ -63,7 +73,7 @@ void FileSystem::UserLoadSNIRF()
 	ofn.hwndOwner = NULL;
 	ofn.lpstrFile = filePath;
 	ofn.nMaxFile = sizeof(filePath);
-	ofn.lpstrFilter = "SNIRF Files (*.snirf)\0*.snirf\0All Files (*.*)\0*.*\0";
+	ofn.lpstrFilter = "SNIRF Files (*.snirf)/0*.snirf/0All Files (*.*)/0*.*/0";
 	ofn.nFilterIndex = 1;
 	ofn.lpstrInitialDir = NULL;
 	ofn.Flags = 0;// OFN_PATHMUST | OFN_FILEMUSTEXIST;

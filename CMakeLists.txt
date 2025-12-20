@@ -108,6 +108,7 @@ add_subdirectory(${VENDOR_DIR}/spdlog)
 # Native File Dialog Extended
 add_subdirectory(${VENDOR_DIR}/nativefiledialog-extended)
 
+set(ITK_DIR "C:/sdk/vcpkg/installed/x64-windows/share/itk")
 # ITK - Using pre-built installation
 # use vcpkg - install itk:x64-windows, refresech cmake chache
 find_package(ITK REQUIRED COMPONENTS
@@ -118,6 +119,28 @@ find_package(ITK REQUIRED COMPONENTS
     ITKSmoothing
     ITKImageGradient
 )
+
+# Set ITK binary directory for DLL location
+if(WIN32 AND ITK_FOUND)
+    # Determine the vcpkg toolchain directory for DLLs
+    get_filename_component(ITK_BIN_DIR "${ITK_DIR}/../../bin" ABSOLUTE)
+    message(STATUS "ITK binaries directory: ${ITK_BIN_DIR}")
+
+    # Collect all ITK-related DLLs at configure time
+    file(GLOB ITK_RUNTIME_DLLS
+        "${ITK_BIN_DIR}/ITK*.dll"
+        "${ITK_BIN_DIR}/gdcm*.dll"
+        "${ITK_BIN_DIR}/jpeg*.dll"
+        "${ITK_BIN_DIR}/libpng*.dll"
+        "${ITK_BIN_DIR}/tiff*.dll"
+        "${ITK_BIN_DIR}/zlib*.dll"
+        "${ITK_BIN_DIR}/libexpat*.dll"
+        "${ITK_BIN_DIR}/double-conversion*.dll"
+        "${ITK_BIN_DIR}/aec*.dll"
+    )
+    list(LENGTH ITK_RUNTIME_DLLS ITK_DLL_COUNT)
+    message(STATUS "Found ${ITK_DLL_COUNT} ITK runtime DLLs")
+endif()
 
 # CTD
 #add_subdirectory(${VENDOR_DIR}/CDT/CDT)# In consuming CMakeLists.txt
@@ -212,15 +235,51 @@ file(GLOB_RECURSE ASSET_SHARE "${ASSET_DIR}/*")
 
 install(FILES ${DATA_SHARE}
     DESTINATION "share/${PROJECT_NAME}/Data"
+    COMPONENT Data
 )
 
 install(FILES ${ASSET_SHARE}
-    DESTINATION "share/${PROJECT_NAME}/Assets"  # Change destination for asset share
+    DESTINATION "share/${PROJECT_NAME}/Assets"
+    COMPONENT Assets
 )
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
+    COMPONENT Runtime
 )
+
+# Install ITK runtime DLLs (Windows only)
+if(WIN32 AND ITK_FOUND AND ITK_RUNTIME_DLLS)
+    install(FILES ${ITK_RUNTIME_DLLS}
+        DESTINATION bin
+        COMPONENT Runtime
+    )
+endif()
+
+# Install HDF5 runtime DLLs (Windows only)
+if(WIN32 AND HDF5_FOUND)
+    get_filename_component(HDF5_BIN_DIR "${HDF5_ROOT}/bin" ABSOLUTE)
+    if(EXISTS "${HDF5_BIN_DIR}")
+        file(GLOB HDF5_RUNTIME_DLLS
+            "${HDF5_BIN_DIR}/hdf5*.dll"
+        )
+        if(HDF5_RUNTIME_DLLS)
+            install(FILES ${HDF5_RUNTIME_DLLS}
+                DESTINATION bin
+                COMPONENT Runtime
+            )
+        endif()
+    endif()
+endif()
+
+# Install Assimp DLL (Windows only)
+if(WIN32)
+    install(FILES
+        "$<IF:$<CONFIG:Debug>,${ASSIMP_DLL_PATH_DEBUG},${ASSIMP_DLL_PATH_RELEASE}>"
+        DESTINATION bin
+        COMPONENT Runtime
+    )
+endif()
 
 # Use a POST_BUILD command to copy the DLL after the main executable is built.
 add_custom_command(
@@ -231,3 +290,116 @@ add_custom_command(
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>"  # Updated to use ${PROJECT_NAME} for target directory
     COMMENT "Copying Assimp DLL to executable output directory"
 )
+
+# Copy ITK DLLs and dependencies to executable directory (Windows only)
+if(WIN32 AND ITK_FOUND AND ITK_RUNTIME_DLLS)
+    foreach(DLL_FILE ${ITK_RUNTIME_DLLS})
+        add_custom_command(
+            TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${DLL_FILE}"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+            VERBATIM
+        )
+    endforeach()
+
+    add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "ITK runtime DLLs copied to executable directory"
+        COMMENT "Copying ITK runtime dependencies"
+    )
+endif()
+
+# Copy HDF5 DLLs to executable directory (Windows only)
+if(WIN32 AND HDF5_FOUND)
+    # Get HDF5 bin directory
+    get_filename_component(HDF5_BIN_DIR "${HDF5_ROOT}/bin" ABSOLUTE)
+    if(EXISTS "${HDF5_BIN_DIR}")
+        add_custom_command(
+            TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E echo "Copying HDF5 DLLs to executable directory..."
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${HDF5_BIN_DIR}/hdf5.dll"
+                "${HDF5_BIN_DIR}/hdf5_cpp.dll"
+                "${HDF5_BIN_DIR}/hdf5_hl.dll"
+                "${HDF5_BIN_DIR}/hdf5_hl_cpp.dll"
+                "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
+            COMMAND ${CMAKE_COMMAND} -E echo "HDF5 DLLs copied successfully"
+            COMMENT "Copying HDF5 runtime dependencies to executable directory"
+            VERBATIM
+        )
+    endif()
+endif()
+
+# =============================================================================
+# CPack Configuration for MSI Installer
+# =============================================================================
+
+# Basic package information
+set(CPACK_PACKAGE_NAME "NIRSViz")
+set(CPACK_PACKAGE_VENDOR "Your Organization")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "NIRS Visualization and Analysis Tool")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_VERSION_MAJOR "1")
+set(CPACK_PACKAGE_VERSION_MINOR "0")
+set(CPACK_PACKAGE_VERSION_PATCH "0")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "NIRSViz")
+
+# Windows-specific settings for WiX generator
+if(WIN32)
+    # Use WiX generator for MSI creation
+    set(CPACK_GENERATOR "WIX")
+
+    # WiX-specific settings
+    set(CPACK_WIX_UPGRADE_GUID "A1B2C3D4-E5F6-7890-ABCD-EF1234567890")  # Generate a unique GUID for your app
+    set(CPACK_WIX_PRODUCT_GUID "*")  # Use * to generate new GUID for each version
+
+    # Optional: License file (RTF format required by WiX)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.rtf")
+        set(CPACK_WIX_LICENSE_RTF "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.rtf")
+    endif()
+
+    # Product icon (if you have one)
+    # set(CPACK_WIX_PRODUCT_ICON "${CMAKE_CURRENT_SOURCE_DIR}/icon.ico")
+
+    # Program Menu folder
+    set(CPACK_WIX_PROGRAM_MENU_FOLDER "NIRSViz")
+
+    # Add to PATH (optional)
+    # set(CPACK_WIX_PATCH_FILE "${CMAKE_CURRENT_SOURCE_DIR}/wix_patch.xml")
+
+    # Desktop shortcut
+    set(CPACK_CREATE_DESKTOP_LINKS ${PROJECT_NAME})
+
+    # Start Menu shortcuts
+    set(CPACK_PACKAGE_EXECUTABLES "${PROJECT_NAME}" "NIRSViz")
+
+    # Install directory in Program Files
+    set(CPACK_WIX_INSTALL_SCOPE "perMachine")  # Install for all users
+
+    # UI settings (optional custom images)
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/installer_banner.bmp")
+        set(CPACK_WIX_UI_BANNER "${CMAKE_CURRENT_SOURCE_DIR}/installer_banner.bmp")  # 493x58 pixels
+    endif()
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/installer_dialog.bmp")
+        set(CPACK_WIX_UI_DIALOG "${CMAKE_CURRENT_SOURCE_DIR}/installer_dialog.bmp")  # 493x312 pixels
+    endif()
+endif()
+
+# Component installation (separate components for selective installation)
+set(CPACK_COMPONENTS_ALL Runtime Data Assets)
+set(CPACK_COMPONENT_RUNTIME_DISPLAY_NAME "NIRSViz Application")
+set(CPACK_COMPONENT_RUNTIME_DESCRIPTION "Core application and runtime libraries")
+set(CPACK_COMPONENT_RUNTIME_REQUIRED ON)
+set(CPACK_COMPONENT_DATA_DISPLAY_NAME "Sample Data Files")
+set(CPACK_COMPONENT_DATA_DESCRIPTION "Example NIRS data files")
+set(CPACK_COMPONENT_ASSETS_DISPLAY_NAME "Application Assets")
+set(CPACK_COMPONENT_ASSETS_DESCRIPTION "Shaders, models, and textures")
+set(CPACK_COMPONENT_ASSETS_REQUIRED ON)
+
+# Resource file location
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+
+# Include CPack module (must be last)
+include(CPack)

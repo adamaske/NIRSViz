@@ -1,6 +1,7 @@
 #pragma once
 #include "Systems/System.h"
 
+#include "GUI/SNIRFFileLoaderPanel.h"
 // This handles the files which are created, loaded, opened, closed etc 
 namespace NIRS {
 	class ProjectDatabase;
@@ -19,6 +20,6 @@ public:
 
 
 private:
-
-
+	bool snirf_loader_panel_open_ = false;
+	SNIRFFileLoaderPanel* snirf_loader_panel_ = nullptr;
 };

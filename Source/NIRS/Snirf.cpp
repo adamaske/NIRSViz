@@ -158,7 +158,7 @@ void SNIRF::Print()
         int i = 0;
         for (auto& marker : event.markers)
         {
-			NVIZ_INFO("    {} : Onset: {}, Duration: {}, Value: {}", i++, marker.onset, marker.duration, marker.value);
+			NVIZ_INFO("    {} : Onset: {:.2f}, Duration: {:.2f}, Value: {}", i++, marker.onset, marker.duration, marker.value);
         }
 	}
 }
@@ -166,15 +166,22 @@ void SNIRF::Print()
 void SNIRF::LoadFile(const std::filesystem::path& filepath)
 {
     File file(filepath.string(), File::ReadOnly); 
-	//Utils::ParseHDF5(filepath.string());
+
+    Utils::ParseHDF5(filepath.string());
 
 	Group root = file.getGroup("/");
     Group nirs = root.getGroup("nirs");
 
-    ParseMetadataTags(nirs.getGroup("metaDataTags"));
-	ParseProbe(nirs.getGroup("probe")); // THIS MUST BE FIRST
-    ParseData1(nirs.getGroup("data1"));
-    ParseStims(nirs);
+
+    try {
+        ParseMetadataTags(nirs.getGroup("metaDataTags"));
+        ParseProbe(nirs.getGroup("probe")); // THIS MUST BE FIRST
+        ParseData1(nirs.getGroup("data1"));
+        ParseStims(nirs);
+
+    }catch (HighFive::Exception& e) {
+        NVIZ_ERROR("Cannot parse {}", e.what());
+    }
 
     ParseWings(nirs);
     Print();
@@ -330,7 +337,12 @@ void SNIRF::ParseProbe(const HighFive::Group& probe)
 
 void SNIRF::ParseData1(const HighFive::Group& data1)
 {
+    Utils::ParseGroup(data1, "");
+
 	using namespace NIRS::Probe;
+
+    // Parse Group
+
 
     DataSet time = data1.getDataSet("time");
     {
@@ -377,7 +389,7 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 		auto dataTypeIndex = 0;
         measurementList.getDataSet("dataTypeIndex").read(dataTypeIndex);
 
-        std::string dataTypeLabel = "";
+        std::string dataTypeLabel;
         measurementList.getDataSet("dataTypeLabel").read(dataTypeLabel);
 
         int sourceIndex = 0;
@@ -388,7 +400,14 @@ void SNIRF::ParseData1(const HighFive::Group& data1)
 
         int wavelengthIndex = 0;
         measurementList.getDataSet("wavelengthIndex").read(wavelengthIndex);
-        
+
+        NVIZ_INFO("DataType : {}", dataType);
+        NVIZ_INFO("DataTypeIndex : {}", dataTypeIndex);
+        NVIZ_INFO("DataTypeLabel : {}", dataTypeLabel);
+        NVIZ_INFO("SourceIndex : {}", sourceIndex);
+        NVIZ_INFO("DetectorIndex : {}", detectorIndex);
+        NVIZ_INFO("WavelengthIndex : {}", wavelengthIndex);
+
         Channel channel;
 		channel.id = i; // As long as its unique this should be fine
 		channel.source_id = sourceIndex; // These are 1-indexed, TODO : Fix 
