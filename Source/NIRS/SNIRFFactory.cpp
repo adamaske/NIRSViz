@@ -1,34 +1,25 @@
 #include "pch.h"
 #include "NIRS/SNIRFFactory.h"
 
-#include "NIRS/Snirf.h"
-#include "NIRS/Factories/SatoriSNIRF.h"
+#include "Core/Time.h"
 
-const SNIRF& SNIRFFactory::CreateSNIRF(SNIRFType type, std::filesystem::path path)
-{
-    SNIRF snirf(path);
+
+SNIRF SNIRFFactory::CreateSNIRF(SNIRFType type, std::filesystem::path filepath) {
+    // TODO : Filepath safety check
+
+
+    // TODO : Implement type checker -> Are we able to parse it or not?
+
+
+    //
+    SNIRF snirf;
+    snirf.channel_data = NIRS::Channels::LoadChannelData(filepath);
+
+    snirf.time_data = NIRS::Time::LoadTimeData(filepath);
+
+    snirf.optode_layout = NIRS::Probe::LoadOptodeLayout(filepath);
+
+    snirf.events = NIRS::Events::LoadEvents(filepath);
+
     return snirf;
-
-    //switch (type) {
-    //case SNIRFType::SNIRF_TYPE_HOMER3:
-
-    //    return CreateRef<SNIRF>(filepath); // Create derived class for Homer3
-    //case SNIRFType::SNIRF_TYPE_NIRSPY:
-    //    return CreateRef<SNIRF>(filepath); // Create derived class for NIRSpy
-    //case SNIRFType::SNIRF_TYPE_SATORI:
-    //    return CreateRef<SNIRF>(filepath);
-    //case SNIRFType::SNIRF_TYPE_AURORA:
-    //    return CreateRef<SNIRF>(filepath); // Create derived class for Aurora
-    //case SNIRFType::SNIRF_TYPE_MNE_NIRS:
-    //    return CreateRef<SNIRF>(filepath); // Create derived class for MNE-NIRS
-    //case SNIRFType::SNIRF_TYPE_CUSTOM:
-    //    return CreateRef<SNIRF>(filepath); // Create derived class for Custom
-    //case SNIRFType::SNIRF_TYPE_NONE:
-    //case SNIRFType::SNIRF_TYPE_UNKNOWN:
-    //default:
-    //    // For unknown or base types, return the default base object or a null reference
-    //    // Logging an error here is highly recommended!
-    //    NVIZ_ERROR("Unknown or unhandled SNIRF type requested.");
-    //    return SNIRF(filepath);
-    //}
 }

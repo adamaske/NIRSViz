@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+
 namespace NIRS {
     namespace Events {
 
@@ -18,5 +19,15 @@ namespace NIRS {
 
             // TODO : Data label support
         };
+
+        struct EventsContainer {
+            std::vector<Event> events;
+        };
+        EventsContainer LoadEvents(std::filesystem::path filepath) {
+            EventsContainer events;
+
+            return events;
+        }
+
     }
 }

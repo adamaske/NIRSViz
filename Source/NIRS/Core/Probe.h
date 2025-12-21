@@ -16,7 +16,6 @@ namespace NIRS {
         enum OptodeType {
             SOURCE,
             DETECTOR,
-			ELECTRODE // For EEG integration
         };
 
         struct Optode {
@@ -49,10 +48,18 @@ namespace NIRS {
 			OptodeMap detectors;
         };
 
-        //struct ProbeError {
-        //    std::string message;
-		//};
+		struct OptodeLayout {
 
+			std::vector<Optode> sources;
+			std::vector<Optode> detectors;
+
+		};
+
+		OptodeLayout LoadOptodeLayout(std::filesystem::path filepath) {
+			OptodeLayout layout;
+
+			return layout;
+		}
         namespace Utils {
 
             //bool ValidateProbe(const Probe& probe, std::vector<ProbeError>& out_errors) {
@@ -64,7 +71,7 @@ namespace NIRS {
                 switch (type) {
                 case SOURCE: return "SOURCE";
                 case DETECTOR: return "DETECTOR";
-				case ELECTRODE: return "ELECTRODE";
+                		default: return "UNKNOWN";
                 }
             }
 

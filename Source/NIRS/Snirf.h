@@ -15,34 +15,6 @@
 
 class WingsDataParser;
 
-// TODO : We need a more direct mirror of the HDF5 file
-
-namespace HDF5_MIRROR {
-	struct MetaDataTag {
-		std::string name;
-
-	};
-	struct MeasurementList {
-		// source idx
-		// detector idx
-	};
-	struct NIRS {
-
-		std::vector<MetaDataTag> metadata_tags;
-		std::vector<MeasurementList> measurement_lists;
-	};
-
-	struct AUX {
-
-	};
-
-	struct SNIRF {
-
-	};
-}
-
-
-
 class SNIRF {
 public:
 	SNIRF(const std::filesystem::path& filepath);
