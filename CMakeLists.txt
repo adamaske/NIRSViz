@@ -133,6 +133,7 @@ set(IMGUI_SOURCES
     ${VENDOR_DIR}/implot/implot.cpp
     ${VENDOR_DIR}/implot/implot_demo.cpp
     ${VENDOR_DIR}/implot/implot_items.cpp
+        Source/NIRS/SNIRFType.h
 )
 
 # =============================================================================

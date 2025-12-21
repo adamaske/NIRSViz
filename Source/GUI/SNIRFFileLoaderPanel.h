@@ -1,7 +1,8 @@
 #pragma once
 #include "GUI/Panel.h"
 
-enum SNIRFType;
+#include "NIRS/SNIRFType.h"
+
 struct SNIRFValidationError;
 
 class SNIRFFileLoaderPanel : public ImGuiPanel {
@@ -11,10 +12,9 @@ public:
 	void OnImGuiRender(bool standalone, bool& open) override;
 
 private:
-
-	bool IsValid = false; 
-
 	SNIRFType SelectedType;
+
+	bool IsValid = false;
 
 	std::string UserSelectedFilepath = "";
 

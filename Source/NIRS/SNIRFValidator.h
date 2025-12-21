@@ -3,8 +3,7 @@
 #include <vector>
 #include <string>
 
-
-enum SNIRFType;
+#include "NIRS/SNIRFType.h"
 
 struct SNIRFValidationError {
     std::string field;
