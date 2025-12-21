@@ -59,9 +59,3 @@
 [submodule "Vendor/CDT"]
 	path = Vendor/CDT
 	url = https://github.com/artem-ogre/CDT.git
-[submodule "Vendor/ITK"]
-	path = Vendor/ITK
-	url = https://github.com/InsightSoftwareConsortium/ITK.git
-[submodule "Vendor/vtk"]
-	path = Vendor/vtk
-	url = https://gitlab.kitware.com/vtk/vtk.git

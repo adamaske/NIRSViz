@@ -93,5 +93,3 @@ private:
 #include "Systems/ImGuiSystem.h"
 #include "Systems/WingsPlottingSystem.h"
 #include "Systems/ControlPanelSystem.h"
-#include "Systems/MRISystem.h"
-
