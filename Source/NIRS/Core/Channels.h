@@ -25,8 +25,8 @@ namespace NIRS {
             std::vector<Channel> channels;
         };
 
-        inline ChannelData LoadChannelData(std::filesystem::path filepath) {
-            ChannelData channel_data;
+        inline ChannelDataVector LoadChannelData(std::filesystem::path filepath) {
+            ChannelDataVector channel_data = {};
 
 
             return channel_data;

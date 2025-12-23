@@ -23,7 +23,7 @@ namespace NIRS {
         struct EventsContainer {
             std::vector<Event> events;
         };
-        EventsContainer LoadEvents(std::filesystem::path filepath) {
+        inline EventsContainer LoadEvents(std::filesystem::path filepath) {
             EventsContainer events;
 
             return events;

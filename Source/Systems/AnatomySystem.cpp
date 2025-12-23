@@ -210,6 +210,8 @@ void AnatomySystem::StartRenderingAnatomy() {
 
 void AnatomySystem::GenerateCoordinateSystem()
 {
+	NVIZ_PROFILE_FUNCTION();
+
 	CoordinateSystemGenerator::CoordinateSystemData coord_data;
 	std::vector<CoordinateSystemGenerator::CoordinateSystemError> errors;
 	bool success = coordinate_generator_->GenerateCoordinateSystem(coord_data, errors);

@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 
 namespace NIRS {
 	namespace Probe {
@@ -55,7 +56,7 @@ namespace NIRS {
 
 		};
 
-		OptodeLayout LoadOptodeLayout(std::filesystem::path filepath) {
+		inline OptodeLayout LoadOptodeLayout(std::filesystem::path filepath) {
 			OptodeLayout layout;
 
 			return layout;

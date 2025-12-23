@@ -197,7 +197,10 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
     if (ImGui::Button("Open File", ImVec2(-1, 0))) {
 
 		auto factory = SNIRFFactory();
-        auto snirf = factory.CreateSNIRF(SelectedType, UserSelectedFilepath);
+
+		std::vector<SNIRFError> loadErrors;
+		SNIRF snirf;
+        auto success = factory.CreateSNIRF(snirf, SelectedType, std::filesystem::path(UserSelectedFilepath), loadErrors);
 
         AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(snirf));
 

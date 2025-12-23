@@ -36,8 +36,8 @@ class TimeController;
 
 class PlottingSystem : public System, public IChannelDataProvider, public IProjectionTimeTagProvider {
 public:
-	PlottingSystem();
-	~PlottingSystem();
+	PlottingSystem() = default;
+	~PlottingSystem() = default;
 
 	// Register a subscriber to be notified when projection time changes
 	void RegisterProjectionTimeSubscriber(IProjectionTimeSubscriber* subscriber) {

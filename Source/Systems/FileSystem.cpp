@@ -3,9 +3,6 @@
 
 #include <imgui.h>
 
-#include <SQLiteCpp/SQLiteCpp.h>
-
-#include "Projects/ProjectDatabase.h"
 #include "Core/AssetManager.h"
 #include "NIRS/Snirf.h"
 #include "Events/EventBus.h"
@@ -43,23 +40,9 @@ void FileSystem::RenderMenuBar()
 
 void FileSystem::PostInit() {
 
-	//std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
-	//std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
-//
-	//NIRS::AnatomyManager::Instance().LoadCortex(cortexFilepath);
-	//NIRS::AnatomyManager::Instance().LoadHead(headFilepath);
-	std::string snirfFilepath = "C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf";
-	std::string raw_data_filepath = "C:/nirs/hd_fnirs/raw_data/left hemisphere/active/sub01_run01.snirf";
-	std::string homer3_data_filepath = "C:/nirs/hd_fnirs/hd/left hemisphere/active/sub01_run01.snirf";
+	auto filepath =  std::filesystem::path("C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf");
 
-	NVIZ_CRITICAL("LOADING RAW_DATA");
-	auto raw = SNIRF(raw_data_filepath);
-
-	NVIZ_CRITICAL("LOADING HOMER3_DATA");
-	auto homer3 = SNIRF(homer3_data_filepath);
-
-	NVIZ_CRITICAL("LOADING SATORI_DATA");
-	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::string(raw_data_filepath)));
+	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(filepath));
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
@@ -81,7 +64,7 @@ void FileSystem::UserLoadSNIRF()
 	std::string projectPath = std::string(filePath);
 	if (!projectPath.empty()) {
 
-		AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(projectPath));
+		AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::filesystem::path(projectPath)));
 		EventBus::Instance().Publish<OnSNIRFLoaded>({});
 	}
 }

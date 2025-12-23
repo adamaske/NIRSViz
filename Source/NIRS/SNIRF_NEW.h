@@ -5,13 +5,14 @@
 #include "NIRS/Core/Events.h"
 #include "NIRS/Core/Time.h"
 #include "NIRS/Core/Channels.h"
-
-struct SNIRF{
+#include "NIRS/Core/Metadata.h"
+struct SNIRF_NEW{
 
     // Metadata
+    NIRS::Metadata::Metadata metadata;
 
     // Channel Data
-    NIRS::Channels::ChannelData channel_data;
+    NIRS::Channels::ChannelDataVector channel_data;
 
     // Time
     NIRS::Time::TimeData time_data;

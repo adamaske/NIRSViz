@@ -17,6 +17,7 @@ class WingsDataParser;
 
 class SNIRF {
 public:
+	SNIRF() = default;
 	SNIRF(const std::filesystem::path& filepath);
 
 	void Print();

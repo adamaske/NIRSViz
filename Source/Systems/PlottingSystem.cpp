@@ -14,16 +14,6 @@
 
 #include "Plotting/ChannelDataPlotter.h"
 
-PlottingSystem::PlottingSystem() 
-{
-}
-
-PlottingSystem::~PlottingSystem()
-{
-}
-
-
-
 void PlottingSystem::OnAttach()
 {
 	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
@@ -38,6 +28,7 @@ void PlottingSystem::OnAttach()
 
 	plot_manager_.AddPlot<ChannelDataPlotter>();
 	//AddMultiPlotter<SNIRFChannelDataPlotter>()
+	//plot_manager_.AddPlot<ProjectionPlot>();
 }
 
 void PlottingSystem::OnDetach()
@@ -51,6 +42,7 @@ void PlottingSystem::OnUpdate(DeltaTime dt)
 
 void PlottingSystem::OnGUIRender()
 {
+	// Do plotting
 	for (auto& plot : plot_manager_) {
 		plot->OnPlot();
 	}
