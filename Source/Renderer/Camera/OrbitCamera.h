@@ -10,7 +10,7 @@ class OrbitCamera : public Camera {
 public:
 	float m_Theta = -100.0f;
 	float m_Phi = 22.0f;
-	float m_Radius = 460;
+	float m_Radius = 100;
 
 
 	std::unordered_map<std::string, Transform*> orbit_target_map = {};

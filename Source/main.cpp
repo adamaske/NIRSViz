@@ -1,17 +1,17 @@
 #include "pch.h"
 #include "Core/Application.h"
-
-#include <windows.h>
+#include <QApplication>
 
 int main(int argc, char** argv){
-	Log::Init();
-	
+	QApplication qapp(argc, argv);
+
 	ApplicationSpecification spec;
 	spec.name = "NIRSViz";
+	spec.working_directory = "C:/dev/NIRSViz/";
 	spec.args = { argc, argv };
 
 	Application app(spec);
-	app.Run();
+	app.show();
 
-	return 0;
+	return qapp.exec();
 }

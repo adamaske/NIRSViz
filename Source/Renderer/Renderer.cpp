@@ -66,7 +66,9 @@ void Renderer::ExecuteQueue()
 				sCurrentBoundFBO->Unbind();
 			}
 
+
 			sCurrentBoundFBO = currentView.TargetFBO;
+			glViewport(0, 0, sCurrentBoundFBO->GetSpecification().Width, sCurrentBoundFBO->GetSpecification().Height);
 			sCurrentBoundFBO->Bind();
 
 			Renderer::SetClearColor({ 0.45f, 0.55f, 0.60f, 1.00f });
@@ -168,8 +170,12 @@ void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transfor
 
 void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)
 {
+	if (!vertexArray)
+		NVIZ_CRITICAL("NO VERTEX ARRAY  : DRAW INDEXED");
 	vertexArray->Bind();
 	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vertexArray->GetIndexBuffer()->GetCount()), GL_UNSIGNED_INT, 0);
+
+
 	vertexArray->Unbind();
 }
 

@@ -5,50 +5,64 @@
 #include "Events/ApplicationEvent.h"
 #include "Systems/SystemManager.h"
 
-struct ApplicationCommandLineArgs
-{
+#include <QMainWindow>
 
+#include "Renderer/Viewport/GLViewportWidget.h"
+
+#include <chrono>
+
+#include <QTimer>
+#include <QMenuBar>
+#include <QMenu>
+#include <QAction>
+#include <QToolBar>
+#include <QStatusBar>
+#include <QLabel>
+
+struct ApplicationCommandLineArgs {
 	int count = 0;
 	char** args = nullptr;
 
-	const char* operator[](int index) const
-	{
+	const char* operator[](int index) const {
 		return args[index];
 	}
 };
 
-struct ApplicationSpecification
-{
+struct ApplicationSpecification {
 	std::string name = "NIRS Viz";
 	std::string working_directory;
 	ApplicationCommandLineArgs args;
 };
 
-struct ApplicationSettingsComponent
-{
-	bool ShowDemoWindows = false;
+struct ApplicationSettings {
+	bool running = true;
+	bool minimized = false;
 
-	// The user has generated a SNIRF file and wants to project to cortex
-	bool ProjectChannelsToCortex = false;
+	std::chrono::time_point<std::chrono::system_clock> last_time =
+	    std::chrono::system_clock::now();
+	DeltaTime delta_time;
 };
 
-
-class Application {
+class Application : public QMainWindow{
 public:
-
 	Application(const ApplicationSpecification& spec);
 	~Application();
 
 	static Application& Get() { return *sInstance; }
 	static Application* Instance() { return sInstance; }
 
-	void Shutdown();
+	void HandleGLADReady();
 
+	void OnUpdate();
+
+	void SetupMenuBar();
+	void SetupToolBar();
+	void SetupStatusBar();
 
 	void Run();
 	void Close();
 
-void OnEvent(Event& e);
+	void OnEvent(Event& e);
 
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
@@ -62,19 +76,25 @@ void OnEvent(Event& e);
 	Ref<T> GetSystem() {
 		return system_manager_.GetSystem<T>();
 	}
+
 private:
+	friend class ControlPanel; // For now let control panel access application settings directly
+
 	static Application* sInstance;
 
 	ApplicationSpecification specification_;
-	bool running_ = true;
-	bool minimized_ = false;
-	float last_time_ = 0.0f;
+	ApplicationSettings settings_;
 
-	//Ref<Coordinator> m_Coordinator;
 	Ref<Window> window_;
 	SystemManager system_manager_;
 
-	ImGuiSystem* gui_system_ = nullptr;
+	Ref<GLViewportWidget> main_viewport_;
 
-	friend class ControlPanel; // For now let control panel access application settings directly
+	QMenuBar* menubar_ = nullptr;
+	QToolBar* toolbar_ = nullptr;
+	QStatusBar* statusbar_ = nullptr;
+	QLabel* statusbar_fps_label_ = nullptr;
+
+	QTimer* update_loop_timer_ = nullptr;
+
 };
