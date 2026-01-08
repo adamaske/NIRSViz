@@ -137,6 +137,9 @@ void Renderer::ExecuteQueue()
 		case DrawMode::DRAW_ELEMENTS:
 			DrawIndexed(command.VAOPtr, 0);
 			break;
+		case DrawMode::DRAW_ELEMENTS_INSTANCED:
+			DrawIndexedInstanced(command.VAOPtr, command.InstanceCount, 0);
+			break;
 		case DrawMode::DRAW_LINES:
 			DrawLines(command.VAOPtr, 0);
 			break;
@@ -170,6 +173,14 @@ void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)
 {
 	vertexArray->Bind();
 	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vertexArray->GetIndexBuffer()->GetCount()), GL_UNSIGNED_INT, 0);
+	vertexArray->Unbind();
+}
+
+void Renderer::DrawIndexedInstanced(const VertexArray* vertexArray, uint32_t instanceCount, uint32_t indexCount)
+{
+	vertexArray->Bind();
+	uint32_t count = indexCount == 0 ? vertexArray->GetIndexBuffer()->GetCount() : indexCount;
+	glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(count), GL_UNSIGNED_INT, 0, static_cast<GLsizei>(instanceCount));
 	vertexArray->Unbind();
 }
 

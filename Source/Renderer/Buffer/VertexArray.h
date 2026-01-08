@@ -12,7 +12,7 @@ public:
 	void Bind() const;
 	void Unbind() const;
 
-	void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer);
+	void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer, bool instanced = false);
 	void SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer);
 
 	const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const { return m_VertexBuffers; }

@@ -16,7 +16,8 @@ enum class ViewportType : uint32_t
 	AnatomyViewport = 2,
 	AtlasViewport = 3,
 	ProbeEditor = 4,
-	ChannelSelector = 5
+	ChannelSelector = 5,
+	VoxelViewport = 6
 };
 
 // Now this is a little more complicated than it needs to be, we can just use a enum instead of having these ID's and such
@@ -26,6 +27,7 @@ constexpr uint32_t ANATOMY_VIEWPORT = static_cast<uint32_t>(ViewportType::Anatom
 constexpr uint32_t ATLAS_VIEWPORT = static_cast<uint32_t>(ViewportType::AtlasViewport);
 constexpr uint32_t PROBE_EDITOR_VIEWPORT = static_cast<uint32_t>(ViewportType::ProbeEditor);
 constexpr uint32_t CHANNEL_SELECTOR_VIEWPORT = static_cast<uint32_t>(ViewportType::ChannelSelector);
+constexpr uint32_t VOXEL_VIEWPORT = static_cast<uint32_t>(ViewportType::VoxelViewport);
 
 constexpr uint32_t GetViewportTypeID(ViewportType type) {
 	return static_cast<uint32_t>(type);
@@ -41,7 +43,8 @@ enum DrawMode {
 	DRAW_ELEMENTS = 0,
 	DRAW_LINES = 1,
 	DRAW_ARRAYS = 2,
-	DRAW_POINTS = 3
+	DRAW_POINTS = 3,
+	DRAW_ELEMENTS_INSTANCED = 4
 };
 
 enum class UniformDataType {
@@ -81,12 +84,14 @@ struct RendererAPICall {
 
 struct RenderCommand {
 	Shader* ShaderPtr = nullptr; // These are pointers, however we dont own the, and we dont want to care about their lifetime here
-	// So we should really not be using pointers, but isntead but either copies or references. 
+	// So we should really not be using pointers, but isntead but either copies or references.
 	VertexArray* VAOPtr = nullptr;
 	glm::mat4 Transform = glm::mat4(1.0f);
 
 	ViewportType target_viewport = ViewportType::AnatomyViewport;
 	DrawMode Mode = DRAW_ELEMENTS;
+
+	uint32_t InstanceCount = 0;  // For instanced rendering
 
 	std::vector<TextureBinding> TextureBindings = {};
 	std::vector<UniformData> UniformCommands = {};
@@ -118,6 +123,7 @@ public:
 	static void Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewportType view, DrawMode mode);
 
 	static void DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount = 0);
+	static void DrawIndexedInstanced(const VertexArray* vertexArray, uint32_t instanceCount, uint32_t indexCount = 0);
 	static void DrawLines(const VertexArray* vertexArray, uint32_t vertexCount);
 	static void DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount);
 	static void DrawPoints(const VertexArray* vertexArray, uint32_t vertexCount);

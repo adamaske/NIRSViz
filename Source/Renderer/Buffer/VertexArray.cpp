@@ -44,7 +44,7 @@ void VertexArray::Unbind() const
 	glBindVertexArray(0);
 }
 
-void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
+void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer, bool instanced)
 {
 	NVIZ_ASSERT(vertexBuffer->GetLayout().GetElements().size(), "Vertex Buffer has no layout!");
 
@@ -71,6 +71,9 @@ void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
 				element.Normalized ? GL_TRUE : GL_FALSE,
 				layout.GetStride(),
 				(const void*)element.Offset);
+			if (instanced) {
+				glVertexAttribDivisor(m_VertexBufferIndex, 1);
+			}
 			m_VertexBufferIndex++;
 			break;
 		}
@@ -86,6 +89,9 @@ void VertexArray::AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer)
 				ShaderDataTypeToOpenGLBaseType(element.Type),
 				layout.GetStride(),
 				(const void*)element.Offset);
+			if (instanced) {
+				glVertexAttribDivisor(m_VertexBufferIndex, 1);
+			}
 			m_VertexBufferIndex++;
 			break;
 		}
