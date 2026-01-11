@@ -8,12 +8,14 @@
 #include <typeindex>
 #include <stdexcept>
 
+
 class AssetManager {
 public:
 
     // TODO : On Application Initalzation -> Parse the entire assets folder and pre-load assets.
     // let them be easily accessible during runtime. 
     // Do we create a different struct per asset loaded. 
+    // For example any system can request any asset
 
     // --- 2. Lifecycle Methods ---
     static void Init() { /* Initialization logic */ }

@@ -63,26 +63,26 @@ void Application::HandleGLADReady() {
 	Renderer::Init();
 
 	// --- Systems
-	//auto gui_system = system_manager_.AddSystem<ImGuiSystem>();
+	auto gui_system = system_manager_.AddSystem<ImGuiSystem>();
 	auto file_system = system_manager_.AddSystem<FileSystem>();
-	//auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
+	auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
 	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
-	//auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system);
-	//auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>();
-	//
-	//// Projection System - pass systems directly, they'll upcast automatically
-	//auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
-	//	*anatomy_system,
-	//	*channel_selector,
-	//	*plotting_system,
-	//	*plotting_system,
-	//	*probe_system);
-	//
-	//auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
-	//auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system);
+	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>();
+	
+	// Projection System - pass systems directly, they'll upcast automatically
+	auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
+		*anatomy_system,
+		*channel_selector,
+		*plotting_system,
+		*plotting_system,
+		*probe_system);
+	
+	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
+	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
 
 	// Register
-	//plotting_system->RegisterProjectionTimeSubscriber(projection_system);
+	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 	system_manager_.GetSystem<FileSystem>()->PostInit();
 
 	// Set up update loop timer to run at monitor refresh rate
@@ -93,7 +93,7 @@ void Application::HandleGLADReady() {
 
 void Application::OnUpdate() {
 	auto time = std::chrono::system_clock::now();
-	std::chrono::duration<float> delta_duration = time - settings_.last_time;
+	std::chrono::duration<double> delta_duration = time - settings_.last_time;
 	DeltaTime delta_time = delta_duration.count(); // Convert to float seconds
 	settings_.last_time = time;
 	settings_.delta_time = delta_time;
@@ -112,11 +112,13 @@ void Application::OnUpdate() {
 
 	main_viewport_->makeCurrent();
 
-	Renderer::BeginScene();
+	// TODO : With reatined mode GUI rendering we only need to reder 
+	// Each time something is updated, but for now lets keep the per-frame logic
+	Renderer::BeginScene(); // Begin the scene to clear the queue
 	for (auto &system: system_manager_)
 		system->OnUpdate(delta_time);
 
-	Renderer::ExecuteQueue();
+	Renderer::ExecuteQueue(); // Execute the render queue
 
 	main_viewport_->doneCurrent();
 
@@ -173,6 +175,15 @@ void Application::SetupToolBar() {
 	// Example:
 	// QAction* some_action = toolbar_->addAction("Action");
 	// connect(some_action, &QAction::triggered, this, []() { /* ... */ });
+
+	for(auto& system : system_manager_) {
+		// Get the toolbar options from each system. 
+		// This makes it easy to disable and enable toolbar-sections 
+		// We can have a 
+		
+		// Add toolbar options from each system
+		
+	}
 }
 
 void Application::SetupStatusBar() {
