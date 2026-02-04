@@ -14,6 +14,7 @@ void MRISystem::OnAttach()
 	config.windowTitle = "MRI Viewport";
 	mri_viewport_ = CreateScope<Viewport3D>(config);
 
+	
 	// Load shaders
 	phong_shader_ = CreateRef<Shader>(
 		AssetRegistry::Get("Phong.vert"),
@@ -30,8 +31,8 @@ void MRISystem::OnAttach()
 		AssetRegistry::Get("SlicePlane.frag")
 	);
 
-	// Load MRI file
 	LoadMRI(AssetRegistry::Get("sub-116_ses-BL_T1w.nii.gz"));
+
 
 	// We need a cortex mesh
 	cortex_ = CreateScope<NIRS::Cortex>(AssetRegistry::Get("cortex_model.obj"));
@@ -42,14 +43,11 @@ void MRISystem::OnUpdate(DeltaTime dt)
 {
 	mri_viewport_->OnUpdate(dt);
 
-	// Render 3D slice planes if enabled
-	if (draw_3d_slices_ && slice_viewer_) {
-		slice_viewer_->RenderSlicePlanes(ViewportType::MRIViewport, slice_opacity_3d_);
-	}
-
 	// Render Cortex
-	UpdateCortexRenderCommand();
-	Renderer::Submit(cortex_render_command_);
+	if (cortex_->IsVisible()) {
+		UpdateCortexRenderCommand();
+		Renderer::Submit(cortex_render_command_);
+	}
 }
 
 void MRISystem::OnGUIRender()
@@ -61,6 +59,10 @@ void MRISystem::OnGUIRender()
 
 	ImGui::Begin("MRI Settings");
 
+
+	ImGui::Checkbox("Draw 3D Slice Planes", &draw_3d_slices_);
+	ImGui::Checkbox("Draw Volume", &render_volume_);
+
 	ImGui::SeparatorText("Cortex Anatomy");
 	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);
 
@@ -69,7 +71,6 @@ void MRISystem::OnGUIRender()
 
 	ImGui::SeparatorText("MRI Metadata");
 	RenderMRIMetadataPanel();
-
 	ImGui::End();
 }
 
@@ -123,11 +124,6 @@ bool MRISystem::LoadMRI(const std::filesystem::path& path)
 	}
 
 	NVMRI::PrintMRIInfo(*mri_image_);
-
-	// Initialize slice viewer
-	slice_viewer_ = CreateScope<NVMRI::MRISliceViewer>();
-	slice_viewer_->Initialize(mri_image_);
-	slice_viewer_->SetupSlicePlaneRendering(slice_plane_shader_);
 
 	return true;
 }
@@ -203,97 +199,3 @@ void MRISystem::RenderMRIMetadataPanel() {
 	ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "%zu", img.GetVoxelCount());
 }
 
-void MRISystem::RenderSliceViewerWindow()
-{
-	ImGui::Begin("MRI Slice Viewer");
-
-	if (!slice_viewer_) {
-		ImGui::TextDisabled("No MRI image loaded");
-		ImGui::End();
-		return;
-	}
-
-	// 2x2 grid layout
-	if (ImGui::BeginTable("SliceGrid", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingStretchSame)) {
-		// Row 1: Axial and Coronal
-		ImGui::TableNextRow();
-		ImGui::TableSetColumnIndex(0);
-		RenderSliceCell(NVMRI::SliceOrientation::Axial, "Axial (XY)");
-
-		ImGui::TableSetColumnIndex(1);
-		RenderSliceCell(NVMRI::SliceOrientation::Coronal, "Coronal (XZ)");
-
-		// Row 2: Sagittal and Controls
-		ImGui::TableNextRow();
-		ImGui::TableSetColumnIndex(0);
-		RenderSliceCell(NVMRI::SliceOrientation::Sagittal, "Sagittal (YZ)");
-
-		ImGui::TableSetColumnIndex(1);
-		// Slice Controls
-		ImGui::Text("Slice Controls");
-		ImGui::Separator();
-
-		ImGui::Checkbox("Draw Slices in 3D", &draw_3d_slices_);
-
-		if (draw_3d_slices_) {
-			ImGui::SliderFloat("3D Opacity", &slice_opacity_3d_, 0.0f, 1.0f);
-		}
-
-		ImGui::Spacing();
-		ImGui::Text("Window/Level");
-
-		float wc = slice_viewer_->GetWindowCenter();
-		float ww = slice_viewer_->GetWindowWidth();
-		float i_min = slice_viewer_->GetIntensityMin();
-		float i_max = slice_viewer_->GetIntensityMax();
-
-		if (ImGui::SliderFloat("Center", &wc, i_min, i_max)) {
-			slice_viewer_->SetWindowLevel(wc, ww);
-		}
-		if (ImGui::SliderFloat("Width", &ww, 1.0f, i_max - i_min)) {
-			slice_viewer_->SetWindowLevel(wc, ww);
-		}
-
-		ImGui::EndTable();
-	}
-
-	ImGui::End();
-}
-
-void MRISystem::RenderSliceCell(NVMRI::SliceOrientation orientation, const char* label)
-{
-	ImGui::Text("%s", label);
-
-	// Slice navigation slider
-	int slice_idx = slice_viewer_->GetSliceIndex(orientation);
-	int max_idx = slice_viewer_->GetMaxSliceIndex(orientation);
-
-	ImGui::PushID(static_cast<int>(orientation));
-	if (ImGui::SliderInt("Slice", &slice_idx, 0, max_idx)) {
-		slice_viewer_->SetSliceIndex(orientation, slice_idx);
-	}
-	ImGui::PopID();
-
-	// Display slice image
-	ImVec2 available = ImGui::GetContentRegionAvail();
-	glm::vec2 slice_size = slice_viewer_->GetSliceSize(orientation);
-
-	// Calculate aspect-ratio-preserving size
-	float aspect = slice_size.x / slice_size.y;
-	float display_width = available.x;
-	float display_height = display_width / aspect;
-
-	// Clamp to available height (leave some room)
-	float max_height = available.y - 10.0f;
-	if (display_height > max_height && max_height > 0) {
-		display_height = max_height;
-		display_width = display_height * aspect;
-	}
-
-	if (display_width > 0 && display_height > 0) {
-		uint32_t tex_id = slice_viewer_->GetTextureID(orientation);
-		ImGui::Image((void*)(intptr_t)tex_id,
-			ImVec2(display_width, display_height),
-			ImVec2(0, 1), ImVec2(1, 0)); // Flip Y for OpenGL
-	}
-}

@@ -4,6 +4,7 @@
 
 #include "MRI/MRIImage.h"
 #include "MRI/MRISliceViewer.h"
+
 #include "Renderer/Viewport/Viewport3D.h"
 
 #include "NIRS/Anatomy/Cortex.h"
@@ -30,11 +31,6 @@ public:
 	Ref<NVMRI::MRIImage> mri_image_;
 	Scope<Viewport3D> mri_viewport_;
 
-	// Slice viewer
-	Scope<NVMRI::MRISliceViewer> slice_viewer_;
-	bool draw_3d_slices_ = true;
-	float slice_opacity_3d_ = 0.7f;
-
 	// Cortex rendering
 	Scope<NIRS::Cortex> cortex_;
 	void SetupCortexRendering();
@@ -43,8 +39,9 @@ public:
 
 	// GUI panels
 	void RenderMRIMetadataPanel();
-	void RenderSliceViewerWindow();
 
-private:
-	void RenderSliceCell(NVMRI::SliceOrientation orientation, const char* label);
+	// Slice Viewer
+	Scope<NVMRI::MRISliceViewer> slice_viewer_;
+	void RenderSliceViewerPanel(bool standalone);
+
 };
