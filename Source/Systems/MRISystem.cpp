@@ -55,13 +55,10 @@ void MRISystem::OnGUIRender()
 	mri_viewport_->RenderViewportWindow();
 
 	// Render 2D slice viewer window
-	RenderSliceViewerWindow();
+
 
 	ImGui::Begin("MRI Settings");
 
-
-	ImGui::Checkbox("Draw 3D Slice Planes", &draw_3d_slices_);
-	ImGui::Checkbox("Draw Volume", &render_volume_);
 
 	ImGui::SeparatorText("Cortex Anatomy");
 	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);

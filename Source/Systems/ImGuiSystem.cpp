@@ -3,6 +3,8 @@
 
 #include <glad/glad.h>
 
+#include "Core/AssetRegistry.h"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <backends/imgui_impl_glfw.h>
@@ -34,8 +36,8 @@ void ImGuiSystem::OnAttach()
 	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
 	float fontSize = 18.0f;// *2.0f;
-	io.Fonts->AddFontFromFileTTF("C:/Users/Adama/dev/NIRSViz/Assets/Fonts/opensans/OpenSans-Bold.ttf", fontSize);
-	io.FontDefault = io.Fonts->AddFontFromFileTTF("C:/Users/Adama/dev/NIRSViz/Assets/Fonts/opensans/OpenSans-Regular.ttf", fontSize);
+	io.Fonts->AddFontFromFileTTF(AssetRegistry::Get("OpenSans-Bold.ttf").string().c_str(), fontSize);
+	io.FontDefault = io.Fonts->AddFontFromFileTTF(AssetRegistry::Get("OpenSans-Regular.ttf").string().c_str(), fontSize);
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
