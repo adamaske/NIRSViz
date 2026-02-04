@@ -25,7 +25,7 @@ class Texture
 {
 public:
 	Texture(const TextureSpecification& specification);
-	Texture(const std::string& path);
+	Texture(const std::filesystem::path& path);
 	~Texture();
 
 	const TextureSpecification& GetSpecification() { return m_Specification; };

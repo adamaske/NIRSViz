@@ -60,15 +60,15 @@ Texture::Texture(const TextureSpecification& specification)
 }
 
 // --- Constructor 2: From Path (File Loading) ---
-Texture::Texture(const std::string& path)
-    : m_Path(path), m_IsLoaded(false)
+Texture::Texture(const std::filesystem::path& path)
+    : m_Path(path.string()), m_IsLoaded(false)
 {
     // Ensure image loads correctly for OpenGL (bottom-left origin)
     stbi_set_flip_vertically_on_load(1);
 
     int width, height, channels;
     // Request 4 components (RGBA) for simpler texture format handling
-    stbi_uc* data = stbi_load(path.c_str(), &width, &height, &channels, 4);
+    stbi_uc* data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
 
     if (data)
     {
@@ -102,7 +102,7 @@ Texture::Texture(const std::string& path)
     }
     else
     {
-        NVIZ_ERROR("Texture: Failed to load image from path: {}", path);
+        NVIZ_ERROR("Texture: Failed to load image from path: {}", path.string());
     }
 
     glBindTexture(GL_TEXTURE_2D, 0); // Unbind

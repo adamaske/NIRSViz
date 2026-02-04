@@ -2,8 +2,9 @@
 #include "Systems/FileSystem.h"
 
 #include <imgui.h>
-
 #include "Core/AssetManager.h"
+#include "Core/AssetRegistry.h"
+
 #include "NIRS/Snirf.h"
 #include "Events/EventBus.h"
 
@@ -29,7 +30,7 @@ void FileSystem::RenderMenuBar()
 	ImGui::PushID("FileSystemMenuBar");
 	if (ImGui::BeginMenu("File")) {
 		
-		if(ImGui::Button("Open sNIRF")) {
+		if(ImGui::MenuItem("Open sNIRF")) {
 			snirf_loader_panel_open_ = true;
 		};
 
@@ -40,9 +41,7 @@ void FileSystem::RenderMenuBar()
 
 void FileSystem::PostInit() {
 
-	auto filepath =  std::filesystem::path("C:/dev/NIRSViz/Assets/NIRS/sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf");
-
-	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(filepath));
+	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf")));
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 

@@ -21,8 +21,8 @@ namespace GUI {
 
 	void RenderSNIRFInfo(SNIRF* snirf);
 
-	void RenderWavelengthSelectorSingular(NIRS::WavelengthType& out_type);
-	void RenderWavelengthSelectorMultiple(std::map<NIRS::WavelengthType, bool>& out_map);
+	void RenderWavelengthSelectorSingular(NIRS::Wavelength& out_type);
+	void RenderWavelengthSelectorMultiple(std::unordered_map<NIRS::Wavelength, bool>& out_map);
 }
 
 #include "GUI/Colors.h"

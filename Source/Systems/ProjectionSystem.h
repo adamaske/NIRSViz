@@ -56,9 +56,9 @@ public:
 
 	//const ProjectionMode& GetProjectionMode() { return mode_; };
 
-	void SetProjectionWavelength(const NIRS::WavelengthType& wavelength);
-	const NIRS::WavelengthType& GetProjectionWavelength() { return wavelength_; };
-	NIRS::WavelengthType& GetProjectionWavelengthMutable() { return wavelength_; };
+	void SetProjectionWavelength(const NIRS::Wavelength& wavelength);
+	const NIRS::Wavelength& GetProjectionWavelength() { return wavelength_; };
+	NIRS::Wavelength& GetProjectionWavelengthMutable() { return wavelength_; };
 
 
 	const NIRS::ProjectionData& GetProjectionData() { return data_; };
@@ -77,7 +77,7 @@ private:
 	bool is_projecting_ = false;
 	bool has_intialized = false;
 	//ProjectionMode mode_ = ProjectionMode::VERTEX_BASED;
-	NIRS::WavelengthType wavelength_ = NIRS::WavelengthType::HBO;
+	NIRS::Wavelength wavelength_ = NIRS::Wavelength::HBO;
 
 	NIRS::ProjectionData data_;
 	NIRS::ProjectionSettings settings_;

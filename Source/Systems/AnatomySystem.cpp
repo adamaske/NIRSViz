@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Systems/AnatomySystem.h"
 
+#include "Core/AssetRegistry.h"
+
 #include <imgui.h>
 #include "GUI/GUI.h"
 
@@ -20,11 +22,8 @@ void AnatomySystem::OnAttach()
 
 	SetupRendering();
 
-	std::string headFilepath = "C:/dev/NIRSViz/Assets/Models/head_model_2.obj";
-	LoadHead(headFilepath);
-
-	std::string cortexFilepath = "C:/dev/NIRSViz/Assets/Models/cortex_model.obj";
-	LoadCortex(cortexFilepath);
+	LoadHead(AssetRegistry::Get("head_model.obj"));
+	LoadCortex(AssetRegistry::Get("cortex_model.obj"));
 }
 
 void AnatomySystem::OnDetach()
@@ -130,13 +129,13 @@ void AnatomySystem::SetupRendering()
 
 	// Setup Coordinate System Generator - Rendering Component
 	phong_shader_ = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/Phong.vert",
-		"C:/dev/NIRSViz/Assets/Shaders/Phong.frag"
+		AssetRegistry::Get("Phong.vert"),
+		AssetRegistry::Get("Phong.frag")
 	);
 
 	flat_shader_ = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
-		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
+		AssetRegistry::Get("FlatColor.vert"),
+		AssetRegistry::Get("FlatColor.frag")
 	);
 
 

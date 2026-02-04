@@ -124,21 +124,21 @@ void PlottingSystem::OnGUIRender()
 			std::string label; 
 			std::vector<double> data;
 
-			if (wavelength_visibility_[NIRS::WavelengthType::HBO]) {
+			if (wavelength_visibility_[NIRS::Wavelength::HBO]) {
 
 				label = "Channel " + std::to_string(channelID) + " - HbO";
 				data = channel.hbo_data;
 				ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 			}
 
-			if (wavelength_visibility_[NIRS::WavelengthType::HBR]) {
+			if (wavelength_visibility_[NIRS::Wavelength::HBR]) {
 
 				label = "Channel " + std::to_string(channelID) + " - HbR";
 				data = channel.hbr_data;
 				ImPlot::PlotLine(label.c_str(), time.data(), data.data(), time.size());
 			}
 
-			if (wavelength_visibility_[NIRS::WavelengthType::HBT]) {
+			if (wavelength_visibility_[NIRS::Wavelength::HBT]) {
 
 				label = "Channel " + std::to_string(channelID) + " - HbT";
 				data = channel.hbt_data;
@@ -178,7 +178,7 @@ void PlottingSystem::OnEvent(Event& event)
 {
 }
 
-void PlottingSystem::StartProjection(NIRS::WavelengthType& type)
+void PlottingSystem::StartProjection(NIRS::Wavelength& type)
 {
 	//SetProjectionWavelength(type);
 	
@@ -212,15 +212,15 @@ void PlottingSystem::EditProcessingStream()
 	ImGui::End();
 }
 
-const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& PlottingSystem::GetChannelData(NIRS::WavelengthType type)
+const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& PlottingSystem::GetChannelData(NIRS::Wavelength type)
 {
 	// TODO: insert return statement here
 	switch (type) {
-		case NIRS::WavelengthType::HBO:
+		case NIRS::Wavelength::HBO:
 			return hbo_channel_data_;
-		case NIRS::WavelengthType::HBR:
+		case NIRS::Wavelength::HBR:
 			return hbr_channel_data_;
-		case NIRS::WavelengthType::HBT:
+		case NIRS::Wavelength::HBT:
 			return hbt_channel_data_;
 		default:
 			NVIZ_ERROR("PlottingSystem::GetChannelData: Unsupported wavelength type. Returning HBO");
@@ -228,14 +228,14 @@ const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& PlottingSystem
 	}
 }
 
-const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& PlottingSystem::GetChannelDataAtTimeIndex(NIRS::WavelengthType type, uint32_t time_index)
+const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& PlottingSystem::GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index)
 {
 	switch (type) {
-	case NIRS::WavelengthType::HBO:
+	case NIRS::Wavelength::HBO:
 		return hbo_channel_values_at_tag_;
-	case NIRS::WavelengthType::HBR:
+	case NIRS::Wavelength::HBR:
 		return hbr_channel_values_at_tag_;
-	case NIRS::WavelengthType::HBT:
+	case NIRS::Wavelength::HBT:
 		return hbt_channel_values_at_tag_;
 	default:
 		NVIZ_ERROR("PlottingSystem::GetChannelData: Unsupported wavelength type. Returning HBO");
@@ -296,21 +296,21 @@ void PlottingSystem::HandleSelectedChannels(const std::vector<NIRS::Probe::Chann
 			if (!visible) continue;
 
 			switch (WL) {
-			case NIRS::WavelengthType::HBO:
+			case NIRS::Wavelength::HBO:
 				if (!hboData.empty()) {
 					auto [minIt, maxIt] = std::minmax_element(hboData.begin(), hboData.end());
 					minY = std::min(minY, *minIt);
 					maxY = std::max(maxY, *maxIt);
 				}
 				break;
-			case NIRS::WavelengthType::HBR:
+			case NIRS::Wavelength::HBR:
 				if (!hbrData.empty()) {
 					auto [minIt, maxIt] = std::minmax_element(hbrData.begin(), hbrData.end());
 					minY = std::min(minY, *minIt);
 					maxY = std::max(maxY, *maxIt);
 				}
 				break;
-			case NIRS::WavelengthType::HBT:
+			case NIRS::Wavelength::HBT:
 				if (!hbtData.empty()) {
 					auto [minIt, maxIt] = std::minmax_element(hbtData.begin(), hbtData.end());
 					minY = std::min(minY, *minIt);

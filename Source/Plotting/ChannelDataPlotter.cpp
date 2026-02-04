@@ -214,17 +214,17 @@ void ChannelDataPlotter::RenderSubPlot(PlotData& data, int index) {
 
             auto& channel = channelMap[channelID];
 
-            if (data.wavelength_visibility[NIRS::WavelengthType::HBO] && !channel.hbo_data.empty()) {
+            if (data.wavelength_visibility[NIRS::Wavelength::HBO] && !channel.hbo_data.empty()) {
                 auto [minIt, maxIt] = std::minmax_element(channel.hbo_data.begin(), channel.hbo_data.end());
                 minY = std::min(minY, *minIt);
                 maxY = std::max(maxY, *maxIt);
             }
-            if (data.wavelength_visibility[NIRS::WavelengthType::HBR] && !channel.hbr_data.empty()) {
+            if (data.wavelength_visibility[NIRS::Wavelength::HBR] && !channel.hbr_data.empty()) {
                 auto [minIt, maxIt] = std::minmax_element(channel.hbr_data.begin(), channel.hbr_data.end());
                 minY = std::min(minY, *minIt);
                 maxY = std::max(maxY, *maxIt);
             }
-            if (data.wavelength_visibility[NIRS::WavelengthType::HBT] && !channel.hbt_data.empty()) {
+            if (data.wavelength_visibility[NIRS::Wavelength::HBT] && !channel.hbt_data.empty()) {
                 auto [minIt, maxIt] = std::minmax_element(channel.hbt_data.begin(), channel.hbt_data.end());
                 minY = std::min(minY, *minIt);
                 maxY = std::max(maxY, *maxIt);
@@ -278,17 +278,17 @@ void ChannelDataPlotter::RenderSubPlot(PlotData& data, int index) {
 
         auto& channel = channelMap[channelID];
 
-        if (data.wavelength_visibility[NIRS::WavelengthType::HBO]) {
+        if (data.wavelength_visibility[NIRS::Wavelength::HBO]) {
             std::string label = fmt::format("Ch {} - HbO", channelID);
             ImPlot::PlotLine(label.c_str(), time.data(), channel.hbo_data.data(), time.size());
         }
 
-        if (data.wavelength_visibility[NIRS::WavelengthType::HBR]) {
+        if (data.wavelength_visibility[NIRS::Wavelength::HBR]) {
             std::string label = fmt::format("Ch {} - HbR", channelID);
             ImPlot::PlotLine(label.c_str(), time.data(), channel.hbr_data.data(), time.size());
         }
 
-        if (data.wavelength_visibility[NIRS::WavelengthType::HBT]) {
+        if (data.wavelength_visibility[NIRS::Wavelength::HBT]) {
             std::string label = fmt::format("Ch {} - HbT", channelID);
             ImPlot::PlotLine(label.c_str(), time.data(), channel.hbt_data.data(), time.size());
         }
@@ -344,9 +344,9 @@ void ChannelDataPlotter::RenderPlotConfiguration(PlotData& data) {
 
         // Wavelength visibility
         ImGui::Text("Wavelengths:");
-        ImGui::Checkbox("HbO (Oxyhemoglobin)", &data.wavelength_visibility[NIRS::WavelengthType::HBO]);
-        ImGui::Checkbox("HbR (Deoxyhemoglobin)", &data.wavelength_visibility[NIRS::WavelengthType::HBR]);
-        ImGui::Checkbox("HbT (Total Hemoglobin)", &data.wavelength_visibility[NIRS::WavelengthType::HBT]);
+        ImGui::Checkbox("HbO (Oxyhemoglobin)", &data.wavelength_visibility[NIRS::Wavelength::HBO]);
+        ImGui::Checkbox("HbR (Deoxyhemoglobin)", &data.wavelength_visibility[NIRS::Wavelength::HBR]);
+        ImGui::Checkbox("HbT (Total Hemoglobin)", &data.wavelength_visibility[NIRS::Wavelength::HBT]);
 
         ImGui::Separator();
 

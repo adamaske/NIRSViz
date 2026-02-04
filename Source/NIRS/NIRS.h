@@ -17,17 +17,17 @@ namespace NIRS {
     static glm::vec4 SourceColor = glm::vec4(1.0f, 0.2f, 0.2f, 1.0f);
     static glm::vec4 DetectorColor = glm::vec4(0.2f, 0.2f, 1.0f, 1.0f);
 
-    enum class WavelengthType : uint32_t {
+    enum class Wavelength : uint32_t {
         HBR = 0,
         HBO = 1,
         HBT = 2
     };
 
-    constexpr std::string WavelengthTypeToString(WavelengthType type) {
+    constexpr std::string WavelengthTypeToString(Wavelength type) {
         switch (type) {
-        case WavelengthType::HBR: return "HbR";
-        case WavelengthType::HBO: return "HbO";
-        case WavelengthType::HBT: return "HbT";
+        case Wavelength::HBR: return "HbR";
+        case Wavelength::HBO: return "HbO";
+        case Wavelength::HBT: return "HbT";
         }
     }
     struct Line {

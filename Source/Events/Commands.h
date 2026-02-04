@@ -37,7 +37,7 @@ struct OnCoordinateSystemGenerated {
 
 // --- Projection ---
 struct OnStartProjection {
-	NIRS::WavelengthType Wavelength;
+	NIRS::Wavelength Wavelength;
 };
 
 struct OnStopProjection {
@@ -54,7 +54,7 @@ struct OnUserStartProjectionCommand
 };
 
 struct OnProjectionWavelengthChanged {
-	NIRS::WavelengthType Wavelength;
+	NIRS::Wavelength Wavelength;
 };
 
 struct OnProjectionSettingsChanged {
@@ -75,8 +75,8 @@ struct OnProjectionTimeChanged {
 
 struct OnChannelValuesUpdated {
 
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> HBOValues;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> HBRValues;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> HBOValues;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> HBRValues;
 };
 
 struct OnChannelsSelected {

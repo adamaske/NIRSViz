@@ -17,17 +17,17 @@
 
 class IChannelDataProvider {
 public:
-	virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::WavelengthType type) = 0;
+	virtual const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::Wavelength type) = 0;
 
-	virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::WavelengthType type, uint32_t time_index) = 0;
+	virtual const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index) = 0;
 };
 
 class IProjectionTimeTagProvider {
 public:
-	virtual void StartProjection(NIRS::WavelengthType& type) = 0; // TODO : This should be a bool so we can deny serivce
+	virtual void StartProjection(NIRS::Wavelength& type) = 0; // TODO : This should be a bool so we can deny serivce
 	virtual void StopProjection() = 0;
 
-	//virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValueAtCurrentTimeIndex(NIRS::WavelengthType type) = 0;
+	//virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValueAtCurrentTimeIndex(NIRS::Wavelength type) = 0;
 	
 };
 
@@ -55,7 +55,7 @@ public:
 
 	void RenderMenuBar() override;
 
-	void StartProjection(NIRS::WavelengthType& type) override;
+	void StartProjection(NIRS::Wavelength& type) override;
 	void StopProjection() override;
 
 	void HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs);
@@ -66,33 +66,33 @@ public:
 
 	void EditProcessingStream();
 
-	const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::WavelengthType type) override;
-	const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::WavelengthType type, uint32_t time_index) override;
+	const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::Wavelength type) override;
+	const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index) override;
 
-	void SetWavelengthVisibility(NIRS::WavelengthType wavelength, bool isVisible) {
+	void SetWavelengthVisibility(NIRS::Wavelength wavelength, bool isVisible) {
 		wavelength_visibility_[wavelength] = isVisible;
 	}
 private:
 	PlotManager plot_manager_;
 
 	// Use a map so we can easily extend to more wavelengths in the future
-	std::map<NIRS::WavelengthType, bool> wavelength_visibility_ = {
-		{NIRS::WavelengthType::HBO, true},
-		{NIRS::WavelengthType::HBR, true},
-		{NIRS::WavelengthType::HBT, false}
+	std::unordered_map<NIRS::Wavelength, bool> wavelength_visibility_ = {
+		{NIRS::Wavelength::HBO, true},
+		{NIRS::Wavelength::HBR, true},
+		{NIRS::Wavelength::HBT, false}
 	};
 
 	Ref<SNIRF> m_SNIRF;
 
 	// Current channel values at the current time index
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbo_channel_data_;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbr_channel_data_;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbt_channel_data_;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbo_channel_data_;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbr_channel_data_;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbt_channel_data_;
 
 
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbo_channel_values_at_tag_;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbr_channel_values_at_tag_;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbt_channel_values_at_tag_;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbo_channel_values_at_tag_;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbr_channel_values_at_tag_;
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbt_channel_values_at_tag_;
 
 	bool m_IsProjecting = false;
 

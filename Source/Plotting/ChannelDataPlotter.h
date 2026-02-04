@@ -20,10 +20,10 @@ struct PlotData {
     bool is_active;
 
     // Wavelength visibility per plot
-    std::map<NIRS::WavelengthType, bool> wavelength_visibility = {
-        {NIRS::WavelengthType::HBO, true},
-        {NIRS::WavelengthType::HBR, true},
-        {NIRS::WavelengthType::HBT, false}
+    std::map<NIRS::Wavelength, bool> wavelength_visibility = {
+        {NIRS::Wavelength::HBO, true},
+        {NIRS::Wavelength::HBR, true},
+        {NIRS::Wavelength::HBT, false}
     };
 
     // Axis limits

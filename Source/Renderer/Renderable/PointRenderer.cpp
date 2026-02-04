@@ -1,15 +1,19 @@
 #include "pch.h"
 #include "Renderer/Renderable/PointRenderer.h"
+
+#include "Core/AssetRegistry.h"
+
 #include "Renderer/ViewportManager.h"
+
 static int MAX_POINTS = 2000;
 
 PointRenderer::PointRenderer(ViewportType type, glm::vec4 color, float size) : viewport_type_(type), m_PointColor(color), m_PointSize(size)
 {
     m_Shader = CreateRef<Shader>(
-        "C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
-        "C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
+        AssetRegistry::Get("FlatColor.vert"),
+        AssetRegistry::Get("FlatColor.frag")
     );
-    MeshFileDescription fd{.filepath="C:/dev/NIRSViz/Assets/Models/sphere.obj"};
+    MeshFileDescription fd{ .filepath=AssetRegistry::Get("sphere.obj") };
     m_SphereMesh = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
     m_VAO = CreateRef<VertexArray>();
     m_VAO->Bind();

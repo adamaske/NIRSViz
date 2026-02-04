@@ -6,6 +6,7 @@
 
 #include "Core/Input.h"
 #include "Core/AssetManager.h"	
+#include "Core/AssetRegistry.h"
 
 #include "Events/MouseCodes.h"
 #include "Events/KeyCodes.h"
@@ -33,19 +34,18 @@ void ChannelSelectorSystem::OnAttach()
 	m_OrthoCamera->SetZoomLevel(5.0f);
 	ViewportManager::RegisterViewport(viewport_type_, { m_OrthoCamera.get(), m_Framebuffer.get() });
 
-	m_TextureShader = CreateRef<Shader>("C:/dev/NIRSViz/Assets/Shaders/Texture.vert",
-										"C:/dev/NIRSViz/Assets/Shaders/Texture.frag");
+	m_TextureShader = CreateRef<Shader>(	AssetRegistry::Get("Texture.vert"),
+											AssetRegistry::Get("Texture.frag"));
+	m_FlatColorShader = CreateRef<Shader>(	AssetRegistry::Get("FlatColor.vert"),
+											AssetRegistry::Get("FlatColor.frag"));
 
-	m_FlatColorShader = CreateRef<Shader>("C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
-										"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
+	m_SourceTexture		= CreateRef<Texture>(AssetRegistry::Get("source.png"));
+	m_DetectorTexture	= CreateRef<Texture>(AssetRegistry::Get("detector.png"));
+	m_ChannelTexture	= CreateRef<Texture>(AssetRegistry::Get("channel.png"));
+	m_BackgroundTexture = CreateRef<Texture>(AssetRegistry::Get("background.png"));
 
-	m_SourceTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/source.png");
-	m_DetectorTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/detector.png");
-	m_ChannelTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/channel.png");
-	m_BackgroundTexture = CreateRef<Texture>("C:/dev/NIRSViz/Assets/Textures/background.png");
-
-	MeshFileDescription quad_fd{.filepath = "C:/dev/NIRSViz/Assets/Models/plane.obj"};
-	MeshFileDescription plate_fd{.filepath = "C:/dev/NIRSViz/Assets/Models/plate.obj"};
+	MeshFileDescription quad_fd{.filepath =		AssetRegistry::Get("plane.obj")};
+	MeshFileDescription plate_fd{.filepath =	AssetRegistry::Get("plate.obj")};
 
 	m_QuadMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(quad_fd));
 	m_PlateMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(plate_fd));

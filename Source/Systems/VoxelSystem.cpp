@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Systems/VoxelSystem.h"
 
+#include "Core/AssetRegistry.h"
+
 #include <imgui.h>
 #include <random>
 
@@ -123,8 +125,8 @@ void VoxelSystem::SetupRendering()
 {
     // Load voxel shader
     voxel_shader_ = CreateRef<Shader>(
-        "C:/dev/NIRSViz/Assets/Shaders/Voxel.vert",
-        "C:/dev/NIRSViz/Assets/Shaders/Voxel.frag"
+        AssetRegistry::Get("Voxel.vert"),
+        AssetRegistry::Get("Voxel.frag")
     );
 
     CreateUnitCubeMesh();

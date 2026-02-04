@@ -2,6 +2,8 @@
 #include "NIRS/Landmark/ManualLandmarkEditor.h"
 #include <imgui.h>
 
+#include "Core/AssetRegistry.h"
+
 ManualLandmarkEditor::ManualLandmarkEditor(NIRS::ManualLandmarkRegistry& registry, ViewportType type) : m_Registry(registry), viewport_type_(type)
 {
     m_GuideLineRenderer = CreateRef<LineRenderer>(
@@ -11,10 +13,11 @@ ManualLandmarkEditor::ManualLandmarkEditor(NIRS::ManualLandmarkRegistry& registr
     );
 
     shader_ = CreateRef<Shader>(
-        "C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
-        "C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag"
+        AssetRegistry::Get("FlatColor.vert").string(),
+        AssetRegistry::Get("FlatColor.frag").string()
     );
-    MeshFileDescription fd{.filepath = "C:/dev/NIRSViz/Assets/Models/sphere.obj"};
+
+    MeshFileDescription fd{ .filepath = AssetRegistry::Get("sphere.obj")};
     sphere_mesh_ = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
 }
 

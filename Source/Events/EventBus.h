@@ -20,7 +20,7 @@ private:
 	};
 
 	// Map to store a handler list for each event type (identified by std::type_index)
-	std::map<std::type_index, std::unique_ptr<IEventHandler>> handlers;
+	std::unordered_map<std::type_index, std::unique_ptr<IEventHandler>> handlers;
 	std::mutex busMutex; // Thread safety is important for a central bus
 
 public:

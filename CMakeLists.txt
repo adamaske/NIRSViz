@@ -32,7 +32,7 @@ if(MSVC)
 endif()
 
 # =============================================================================
-# External Dependencies
+# External Dependencies 
 # =============================================================================
 
 # QT 6
@@ -41,6 +41,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 find_package(Qt6 COMPONENTS Widgets OpenGL OpenGLWidgets GUI REQUIRED)
 
+
 # OpenGL
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 find_package(OpenGL REQUIRED)
@@ -48,7 +49,7 @@ find_package(OpenGL REQUIRED)
 # Boost
 # Set this to your Boost installation path after installing prebuilt binaries
 # Common paths: C:/local/boost_1_84_0 or C:/Program Files/boost/boost_1_84_0
-set(Boost_ROOT "C:/sdk/boost_1_90_0" CACHE PATH "Boost installation directory")
+set(Boost_ROOT "C:\\sdk\\boost_1_90_0" CACHE PATH "Boost installation directory")
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
@@ -96,18 +97,23 @@ set(NANOFLANN_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(NANOFLANN_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(${VENDOR_DIR}/nanoflann)
 
-# FMTlib
-add_subdirectory(${VENDOR_DIR}/fmt)
 
 # HDF5
-set(HDF5_ROOT "C:/Program Files/HDF_Group/HDF5/1.14.6")
+set(HDF5_ROOT "C:/Program Files/HDF_Group/HDF5/2.0.0")
 find_package(HDF5 REQUIRED)
 
 # GLFW
 add_subdirectory(${VENDOR_DIR}/glfw)
 
+# FMTlib
+add_subdirectory(${VENDOR_DIR}/fmt)
+
 # spdlog - Logging library
+add_definitions(-DSPDLOG_FMT_EXTERNAL)
 add_subdirectory(${VENDOR_DIR}/spdlog)
+
+# TODO : Fix this, we use external fmt loading to avoid using utf-8 charset
+target_link_libraries(spdlog PUBLIC fmt)
 
 # Native File Dialog Extended - Cross-platform file dialogs 
 # TODO : Build as STATIC library to avoid DLL issues
@@ -140,6 +146,26 @@ set(IMGUI_SOURCES
     ${VENDOR_DIR}/implot/implot_demo.cpp
     ${VENDOR_DIR}/implot/implot_items.cpp
 )
+
+# =============================================================================
+# ITK - Insight Toolkit for Medical Image Processing
+# =============================================================================
+set(ITK_DIR "${VENDOR_DIR}/ITK/build" CACHE PATH "ITK build directory")
+find_package(ITK REQUIRED COMPONENTS
+    ITKCommon
+    ITKIOImageBase
+    ITKIONIFTI
+    ITKImageFilterBase
+    ITKSmoothing
+    ITKThresholding
+    ITKConnectedComponents
+    ITKMathematicalMorphology
+    ITKBinaryMathematicalMorphology
+    ITKLabelMap
+    ITKWatersheds
+    ITKRegionGrowing
+)
+include(${ITK_USE_FILE})
 
 # =============================================================================
 # Executable Target
@@ -193,7 +219,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     #${VENDOR_DIR}/CDT/CDT/include
     #${VENDOR_DIR}/SQLiteCpp/include
 )
-
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE 
     Qt6::Widgets
@@ -208,8 +233,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Assimp::Assimp
 
     spdlog::spdlog
-    fmt
+    fmt::fmt
 
+    ${ITK_LIBRARIES}
+    
     nfd
     bvh
 
@@ -268,3 +295,5 @@ add_custom_command(
         "$<TARGET_FILE_DIR:${PROJECT_NAME}>"  # Updated to use ${PROJECT_NAME} for target directory
     COMMENT "Copying Assimp DLL to executable output directory"
 )
+
+

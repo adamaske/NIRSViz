@@ -76,9 +76,9 @@ void GUI::RenderVec3Control(const std::string& label, glm::vec3& values, float r
 
 void GUI::RenderTransformSettings(Transform& transform)
 {
-	auto position = transform.GetPosition();
-	auto rotation = transform.GetRotation();
-	auto scale = transform.GetScale();
+	auto& position = transform.GetPosition();
+	auto& rotation = transform.GetRotation();
+	auto& scale = transform.GetScale();
 
 	RenderVec3Control("Position", position, 0.0f);
 	RenderVec3Control("Rotation", rotation, 0.0f);
@@ -184,32 +184,32 @@ void GUI::RenderSNIRFInfo(SNIRF* snirf)
 	ImGui::PopID();
 }
 
-void GUI::RenderWavelengthSelectorSingular(NIRS::WavelengthType& out_type)
+void GUI::RenderWavelengthSelectorSingular(NIRS::Wavelength& out_type)
 {
 	// Radio buttons - only one can be active at a time
-	if (ImGui::RadioButton("HbO", out_type == NIRS::WavelengthType::HBO)) {
-		out_type = NIRS::WavelengthType::HBO;
+	if (ImGui::RadioButton("HbO", out_type == NIRS::Wavelength::HBO)) {
+		out_type = NIRS::Wavelength::HBO;
 	}
 	ImGui::SameLine();
 
-	if (ImGui::RadioButton("HbR", out_type == NIRS::WavelengthType::HBR)) {
-		out_type = NIRS::WavelengthType::HBR;
+	if (ImGui::RadioButton("HbR", out_type == NIRS::Wavelength::HBR)) {
+		out_type = NIRS::Wavelength::HBR;
 	}
 	ImGui::SameLine();
 
-	if (ImGui::RadioButton("HbT", out_type == NIRS::WavelengthType::HBT)) {
-		out_type = NIRS::WavelengthType::HBT;
+	if (ImGui::RadioButton("HbT", out_type == NIRS::Wavelength::HBT)) {
+		out_type = NIRS::Wavelength::HBT;
 	}
 }
 
-void GUI::RenderWavelengthSelectorMultiple(std::map<NIRS::WavelengthType, bool>& out_map)
+void GUI::RenderWavelengthSelectorMultiple(std::unordered_map<NIRS::Wavelength, bool>& out_map)
 {
 	// Checkboxes - multiple can be active at once
-	ImGui::Checkbox("HbO", &out_map[NIRS::WavelengthType::HBO]);
+	ImGui::Checkbox("HbO", &out_map[NIRS::Wavelength::HBO]);
 	ImGui::SameLine();
 
-	ImGui::Checkbox("HbR", &out_map[NIRS::WavelengthType::HBR]);
+	ImGui::Checkbox("HbR", &out_map[NIRS::Wavelength::HBR]);
 	ImGui::SameLine();
 
-	ImGui::Checkbox("HbT", &out_map[NIRS::WavelengthType::HBT]);
+	ImGui::Checkbox("HbT", &out_map[NIRS::Wavelength::HBT]);
 }

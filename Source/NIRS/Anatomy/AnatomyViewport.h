@@ -46,7 +46,7 @@ private:
 	Ref<RoamCamera> roam_camera_ = nullptr;
 	Ref<OrbitCamera> orbit_camera_ = nullptr;
 
-	std::map<CameraMode, Ref<Camera>> camera_map_ = {
+	std::unordered_map<CameraMode, Ref<Camera>> camera_map_ = {
 		{ROAM, roam_camera_},
 		{ORBIT, orbit_camera_}
 	};

@@ -10,18 +10,18 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
+Shader::Shader(const std::filesystem::path& vertex_path, const std::filesystem::path& fragment_path)
 {
     if (!std::filesystem::exists(vertex_path)) {
-        NVIZ_ERROR("Vertex shader file does not exist: {0}", vertex_path.c_str());
+        NVIZ_ERROR("Vertex shader file does not exist: {0}", vertex_path.string());
         return;
     }
     if (!std::filesystem::exists(fragment_path)) {
-        NVIZ_ERROR("Fragment shader file does not exist: {0}", fragment_path.c_str());
+        NVIZ_ERROR("Fragment shader file does not exist: {0}", fragment_path.string());
         return;
     }
-    m_FragmentFilepath = fragment_path;
-    m_VertexFilepath = vertex_path;
+    m_FragmentFilepath = fragment_path.string();
+    m_VertexFilepath = vertex_path.string();
     std::ifstream vertex_stream(vertex_path);
     std::stringstream vss;
     vss << vertex_stream.rdbuf();

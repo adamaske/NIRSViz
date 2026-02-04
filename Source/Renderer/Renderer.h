@@ -17,7 +17,8 @@ enum class ViewportType : uint32_t
 	AtlasViewport = 3,
 	ProbeEditor = 4,
 	ChannelSelector = 5,
-	VoxelViewport = 6
+	VoxelViewport = 6,
+	MRIViewport = 7
 };
 
 // Now this is a little more complicated than it needs to be, we can just use a enum instead of having these ID's and such

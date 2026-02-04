@@ -94,3 +94,4 @@ private:
 #include "Systems/WingsPlottingSystem.h"
 #include "Systems/ControlPanelSystem.h"
 #include "Systems/VoxelSystem.h"
+#include "Systems/MRISystem.h"

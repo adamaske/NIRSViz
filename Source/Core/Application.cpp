@@ -6,6 +6,8 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportManager.h"
 #include <GLFW/glfw3.h>
+#include "Core/AssetRegistry.h"
+
 
 Application* Application::sInstance = nullptr;
 Application::Application(const ApplicationSpecification& spec) : specification_(spec)
@@ -20,6 +22,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	}
 	NVIZ_INFO("Application : {}", specification_.name);
 	NVIZ_INFO("\tWorking Directory : {}", specification_.working_directory.c_str());
+
+	AssetRegistry::Init("../../../Assets");
 
 
 	WindowSpecification window_spec;
@@ -58,6 +62,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
 	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
+	auto mri_system = system_manager_.AddSystem<MRISystem>();
 
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);

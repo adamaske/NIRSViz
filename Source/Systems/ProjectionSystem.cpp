@@ -2,6 +2,7 @@
 #include "Systems/ProjectionSystem.h"
 
 #include "Core/Application.h"
+#include "Core/AssetRegistry.h"
 
 #include <imgui.h>
 
@@ -17,8 +18,8 @@ void ProjectionSystem::OnAttach()
 {
 	// TODO : Fix the shader class such that I can have a reference of it. 
 	projection_shader_ = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/Projection.vert", 
-		"C:/dev/NIRSViz/Assets/Shaders/Projection.frag");
+		AssetRegistry::Get("Projection.vert"), 
+		AssetRegistry::Get("Projection.frag"));
 
 	SetupSubscriptions();
 
@@ -89,7 +90,7 @@ void ProjectionSystem::StopProjection()
 	//EventBus::Instance().Publish<OnStopProjection>({});
 }
 
-void ProjectionSystem::SetProjectionWavelength(const NIRS::WavelengthType& wavelength)
+void ProjectionSystem::SetProjectionWavelength(const NIRS::Wavelength& wavelength)
 {
 	wavelength_ = wavelength;
 }
@@ -137,7 +138,7 @@ void ProjectionSystem::UpdateActivatedVertices()
 
 	auto selected_channels = selected_channels_provider_.GetSelectedChannels();
 
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> channels = 
+	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> channels =
 		channel_data_provider_.GetChannelDataAtTimeIndex(wavelength_, settings_.time_index);
 
 	for(auto& [channel_id, influenced_vertices] : influenced_vertices_) {

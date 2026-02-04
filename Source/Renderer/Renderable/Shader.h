@@ -12,7 +12,7 @@ private:
 
 public:
     Shader() = default;
-	Shader(const std::string& vertex_path, const std::string& fragment_path);
+	Shader(const std::filesystem::path& vertex_path, const std::filesystem::path& fragment_path);
 	~Shader();
 
 	// Delete copy constructor and copy assignment

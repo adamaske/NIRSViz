@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Renderer/Renderable/LineRenderer.h"
-// Include your Renderer, Shader, and VertexArray headers
+
+#include "Core/AssetRegistry.h"
 
 namespace Utils {
 
@@ -11,8 +12,8 @@ namespace Utils {
 LineRenderer::LineRenderer(ViewportType type, glm::vec4 color, float size) : viewport_type_(type), m_LineColor(color), m_LineWidth(size)
 {
     m_Shader = CreateRef<Shader>(
-        "C:/dev/NIRSViz/Assets/Shaders/Line.vert",
-        "C:/dev/NIRSViz/Assets/Shaders/Line.frag"
+        AssetRegistry::Get("Line.vert"),
+        AssetRegistry::Get("Line.frag")
     );
     SetupBuffers();
 }

@@ -15,6 +15,7 @@
 #include "NIRS/Snirf.h"
 
 #include "Core/Input.h"
+#include "Core/AssetRegistry.h"
 #include "App/Data/Raycast.h"
 
 #include "Events/EventBus.h"
@@ -34,9 +35,9 @@ void ProbeSystem::OnAttach() {
 	auto& app = Application::Get();
 
 	m_FlatColorShader = CreateRef<Shader>(
-		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.vert",
-		"C:/dev/NIRSViz/Assets/Shaders/FlatColor.frag");
-	MeshFileDescription fd{"C:/dev/NIRSViz/Assets/Models/probe_model.obj"};
+		AssetRegistry::Get("FlatColor.vert"),
+		AssetRegistry::Get("FlatColor.frag"));
+	MeshFileDescription fd{AssetRegistry::Get("probe_model.obj")};
 	m_ProbeMesh = CreateRef<Mesh>(MeshFactory::CreateMesh(fd));
 	m_LineRenderer2D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(1.0f), 2.0f);
 	m_LineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
