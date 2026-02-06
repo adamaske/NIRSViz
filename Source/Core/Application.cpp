@@ -46,26 +46,30 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	// --- Systems
 	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
 	auto file_system = system_manager_.AddSystem<FileSystem>();
-	//auto plotting_system = system_manager_.AddSystem<PlottingSystem>();
-	//auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
-	//auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system);
-	//auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>();
-	//auto voxel_system = system_manager_.AddSystem<VoxelSystem>();
-	//
-	//// Projection System - pass systems directly, they'll upcast automatically
-	//auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
-	//	*anatomy_system,   
-	//	*channel_selector, 
-	//	*plotting_system,  
-	//	*plotting_system,  
-	//	*probe_system);    
-	//
-	//auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
-	//auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
+	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>(*file_system);
+	auto plotting_system = system_manager_.AddSystem<PlottingSystem>(*channel_selector);
+	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system);
+	auto voxel_system = system_manager_.AddSystem<VoxelSystem>();
+	
+	// Projection System - pass systems directly, they'll upcast automatically
+	auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
+		*anatomy_system,   
+		*channel_selector, 
+		*plotting_system,  
+		*plotting_system,
+		*probe_system);    
+	
+	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
+	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
 	auto mri_system = system_manager_.AddSystem<MRISystem>();
 
 	// Register
-	//plotting_system->RegisterProjectionTimeSubscriber(projection_system);
+	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
+
+	// TODO : Systems should have an optional dependency list that the system manager can use to automatically order initialization and update calls. 
+	// For now we just call post init manually in the right order.
+
 
 	system_manager_.GetSystem<FileSystem>()->PostInit();
 }

@@ -22,7 +22,7 @@ namespace GUI {
 	void RenderSNIRFInfo(SNIRF* snirf);
 
 	void RenderWavelengthSelectorSingular(NIRS::Wavelength& out_type);
-	void RenderWavelengthSelectorMultiple(std::unordered_map<NIRS::Wavelength, bool>& out_map);
+	bool RenderWavelengthSelectorMultiple(std::unordered_map<NIRS::Wavelength, bool>& out_map);
 }
 
 #include "GUI/Colors.h"

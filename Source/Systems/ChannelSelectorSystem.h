@@ -1,113 +1,144 @@
 #pragma once
+#include "NIRS/ChannelSelector.h"
 
 #include "Core/Base.h"
 #include "Systems/System.h"
 
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
-
-#include "Renderer/Renderer.h"
-#include "Renderer/Renderable/Shader.h"
-#include "../Renderer/Mesh/Mesh.h"
-#include "Renderer/Renderable/Texture.h"
+#include "NIRS/SNIRFProvider.h"
 
 #include "Events/MouseEvent.h"
-#include "Renderer/Buffer/Framebuffer.h"
-#include "Renderer/Camera/OrthogonalCamera.h"
 
-#include <set>
+#include <vector>
+#include <map>
 
-class ISelectedChannelsProvider {
-public:
-	virtual const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() = 0;
+
+struct ChannelSelectorSettings {
+	float source_radius = 10.0f;
+	float detector_radius = 8.0f;
+	float channel_width = 8.0f;
+	float world_scale = 20.0f; // Pixels per world unit
+	uint32_t background_color = 0xFF202020; // Dark gray
+	uint32_t source_color = 0xFF3333FF;     // Red
+	uint32_t detector_color = 0xFF0000FF;   // Blue
+	uint32_t channel_color = 0xFFAAAAAA;    // Gray
+	uint32_t selected_channel_color = 0xFF40FFFF; // Yellow
+	uint32_t grid_color = 0xFF303030;       // Darker gray
 };
 
-struct Channel2DVisual {
-	glm::vec3 Start;
-	glm::vec3 End;
+struct ChannelSelectorConfig {
+	ChannelSelectorSettings settings;
 
-	NIRS::Probe::ChannelID ChannelID;
+	// Runtime state (zoom, pan, etc.)
+	glm::vec2 pan_offset = { 0.0f, 0.0f };
+	float zoom_level = 1.0f;
+	glm::vec2 view_center = { 0.0f, 0.0f };
+};
+
+
+struct PixelBuffer {
+	std::vector<uint32_t> Data; // RGBA8 format
+	uint32_t Width;
+	uint32_t Height;
+
+	PixelBuffer(uint32_t w, uint32_t h)
+		: Width(w), Height(h), Data(w* h, 0xFF202020) {
+	} // Dark gray default
+
+	void Clear(uint32_t color = 0xFF202020) {
+		std::fill(Data.begin(), Data.end(), color);
+	}
+
+	void SetPixel(int x, int y, uint32_t color) {
+		if (x >= 0 && x < (int)Width && y >= 0 && y < (int)Height) {
+			Data[y * Width + x] = color;
+		}
+	}
+
+	void Resize(uint32_t w, uint32_t h) {
+		Width = w;
+		Height = h;
+		Data.resize(w * h, 0xFF202020);
+	}
 };
 
 class ChannelSelectorSystem : public System, public ISelectedChannelsProvider
 {
 public:
-	ChannelSelectorSystem() = default;
+	ChannelSelectorSystem(ISNIRFProvider& snirf_provider) : snirf_provider_(snirf_provider) {};
 	~ChannelSelectorSystem() = default;
 
+
 	const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() override {
-		return m_SelectedChannels;
-	};
+		return selected_channels_;
+	}
 
 	void OnAttach() override;
 	void OnDetach() override;
-
 	void OnUpdate(DeltaTime dt) override;
-
-	void OnGUIRender()override;
-
+	void OnGUIRender() override;
 	void OnEvent(Event& event) override;
-
 	void RenderMenuBar() override;
 
 	bool OnMouseScrolled(const MouseScrolledEvent& event);
 	bool OnMouseButtonPressed(const MouseButtonPressedEvent& event);
 
 	void HandleSNIRFLoaded();
-
 	void SelectAllChannels();
 	void ClearSelection();
+
+
 private:
-	Ref<Framebuffer> m_Framebuffer = nullptr;
-	Ref<OrthogonalCamera> m_OrthoCamera = nullptr;
+	bool dirty_;
+	ISNIRFProvider& snirf_provider_;
+	// Configuration (settings + runtime state)
+	ChannelSelectorConfig config_;
 
-	Ref<Shader> m_TextureShader = nullptr;
-	Ref<Shader> m_FlatColorShader = nullptr;
+	// Image buffer and texture
+	PixelBuffer image_buffer_{ 800, 600 };
+	uint32_t texture_id_ = 0; // OpenGL texture ID
 
-	Ref<Mesh> m_QuadMesh = nullptr;
-	Ref<Mesh> m_PlateMesh = nullptr;
-
-	Ref<Texture> m_SourceTexture = nullptr;
-	Ref<Texture> m_DetectorTexture = nullptr;
-	Ref<Texture> m_ChannelTexture = nullptr;
-	Ref<Texture> m_BackgroundTexture = nullptr;
-
-	float m_GridScale = 1.f;
-	float m_PlateSize = 1.f;
-	float m_ChannelWidth = 0.2f;
-
-	// --- Channel Data ---
-	glm::vec2 m_MousePosition;
-	glm::vec2 previous_mouse_position_;
-
-	std::map<NIRS::Probe::ChannelID, Channel2DVisual> m_ChannelVisuals;
-	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Channel> m_Channels;
-
-	std::vector<NIRS::Probe::ChannelID> m_SelectedChannels = {};
+	// Channel Data
+	std::map<NIRS::Probe::ChannelID, Channel2DVisual> channel_visuals_;
+	std::map<NIRS::Probe::ChannelID, NIRS::Probe::Channel> channels_;
+	std::vector<NIRS::Probe::ChannelID> selected_channels_;
 
 	std::map<NIRS::Probe::OptodeID, NIRS::Probe::Optode> sources_;
 	std::map<NIRS::Probe::OptodeID, NIRS::Probe::Optode> detectors_;
 
-	// --- Viewport Settings
+	// Viewport state
+	bool viewport_hovered_ = false;
+	bool viewport_focused_ = false;
+	glm::vec2 viewport_size_ = { 0.0f, 0.0f };
+	glm::vec2 mouse_position_ = { 0.0f, 0.0f };
+	glm::vec2 last_mouse_position_ = { 0.0f, 0.0f };
+	bool is_panning_ = false;
 
-	bool m_ViewportHovered = false;
-	bool m_ViewportFocused = false;
-	glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
-	glm::vec2 m_ViewportBounds[2];
-
-	std::vector<RenderCommand> m_BackgroundRenderCommands = {};
-	std::vector<RenderCommand> m_SourceRenderCommands = {};
-	std::vector<RenderCommand> m_DetectorRenderCommands = {};
-	std::vector<RenderCommand> m_ChannelRenderCommands = {};
-
-	void GenerateSourceRenderCommands();
-	void GenerateDetectorRenderCommands();
-	void GenerateChannelRenderCommands();
-	void GenerateBackgroundRenderCommands();
-
-	void DrawBackground();
-	void DrawSourcesAndDetectors();
+	// Drawing functions
+	void RenderToBuffer();
+	void UpdateTexture();
+	void DrawGrid();
 	void DrawChannels();
+	void DrawSources();
+	void DrawDetectors();
 
-	ViewportType viewport_type_ = ViewportType::ChannelSelector;
+	// Drawing primitives
+	void DrawLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width);
+	void DrawCircle(glm::vec2 center, float radius, uint32_t color, bool filled = true);
+	void DrawThickLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width);
+
+	// Coordinate transforms
+	glm::vec2 WorldToScreen(const glm::vec2& worldPos) const;
+	glm::vec2 ScreenToWorld(const glm::vec2& screenPos) const;
+
+	// Hit testing
+	NIRS::Probe::ChannelID GetChannelAtPosition(const glm::vec2& worldPos);
+	NIRS::Probe::OptodeID GetSourceAtPosition(const glm::vec2& worldPos);
+	NIRS::Probe::OptodeID GetDetectorAtPosition(const glm::vec2& worldPos);
+
+	// Auto-fit view
+	void FitViewToData();
+	void CalculateWorldBounds(glm::vec2& min, glm::vec2& max);
+
 };

@@ -1,81 +1,95 @@
 #pragma once
 
 #include "Systems/System.h"
-
-#include "Renderer/Renderer.h"
-#include "../Renderer/Mesh/Mesh.h"
-#include "Renderer/Renderable/Shader.h"
-
-#include "Renderer/Camera/RoamCamera.h"
-#include "Renderer/Camera/OrbitCamera.h"
-
 #include "NIRS/Snirf.h"
 #include "Plotting/PlotManager.h"
 
-// Plotting system : Is the single truth of channel data. 
-// Must be alerted when projection starts to provide a projeciton time tag. 
+/**
+ * PlottingSystem - Provider Pattern Best Practices
+ *
+ * WHEN TO QUERY THE PROVIDER:
+ *
+ * Strategy Used: "Cache with Change Detection"
+ * - Query provider once per frame in OnGUIRender()
+ * - Detect changes by comparing with cached version
+ * - Trigger expensive operations (recalculate limits) only on change
+ * - Use cached version for the rest of the frame
+ *
+ * WHY THIS STRATEGY:
+ * - Selection doesn't change every frame (user-driven)
+ * - Recalculating plot limits is expensive
+ * - Need to know WHEN selection changes, not just WHAT it is
+ */
 
 class IChannelDataProvider {
 public:
-	virtual const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::Wavelength type) = 0;
+	virtual const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>&
+		GetChannelData(NIRS::Wavelength type) = 0;
 
-	virtual const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index) = 0;
+	virtual const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>&
+		GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index) = 0;
 };
 
 class IProjectionTimeTagProvider {
 public:
-	virtual void StartProjection(NIRS::Wavelength& type) = 0; // TODO : This should be a bool so we can deny serivce
+	virtual void StartProjection(NIRS::Wavelength& type) = 0;
 	virtual void StopProjection() = 0;
-
-	//virtual const std::map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelValueAtCurrentTimeIndex(NIRS::Wavelength type) = 0;
-	
 };
 
+class ISelectedChannelsProvider;
 class IProjectionTimeSubscriber;
 class TimeController;
 
 class PlottingSystem : public System, public IChannelDataProvider, public IProjectionTimeTagProvider {
 public:
-	PlottingSystem() = default;
+	PlottingSystem(ISelectedChannelsProvider& selection_provider) :
+		selected_channels_provider_(selection_provider)
+	{
+	}
+
 	~PlottingSystem() = default;
 
-	// Register a subscriber to be notified when projection time changes
 	void RegisterProjectionTimeSubscriber(IProjectionTimeSubscriber* subscriber) {
 		projection_time_subscriber_ = subscriber;
 	}
 
 	void OnAttach() override;
 	void OnDetach() override;
-
 	void OnUpdate(DeltaTime dt) override;
-
-	void OnGUIRender()override;
-
+	void OnGUIRender() override;
 	void OnEvent(Event& event) override;
-
 	void RenderMenuBar() override;
 
 	void StartProjection(NIRS::Wavelength& type) override;
 	void StopProjection() override;
 
-	void HandleSelectedChannels(const std::vector<NIRS::Probe::ChannelID>& selectedIDs);
+	const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>&
+		GetChannelData(NIRS::Wavelength type) override;
 
-	void HandleProjectionTagChanged(size_t index, double actual);
-
-	void SetChannelValuesAtTimeIndex(int index);
-
-	void EditProcessingStream();
-
-	const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData>& GetChannelData(NIRS::Wavelength type) override;
-	const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>& GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index) override;
+	const std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue>&
+		GetChannelDataAtTimeIndex(NIRS::Wavelength type, uint32_t time_index) override;
 
 	void SetWavelengthVisibility(NIRS::Wavelength wavelength, bool isVisible) {
 		wavelength_visibility_[wavelength] = isVisible;
+		m_WavelengthVisibilityChanged = true; // Flag that we need to recalculate limits
 	}
+
 private:
+	// Core logic
+	void HandleSNIRFLoaded();
+	void UpdateSelectedChannelsCache();
+	void RecalculatePlotLimits();
+	void SetChannelValuesAtTimeIndex(int index);
+	void HandleProjectionTagChanged(size_t index, double actual);
+
+	// UI
+	void EditProcessingStream();
+
+	// Helper to check if selection has changed
+	bool HasSelectionChanged(const std::vector<NIRS::Probe::ChannelID>& newSelection) const;
+
 	PlotManager plot_manager_;
 
-	// Use a map so we can easily extend to more wavelengths in the future
 	std::unordered_map<NIRS::Wavelength, bool> wavelength_visibility_ = {
 		{NIRS::Wavelength::HBO, true},
 		{NIRS::Wavelength::HBR, true},
@@ -84,24 +98,24 @@ private:
 
 	Ref<SNIRF> m_SNIRF;
 
-	// Current channel values at the current time index
+	// Channel data caches (for IChannelDataProvider implementation)
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbo_channel_data_;
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbr_channel_data_;
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelData> hbt_channel_data_;
-
 
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbo_channel_values_at_tag_;
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbr_channel_values_at_tag_;
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> hbt_channel_values_at_tag_;
 
-	bool m_IsProjecting = false;
+	// CACHED SELECTION: Query provider once per frame, use throughout frame
+	std::vector<NIRS::Probe::ChannelID> m_CachedSelectedChannels;
 
+	bool m_IsProjecting = false;
 	float m_DeltaTime = 0.0f;
 	bool m_EditingProcessingStream = false;
 
 	int m_TimeIndex = 0;
-
-	double m_TagSliderValue = 0.0f; 
+	double m_TagSliderValue = 0.0f;
 
 	double m_PlotXMin = 0;
 	double m_PlotXMax = 0;
@@ -109,11 +123,10 @@ private:
 	double m_PlotYMax = 0;
 	bool m_NeedAxisFit = false;
 
-	std::vector<NIRS::Probe::ChannelID> m_SelectedChannels;
+	// State tracking flags
+	bool m_WavelengthVisibilityChanged = false;
 
-	// For playback mode
 	Ref<TimeController> m_TimeController;
-
-	// Subscriber to notify when projection time changes (breaks circular dependency)
 	IProjectionTimeSubscriber* projection_time_subscriber_ = nullptr;
+	ISelectedChannelsProvider& selected_channels_provider_;
 };

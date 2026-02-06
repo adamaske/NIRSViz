@@ -2,524 +2,579 @@
 #include "Systems/ChannelSelectorSystem.h"
 
 #include <imgui.h>
-#include "Renderer/ViewportManager.h"
+#include <algorithm>
+#include <cmath>
 
 #include "Core/Input.h"
-#include "Core/AssetManager.h"	
-#include "Core/AssetRegistry.h"
-
+#include "Core/AssetManager.h"
 #include "Events/MouseCodes.h"
 #include "Events/KeyCodes.h"
 #include "Events/EventBus.h"
 
-#define BACKGROUND_ID 0
-#define SOURCE_OFFSET 512
-#define DETECTOR_OFFSET 1024
-#define CHANNEL_OFFSET 2048
+// OpenGL includes (adjust based on your setup)
+#include <glad/glad.h>
 
 void ChannelSelectorSystem::OnAttach()
 {
-	FramebufferSpecification fbSpec; // Init a framebuffer to show the probe
-	// Double Color
-	fbSpec.Attachments = {
-		FramebufferTextureFormat::RGBA8,
-		FramebufferTextureFormat::RED_INTEGER,
-		FramebufferTextureFormat::Depth
-	};
-	fbSpec.Width = 800;
-	fbSpec.Height = 600;
-	m_Framebuffer = CreateRef<Framebuffer>(fbSpec);
-	
-	m_OrthoCamera = CreateRef<OrthogonalCamera>(glm::vec3{ 0, 0, -10 }, glm::vec3{ 0, 0, 1 });
-	m_OrthoCamera->SetZoomLevel(5.0f);
-	ViewportManager::RegisterViewport(viewport_type_, { m_OrthoCamera.get(), m_Framebuffer.get() });
+	// Create OpenGL texture
+	glGenTextures(1, &texture_id_);
+	glBindTexture(GL_TEXTURE_2D, texture_id_);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	m_TextureShader = CreateRef<Shader>(	AssetRegistry::Get("Texture.vert"),
-											AssetRegistry::Get("Texture.frag"));
-	m_FlatColorShader = CreateRef<Shader>(	AssetRegistry::Get("FlatColor.vert"),
-											AssetRegistry::Get("FlatColor.frag"));
 
-	m_SourceTexture		= CreateRef<Texture>(AssetRegistry::Get("source.png"));
-	m_DetectorTexture	= CreateRef<Texture>(AssetRegistry::Get("detector.png"));
-	m_ChannelTexture	= CreateRef<Texture>(AssetRegistry::Get("channel.png"));
-	m_BackgroundTexture = CreateRef<Texture>(AssetRegistry::Get("background.png"));
+	auto snirf = AssetManager::Get<SNIRF>("SNIRF");
+	channel_visuals_.clear();
+	selected_channels_.clear();
 
-	MeshFileDescription quad_fd{.filepath =		AssetRegistry::Get("plane.obj")};
-	MeshFileDescription plate_fd{.filepath =	AssetRegistry::Get("plate.obj")};
+	const auto& probe = snirf->GetProbe();
 
-	m_QuadMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(quad_fd));
-	m_PlateMesh = CreateRef<Mesh>	(MeshFactory::CreateMesh(plate_fd));
+	channels_ = probe.channels;
+	sources_ = probe.sources;
+	detectors_ = probe.detectors;
 
-	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e){
-		this->HandleSNIRFLoaded();
-	});
+	// Build channel visuals
+	for (auto& [id, channel] : channels_) {
+		auto& source = sources_[channel.source_id];
+		auto& detector = detectors_[channel.detector_id];
+
+		channel_visuals_[id] = Channel2DVisual{
+			glm::vec2(source.position_2D.x, source.position_2D.y),
+			glm::vec2(detector.position_2D.x, detector.position_2D.y),
+			id
+		};
+	}
+
+	// Auto-fit the view
+	FitViewToData();
+
+	// Select all by default
+	SelectAllChannels();
+	// Subscribe to SNIRF loaded event
 }
 
 void ChannelSelectorSystem::OnDetach()
 {
-
+	if (texture_id_) {
+		glDeleteTextures(1, &texture_id_);
+		texture_id_ = 0;
+	}
 }
 
-static bool inital_selction = false;
+static bool initial_selection = false;
 void ChannelSelectorSystem::OnUpdate(DeltaTime dt)
 {
-	if(!inital_selction) {
+	if (!initial_selection && !channels_.empty()) {
+		auto snrirf = snirf_provider_.GetLoadedSNIRF();
+
 		SelectAllChannels();
-		inital_selction = true;
+		initial_selection = true;
 	}
-	// TODO : Camera controls -> Move freely 
 
-	m_OrthoCamera->UpdateProjectionMatrix();
-	m_OrthoCamera->UpdateViewMatrix();
+	// Render the scene to our pixel buffer
+	if(dirty_)
+		RenderToBuffer();
 
-	DrawBackground();
-	DrawSourcesAndDetectors();
-	DrawChannels();
+	// Upload to GPU texture
+	UpdateTexture();
 }
 
 void ChannelSelectorSystem::OnGUIRender()
 {
-	
 	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
-	
-	ImGui::Begin("Channel Selector");
+	ImGui::Begin("Channel Selector 2D");
 
+	// Settings panel
 	if (ImGui::CollapsingHeader("Settings")) {
+		ImGui::SliderFloat("World Scale", &config_.settings.world_scale, 10.0f, 200.0f);
+		ImGui::SliderFloat("Source Radius", &config_.settings.source_radius, 2.0f, 20.0f);
+		ImGui::SliderFloat("Detector Radius", &config_.settings.detector_radius, 2.0f, 20.0f);
+		ImGui::SliderFloat("Channel Width", &config_.settings.channel_width, 1.0f, 10.0f);
+		ImGui::SliderFloat("Zoom", &config_.zoom_level, 0.1f, 5.0f);
 
-		ImGui::SliderFloat("Grid Scale", &m_GridScale, 0.01f, 10.0f);
-		ImGui::SliderFloat("Plate Size", &m_PlateSize, 0.1f, 10.0f);
-		ImGui::SliderFloat("Channel Width", &m_ChannelWidth, 0.01f, 1.0f);
-		ImGui::SeparatorText("Camera Settings");
-		ImGui::Text("Use Mouse Scroll to Zoom In/Out");
-		ImGui::Text("Use Right Click to Select Channel");
-		m_OrthoCamera->OnImGuiRender(false);
+		if (ImGui::Button("Reset View")) {
+			FitViewToData();
+		}
+
+		ImGui::SeparatorText("Controls");
+		ImGui::Text("Mouse Wheel: Zoom");
+		ImGui::Text("Middle Mouse: Pan");
+		ImGui::Text("Left Click: Select Channel");
+		ImGui::Text("Ctrl + Click: Multi-select");
 	}
 
-	if (ImGui::Button("Select All")) SelectAllChannels(); 
+	// Selection buttons
+	if (ImGui::Button("Select All")) SelectAllChannels();
 	ImGui::SameLine();
-	if (ImGui::Button("Select None")) ClearSelection();
+	if (ImGui::Button("Clear Selection")) ClearSelection();
 
+	ImGui::Text("Selected Channels: %zu", selected_channels_.size());
 
-	auto viewportMinRegion = ImGui::GetWindowContentRegionMin();
-	auto viewportMaxRegion = ImGui::GetWindowContentRegionMax();
-	auto viewportOffset = ImGui::GetWindowPos();
-	m_ViewportBounds[0] = { viewportMinRegion.x + viewportOffset.x, viewportMinRegion.y + viewportOffset.y };
-	m_ViewportBounds[1] = { viewportMaxRegion.x + viewportOffset.x, viewportMaxRegion.y + viewportOffset.y };
+	// Get viewport info
+	ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
+	viewport_size_ = { viewport_panel_size.x, viewport_panel_size.y };
 
-	m_ViewportFocused = ImGui::IsWindowFocused();
-	m_ViewportHovered = ImGui::IsWindowHovered();
-
-	ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-	m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
-
+	// Resize buffer if needed
+	if (image_buffer_.Width != (uint32_t)viewport_panel_size.x ||
+		image_buffer_.Height != (uint32_t)viewport_panel_size.y)
 	{
-		auto [mx, my] = ImGui::GetMousePos();
-		mx -= m_ViewportBounds[0].x;
-		my -= m_ViewportBounds[0].y;
-		glm::vec2 viewportSize = m_ViewportBounds[1] - m_ViewportBounds[0];
-		my = viewportSize.y - my;
-		m_MousePosition = { mx, my };
-	}
-
-	if (m_Framebuffer->GetSpecification().Width != (uint32_t)viewportPanelSize.x ||
-		m_Framebuffer->GetSpecification().Height != (uint32_t)viewportPanelSize.y)
-	{
-		if (viewportPanelSize.x > 0 && viewportPanelSize.y > 0)
-		{
-			m_Framebuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+		if (viewport_panel_size.x > 0 && viewport_panel_size.y > 0) {
+			image_buffer_.Resize((uint32_t)viewport_panel_size.x, (uint32_t)viewport_panel_size.y);
 		}
 	}
 
-	ViewportManager::GetViewport(viewport_type_).Camera->SetViewportSize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+	// Get mouse position
+	auto window_pos = ImGui::GetCursorScreenPos();
+	auto [mx, my] = ImGui::GetMousePos();
+	mouse_position_ = { mx - window_pos.x, my - window_pos.y };
 
-	uint32_t texture_id = m_Framebuffer->GetColorAttachmentRendererID();
-	ImGui::Image((void*)(intptr_t)texture_id, viewportPanelSize, ImVec2(0, 1), ImVec2(1, 0));
+	viewport_focused_ = ImGui::IsWindowFocused();
+	viewport_hovered_ = ImGui::IsWindowHovered();
+
+	// Display the texture
+	if (texture_id_) {
+		ImGui::Image(
+			(void*)(intptr_t)texture_id_,
+			viewport_panel_size,
+			ImVec2(0, 1), // UV coordinates flipped for OpenGL
+			ImVec2(1, 0)
+		);
+	}
 
 	ImGui::End();
-
 }
 
 void ChannelSelectorSystem::OnEvent(Event& event)
 {
 	EventDispatcher dispatcher(event);
+
+	// TODO : We only really need to update the rendering when these events occur, so we could set a dirty flag and only re-render on the next update.
 	dispatcher.Dispatch<MouseScrolledEvent>(BIND_EVENT_FN(ChannelSelectorSystem::OnMouseScrolled));
 	dispatcher.Dispatch<MouseButtonPressedEvent>(BIND_EVENT_FN(ChannelSelectorSystem::OnMouseButtonPressed));
 }
 
 void ChannelSelectorSystem::RenderMenuBar()
 {
+	// Optional: Add menu bar items
 }
 
 bool ChannelSelectorSystem::OnMouseScrolled(const MouseScrolledEvent& event)
 {
-	if (!m_ViewportHovered) return false;
-	auto zoomOffset = event.GetYOffset();
-	auto newZoom = m_OrthoCamera->GetZoomLevel() + (zoomOffset * 0.03f);
-	m_OrthoCamera->SetZoomLevel(newZoom );
+	if (!viewport_hovered_) return false;
+
+	float zoom_factor = 1.0f + (event.GetYOffset() * 0.1f);
+	config_.zoom_level *= zoom_factor;
+	config_.zoom_level = std::clamp(config_.zoom_level, 0.1f, 10.0f);
+
+	dirty_ = true;
+
+	return true;
+}
+
+bool ChannelSelectorSystem::OnMouseButtonPressed(const MouseButtonPressedEvent& event) {
+	if (!viewport_hovered_) return false;
+
+	// Handle middle mouse button for panning
+	if (event.GetMouseButton() == Mouse::ButtonMiddle) {
+		is_panning_ = true;
+		last_mouse_position_ = mouse_position_;
+		return true;
+	}
+
+	// Handle left click for selection
+	if (event.GetMouseButton() == Mouse::ButtonLeft) {
+		glm::vec2 world_pos = ScreenToWorld(mouse_position_);
+
+		// Try to select a channel
+		auto channel_id = GetChannelAtPosition(world_pos);
+		if (channel_id != -1) {
+			bool add_to_selection = Input::IsKeyPressed(Key::LeftControl) ||
+				Input::IsKeyPressed(Key::RightControl);
+
+			// Check if already selected
+			auto it = std::find(selected_channels_.begin(), selected_channels_.end(), channel_id);
+			if (it != selected_channels_.end()) {
+				// Already selected - toggle off if Ctrl is held
+				if (add_to_selection) {
+					selected_channels_.erase(it);
+				}
+			}
+			else {
+				// Not selected - add it
+				if (!add_to_selection) {
+					selected_channels_.clear();
+				}
+				selected_channels_.push_back(channel_id);
+			}
+
+			dirty_ = true;
+			return true;
+		}
+
+		// Could also check sources/detectors here if needed
+	}
+
 	return false;
 }
 
-bool ChannelSelectorSystem::OnMouseButtonPressed(const MouseButtonPressedEvent& event)
-{
-	if (!m_ViewportHovered) return false;
-	
-	m_Framebuffer->Bind();
-
-	auto mousePos = Input::GetMousePosition();
-	int id = m_Framebuffer->ReadPixel(1, (int)m_MousePosition.x, (int)(m_MousePosition.y));
-	m_Framebuffer->Unbind();
-
-	bool add = Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl);
-	if (id == 0) {
-		// Pressed background
-
+void ChannelSelectorSystem::SelectAllChannels() {
+	selected_channels_.clear();
+	for (auto& [id, channel] : channels_) {
+		selected_channels_.push_back(id);
 	}
-	else if (id - CHANNEL_OFFSET >= 0) {
-		auto channelID = id - CHANNEL_OFFSET;
-		NVIZ_INFO("Pressed Channel ID: {}", channelID);
-		
-		// Is this channel already selected?
-		for (size_t i = 0; i < m_SelectedChannels.size(); i++)
-		{
-			if(id == m_SelectedChannels[i]) {
-				return true;
-			}
+}
+
+void ChannelSelectorSystem::ClearSelection() {
+	selected_channels_.clear();
+}
+
+// ============================================================================
+// RENDERING IMPLEMENTATION
+// ============================================================================
+
+void ChannelSelectorSystem::RenderToBuffer()
+{
+	// Clear buffer
+	image_buffer_.Clear(config_.settings.background_color);
+
+	// Draw in order (back to front)
+	DrawGrid();
+
+	DrawChannels();
+	DrawSources();
+	DrawDetectors();
+}
+
+void ChannelSelectorSystem::UpdateTexture()
+{
+	glBindTexture(GL_TEXTURE_2D, texture_id_);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_RGBA8,
+		image_buffer_.Width,
+		image_buffer_.Height,
+		0,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		image_buffer_.Data.data()
+	);
+}
+
+void ChannelSelectorSystem::DrawGrid()
+{
+	// Optional: Draw a subtle grid
+	float grid_spacing = config_.settings.world_scale * config_.zoom_level;
+
+	// Draw vertical lines
+	for (int x = 0; x < (int)image_buffer_.Width; x += (int)grid_spacing) {
+		for (int y = 0; y < (int)image_buffer_.Height; y++) {
+			image_buffer_.SetPixel(x, y, config_.settings.grid_color);
 		}
+	}
 
-		if (!add) {
-			m_SelectedChannels.clear();
+	// Draw horizontal lines
+	for (int y = 0; y < (int)image_buffer_.Height; y += (int)grid_spacing) {
+		for (int x = 0; x < (int)image_buffer_.Width; x++) {
+			image_buffer_.SetPixel(x, y, config_.settings.grid_color);
 		}
-
-		m_SelectedChannels.push_back(channelID);
-
-		// Create a set 
-
-		EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
-		return true;
-		// Pressed Channel
-	}else if (id - DETECTOR_OFFSET >= 0) {
-		auto detectorID = id - DETECTOR_OFFSET;
-		NVIZ_INFO("Pressed Detector ID: {}", detectorID);
-		// Pressed Detector
-
 	}
-	else if (id - SOURCE_OFFSET >= 0) {
-		auto sourceID = id - SOURCE_OFFSET;
-		NVIZ_INFO("Pressed Source ID: {}", sourceID);
-		// Pressed Source
-	}
-
-
-	return true; // Capture the event
-}
-
-void ChannelSelectorSystem::HandleSNIRFLoaded()
-{
-	auto snirf = AssetManager::Get<SNIRF>("SNIRF");
-	m_ChannelVisuals.clear(); 
-	m_SelectedChannels.clear();
-
-	const auto& probe = snirf->GetProbe();
-
-	auto& channels = probe.channels;
-	m_Channels = channels;
-
-	sources_ = probe.sources;
-	detectors_ = probe.detectors;
-
-	
-	for (auto& [ID, channel] : channels) {
-		auto source = sources_[channel.source_id];
-		auto detector = detectors_[channel.detector_id ];
-
-		auto startPos = source.position_2D;
-		auto endPos = detector.position_2D;
-
-		m_ChannelVisuals[ID] = Channel2DVisual{
-			glm::vec3(-startPos.x, startPos.y, 0.0f),
-			glm::vec3(-endPos.x, endPos.y, 0.0f),
-			ID
-		};
-
-		m_SelectedChannels.push_back(ID); // Select all channels by default
-	}
-
-	GenerateBackgroundRenderCommands();
-	GenerateSourceRenderCommands();
-	GenerateDetectorRenderCommands();
-	GenerateChannelRenderCommands();
-
-}
-
-void ChannelSelectorSystem::SelectAllChannels()
-{
-	m_SelectedChannels.clear();
-	for (auto& [ID, channel] : m_Channels) {
-		m_SelectedChannels.push_back(ID);
-	}
-	EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
-}
-void ChannelSelectorSystem::ClearSelection()
-{
-	m_SelectedChannels.clear();
-	EventBus::Instance().Publish<OnChannelsSelected>(OnChannelsSelected{ m_SelectedChannels });
-}
-
-void ChannelSelectorSystem::GenerateSourceRenderCommands()
-{
-	m_SourceRenderCommands.clear();
-
-	RenderCommand cmd;
-	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.target_viewport = viewport_type_;
-	cmd.VAOPtr = m_PlateMesh->buffers.vao.get();
-	cmd.Mode = DRAW_ELEMENTS;
-
-	TextureBinding texBind;
-	texBind.Slot = 0;
-	texBind.TexturePtr = m_SourceTexture.get();
-	cmd.TextureBindings = { texBind };
-
-	UniformData texUnifrom;
-	texUnifrom.Type = UniformDataType::SAMPLER2D;
-	texUnifrom.Name = "u_Texture";
-	texUnifrom.Data.i1 = 0;
-
-	UniformData id;
-	id.Name = "u_ID";
-	id.Type = UniformDataType::INT1;
-
-	for (auto& [ID, source] : sources_) {
-
-		auto pos = glm::vec3(-source.position_2D.x, source.position_2D.y, 0.0f) * (m_GridScale * 0.1f);
-		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
-
-		id.Data.i1 = source.id + SOURCE_OFFSET;
-		cmd.UniformCommands = { texUnifrom, id };
-
-		m_SourceRenderCommands.push_back(cmd);
-	}
-}
-
-void ChannelSelectorSystem::GenerateDetectorRenderCommands()
-{
-	m_DetectorRenderCommands.clear();
-
-	RenderCommand cmd;
-	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.target_viewport = viewport_type_;
-	cmd.VAOPtr = m_PlateMesh->buffers.vao.get();
-	cmd.Mode = DRAW_ELEMENTS;
-
-	TextureBinding texBind;
-	texBind.Slot = 0;
-	texBind.TexturePtr = m_DetectorTexture.get();
-	cmd.TextureBindings = { texBind };
-
-	UniformData texUnifrom;
-	texUnifrom.Type = UniformDataType::SAMPLER2D;
-	texUnifrom.Name = "u_Texture";
-	texUnifrom.Data.i1 = 0;
-
-	UniformData id;
-	id.Name = "u_ID";
-	id.Type = UniformDataType::INT1;
-
-	for (auto& [ID, detector] : detectors_) {
-
-		auto pos = glm::vec3(-detector.position_2D.x, detector.position_2D.y, 0.0f) * (m_GridScale * 0.1f);
-		cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), pos), glm::vec3(m_PlateSize));
-
-		id.Data.i1 = detector.id + DETECTOR_OFFSET;
-		cmd.UniformCommands = { texUnifrom, id };
-
-		m_DetectorRenderCommands.push_back(cmd);
-	}
-}
-
-void ChannelSelectorSystem::GenerateChannelRenderCommands()
-{
-	m_ChannelRenderCommands.clear();
-
-	RenderCommand cmd;
-	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.target_viewport = viewport_type_;
-	cmd.VAOPtr = m_QuadMesh->buffers.vao.get();
-	cmd.Mode = DRAW_ELEMENTS;
-
-	TextureBinding texBind;
-	texBind.Slot = 2;
-	texBind.TexturePtr = m_ChannelTexture.get();
-	cmd.TextureBindings = { texBind };
-
-	UniformData texUnifrom;
-	texUnifrom.Type = UniformDataType::SAMPLER2D;
-	texUnifrom.Name = "u_Texture";
-	texUnifrom.Data.i1 = 2;
-
-	UniformData id;
-	id.Name = "u_ID";
-	id.Type = UniformDataType::INT1;
-
-	for (auto& [ID, channel] : m_Channels) {
-		auto visual = m_ChannelVisuals[ID];
-
-		glm::vec3 startPos = visual.Start * (m_GridScale * 0.1f);
-		glm::vec3 endPos = visual.End * (m_GridScale * 0.1f);
-		glm::vec3 centerPos = (startPos + endPos) / 2.0f;
-		glm::vec3 dir = endPos - startPos;
-		float length = glm::length(dir);
-		float angle = atan2(dir.y, dir.x);
-
-		cmd.Transform = glm::translate(glm::mat4(1.0f), centerPos) *
-			glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 0, 1)) *
-			glm::scale(glm::mat4(1.0f), glm::vec3(length, m_ChannelWidth, 1.0f));
-
-
-		id.Data.i1 = ID + CHANNEL_OFFSET;
-		cmd.UniformCommands = { texUnifrom, id };
-
-		m_ChannelRenderCommands.push_back(cmd);
-	}
-}
-
-void ChannelSelectorSystem::GenerateBackgroundRenderCommands()
-{
-	m_BackgroundRenderCommands.clear();
-
-	RenderCommand cmd;
-	cmd.ShaderPtr = m_TextureShader.get();
-	cmd.target_viewport = viewport_type_;
-	cmd.Transform = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)), glm::vec3(100));
-	cmd.VAOPtr = m_QuadMesh->buffers.vao.get();
-	cmd.Mode = DRAW_ELEMENTS;
-
-	TextureBinding texBind;
-	texBind.Slot = 3;
-	texBind.TexturePtr = m_BackgroundTexture.get();
-	cmd.TextureBindings = { texBind };
-
-	UniformData texUnifrom;
-	texUnifrom.Type = UniformDataType::SAMPLER2D;
-	texUnifrom.Name = "u_Texture";
-	texUnifrom.Data.i1 = 3;
-
-	UniformData id;
-	id.Name = "u_ID";
-	id.Type = UniformDataType::INT1;
-	id.Data.i1 = BACKGROUND_ID;
-
-	cmd.UniformCommands = { texUnifrom, id };
-
-	m_BackgroundRenderCommands.push_back(cmd);
-}
-
-void ChannelSelectorSystem::DrawBackground()
-{
-	for (auto& cmd : m_BackgroundRenderCommands) {
-		Renderer::Submit(cmd);
-	}
-}
-
-void ChannelSelectorSystem::DrawSourcesAndDetectors()
-{
-	for (auto& cmd : m_SourceRenderCommands)
-	{
-		Renderer::Submit(cmd);
-	}
-	for (auto& cmd : m_DetectorRenderCommands)
-	{
-		Renderer::Submit(cmd);
-	}
-
-	// We want to find the center position of all sources and detectors
-	// And place the ortho camera there
-	glm::vec3 centerSum(0.0f);
-
-	for (auto& [ID, source] : sources_) {
-		centerSum += glm::vec3(source.position_2D.x, source.position_2D.y, 0);
-	}
-	glm::vec3 centerPos = centerSum / (float)sources_.size();
-	centerPos = glm::vec3(-centerPos.x, centerPos.y, 0.0f) * (m_GridScale * 0.1f);
-
-	m_OrthoCamera->SetPosition(glm::vec3(centerPos.x, centerPos.y, -10.0f));
-
-	// --- NEW/UPDATED LOGIC STARTS HERE ---
-	float maxWorldX = 0.0f; // Max absolute distance in X
-	float maxWorldY = 0.0f; // Max absolute distance in Y
-
-	// 1. Iterate through sources (and detectors) to find the maximum extent from the center
-	auto calculateMaxExtent = [&](const glm::vec3& point) {
-		// Note: If you are already scaling the positions, ensure 'centerPos' is 
-		// also scaled appropriately relative to the original source.Position.
-
-		// For simplicity, let's assume 'point' is in the same coordinate system as 'centerPos'.
-		float x_dist = std::abs(point.x - centerPos.x);
-		float y_dist = std::abs(point.y - centerPos.y);
-
-		if (x_dist > maxWorldX)
-			maxWorldX = x_dist;
-		if (y_dist > maxWorldY)
-			maxWorldY = y_dist;
-		};
-
-	// Apply scaling to source positions if you applied a scale to centerPos
-	float positionScale = m_GridScale * 0.1f;
-
-	for (auto& [ID, source] : sources_) {
-		// Assuming source.Position is the *original* position
-		glm::vec3 scaledPos = glm::vec3(-source.position_2D.x * positionScale,
-			source.position_2D.y * positionScale,
-			0.0f);
-		calculateMaxExtent(scaledPos);
-	}
-
-	// Don't forget the detectors!
-	// for (auto& [ID, detector] : detectors_) {
-	//     glm::vec3 scaledPos = glm::vec3(-detector.Position.x * positionScale, 
-	//                                      detector.Position.y * positionScale, 
-	//                                      0.0f);
-	//     calculateMaxExtent(scaledPos);
-	// }
-
-	// 2. Add a small padding for margin around the elements
-	const float paddingFactor = 1.1f; // Add 10% padding
-	maxWorldX *= paddingFactor;
-	maxWorldY *= paddingFactor;
-
-	// 3. Calculate the required Zoom Level
-	// The Ortho camera projection is defined by:
-	// Left = -m_AspectRatio * m_ZoomLevel
-	// Right = m_AspectRatio * m_ZoomLevel
-	// Bottom = -m_ZoomLevel
-	// Top = m_ZoomLevel
-
-	// This means the total visible width is 2 * m_AspectRatio * m_ZoomLevel,
-	// and the total visible height is 2 * m_ZoomLevel.
-
-	// To fit the maximum X distance (maxWorldX) from the center, we need:
-	// m_AspectRatio * m_ZoomLevel >= maxWorldX
-	// m_ZoomLevel >= maxWorldX / m_AspectRatio
-
-	// To fit the maximum Y distance (maxWorldY) from the center, we need:
-	// m_ZoomLevel >= maxWorldY
-
-	// We must choose the larger (more zoomed out) of the two required Zoom Levels.
-	float requiredZoomX = maxWorldX / m_OrthoCamera->GetAspectRatio(); // You need to be able to access the aspect ratio
-	float requiredZoomY = maxWorldY;
-
-	float newZoomLevel = std::max(requiredZoomX, requiredZoomY);
-
-	// Optional: Set a minimum zoom level
-	// if (newZoomLevel < 1.0f) newZoomLevel = 1.0f; 
-
-	m_OrthoCamera->SetZoomLevel(newZoomLevel);
 }
 
 void ChannelSelectorSystem::DrawChannels()
 {
-	for (auto& cmd : m_ChannelRenderCommands)
-	{
-		Renderer::Submit(cmd);
+	for (auto& [id, visual] : channel_visuals_) {
+		// Check if selected
+		bool is_selected = std::find(selected_channels_.begin(),
+			selected_channels_.end(),
+			id) != selected_channels_.end();
+
+		uint32_t color = is_selected ? config_.settings.selected_channel_color : config_.settings.channel_color;
+
+		glm::vec2 screen_start = WorldToScreen(visual.Start);
+		glm::vec2 screen_end = WorldToScreen(visual.End);
+
+		DrawThickLine(screen_start, screen_end, color, config_.settings.channel_width);
 	}
+}
+
+void ChannelSelectorSystem::DrawSources()
+{
+	for (auto& [id, source] : sources_) {
+		glm::vec2 world_pos(source.position_2D.x, source.position_2D.y);
+		glm::vec2 screen_pos = WorldToScreen(world_pos);
+
+		DrawCircle(screen_pos, config_.settings.source_radius, config_.settings.source_color, true);
+
+		// Optional: Draw border
+		DrawCircle(screen_pos, config_.settings.source_radius + 1, 0xFF000000, false);
+	}
+}
+
+void ChannelSelectorSystem::DrawDetectors()
+{
+	for (auto& [id, detector] : detectors_) {
+		glm::vec2 world_pos(detector.position_2D.x, detector.position_2D.y);
+		glm::vec2 screen_pos = WorldToScreen(world_pos);
+
+		DrawCircle(screen_pos, config_.settings.detector_radius, config_.settings.detector_color, true);
+
+		// Optional: Draw border
+		DrawCircle(screen_pos, config_.settings.detector_radius + 1, 0xFF000000, false);
+	}
+}
+
+// ============================================================================
+// DRAWING PRIMITIVES
+// ============================================================================
+
+void ChannelSelectorSystem::DrawLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width)
+{
+	// Bresenham's line algorithm with thickness
+	int x0 = (int)start.x;
+	int y0 = (int)start.y;
+	int x1 = (int)end.x;
+	int y1 = (int)end.y;
+
+	int dx = abs(x1 - x0);
+	int dy = abs(y1 - y0);
+	int sx = x0 < x1 ? 1 : -1;
+	int sy = y0 < y1 ? 1 : -1;
+	int err = dx - dy;
+
+	while (true) {
+		image_buffer_.SetPixel(x0, y0, color);
+
+		if (x0 == x1 && y0 == y1) break;
+
+		int e2 = 2 * err;
+		if (e2 > -dy) {
+			err -= dy;
+			x0 += sx;
+		}
+		if (e2 < dx) {
+			err += dx;
+			y0 += sy;
+		}
+	}
+}
+
+void ChannelSelectorSystem::DrawThickLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width)
+{
+	// Draw a thick line by drawing multiple offset lines
+	glm::vec2 dir = end - start;
+	float length = glm::length(dir);
+	if (length < 0.001f) return;
+
+	dir /= length;
+	glm::vec2 perpendicular(-dir.y, dir.x);
+
+	int half_width = (int)(width / 2.0f);
+	for (int i = -half_width; i <= half_width; i++) {
+		glm::vec2 offset = perpendicular * (float)i;
+		DrawLine(start + offset, end + offset, color, 1.0f);
+	}
+}
+
+void ChannelSelectorSystem::DrawCircle(glm::vec2 center, float radius, uint32_t color, bool filled)
+{
+	int cx = (int)center.x;
+	int cy = (int)center.y;
+	int r = (int)radius;
+
+	if (filled) {
+		// Filled circle using midpoint algorithm
+		for (int y = -r; y <= r; y++) {
+			for (int x = -r; x <= r; x++) {
+				if (x * x + y * y <= r * r) {
+					image_buffer_.SetPixel(cx + x, cy + y, color);
+				}
+			}
+		}
+	}
+	else {
+		// Circle outline using midpoint algorithm
+		int x = r;
+		int y = 0;
+		int err = 0;
+
+		while (x >= y) {
+			image_buffer_.SetPixel(cx + x, cy + y, color);
+			image_buffer_.SetPixel(cx + y, cy + x, color);
+			image_buffer_.SetPixel(cx - y, cy + x, color);
+			image_buffer_.SetPixel(cx - x, cy + y, color);
+			image_buffer_.SetPixel(cx - x, cy - y, color);
+			image_buffer_.SetPixel(cx - y, cy - x, color);
+			image_buffer_.SetPixel(cx + y, cy - x, color);
+			image_buffer_.SetPixel(cx + x, cy - y, color);
+
+			if (err <= 0) {
+				y += 1;
+				err += 2 * y + 1;
+			}
+			if (err > 0) {
+				x -= 1;
+				err -= 2 * x + 1;
+			}
+		}
+	}
+}
+
+// ============================================================================
+// COORDINATE TRANSFORMS
+// ============================================================================
+glm::vec2 ChannelSelectorSystem::WorldToScreen(const glm::vec2& worldPos) const
+{
+	// Apply zoom and pan
+	glm::vec2 viewPos = (worldPos - config_.view_center) * config_.settings.world_scale * config_.zoom_level;
+
+	// Center in viewport
+	glm::vec2 screenPos = viewPos + glm::vec2(image_buffer_.Width / 2.0f, image_buffer_.Height / 2.0f);
+
+	// NO Y-FLIP HERE - ImGui UV coordinates already handle it
+	// The UV coords (0,1) to (1,0) in ImGui::Image flip Y for us
+
+	return screenPos + config_.pan_offset;
+}
+
+glm::vec2 ChannelSelectorSystem::ScreenToWorld(const glm::vec2& screenPos) const
+{
+	// NO Y-FLIP HERE - mouse position is already in screen space matching the image
+
+	// Remove pan offset
+	glm::vec2 adjustedScreen = screenPos - config_.pan_offset;
+
+	// Remove viewport centering
+	glm::vec2 viewPos = adjustedScreen - glm::vec2(image_buffer_.Width / 2.0f, image_buffer_.Height / 2.0f);
+
+	// Remove zoom and scale
+	glm::vec2 worldPos = (viewPos / (config_.settings.world_scale * config_.zoom_level)) + config_.view_center;
+
+	return worldPos;
+}
+
+// ============================================================================
+// HIT TESTING
+// ============================================================================
+
+NIRS::Probe::ChannelID ChannelSelectorSystem::GetChannelAtPosition(const glm::vec2& world_pos)
+{
+	float threshold = 0.5f / config_.zoom_level; // Adjust hit detection based on zoom
+
+	for (auto& [id, visual] : channel_visuals_) {
+		// Calculate distance from point to line segment
+		glm::vec2 line = visual.End - visual.Start;
+		float line_length = glm::length(line);
+		if (line_length < 0.001f) continue;
+
+		glm::vec2 line_dir = line / line_length;
+		glm::vec2 point_vec = world_pos - visual.Start;
+
+		// Project point onto line
+		float t = glm::dot(point_vec, line_dir);
+		t = std::clamp(t, 0.0f, line_length);
+
+		glm::vec2 closest_point = visual.Start + line_dir * t;
+		float distance = glm::length(world_pos - closest_point);
+
+		if (distance < threshold) {
+			return id;
+		}
+	}
+
+	return -1; // No channel found
+}
+
+NIRS::Probe::OptodeID ChannelSelectorSystem::GetSourceAtPosition(const glm::vec2& world_pos)
+{
+	float threshold = (config_.settings.source_radius / config_.settings.world_scale) / config_.zoom_level;
+
+	for (auto& [id, source] : sources_) {
+		glm::vec2 source_pos(source.position_2D.x, source.position_2D.y);
+		float distance = glm::length(world_pos - source_pos);
+
+		if (distance < threshold) {
+			return id;
+		}
+	}
+
+	return -1;
+}
+
+NIRS::Probe::OptodeID ChannelSelectorSystem::GetDetectorAtPosition(const glm::vec2& world_pos)
+{
+	float threshold = (config_.settings.detector_radius / config_.settings.world_scale) / config_.zoom_level;
+
+	for (auto& [id, detector] : detectors_) {
+		glm::vec2 detector_pos(detector.position_2D.x, detector.position_2D.y);
+		float distance = glm::length(world_pos - detector_pos);
+
+		if (distance < threshold) {
+			return id;
+		}
+	}
+
+	return -1;
+}
+
+// ============================================================================
+// VIEW MANAGEMENT
+// ============================================================================
+
+void ChannelSelectorSystem::FitViewToData()
+{
+	if (sources_.empty() && detectors_.empty()) return;
+
+	glm::vec2 min, max;
+	CalculateWorldBounds(min, max);
+
+	// Calculate center
+	config_.view_center = (min + max) * 0.5f;
+
+	// Calculate required zoom to fit
+	glm::vec2 size = max - min;
+	float viewport_aspect = viewport_size_.x / viewport_size_.y;
+	float data_aspect = size.x / size.y;
+
+	if (data_aspect > viewport_aspect) {
+		// Width-limited
+		config_.zoom_level = viewport_size_.x / (size.x * config_.settings.world_scale * 1.2f);
+	}
+	else {
+		// Height-limited
+		config_.zoom_level = viewport_size_.y / (size.y * config_.settings.world_scale * 1.2f);
+	}
+
+	config_.zoom_level = std::clamp(config_.zoom_level, 0.1f, 10.0f);
+	config_.pan_offset = { 0.0f, 0.0f };
+}
+
+void ChannelSelectorSystem::CalculateWorldBounds(glm::vec2& min, glm::vec2& max)
+{
+	bool first = true;
+
+	for (auto& [id, source] : sources_) {
+		glm::vec2 pos(source.position_2D.x, source.position_2D.y);
+		if (first) {
+			min = max = pos;
+			first = false;
+		}
+		else {
+			min = glm::min(min, pos);
+			max = glm::max(max, pos);
+		}
+	}
+
+	for (auto& [id, detector] : detectors_) {
+		glm::vec2 pos(detector.position_2D.x, detector.position_2D.y);
+		min = glm::min(min, pos);
+		max = glm::max(max, pos);
+	}
+
+	// Add padding
+	glm::vec2 padding = (max - min) * 0.1f;
+	min -= padding;
+	max += padding;
 }

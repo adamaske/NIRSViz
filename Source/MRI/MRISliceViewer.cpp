@@ -12,6 +12,7 @@ namespace NVMRI {
 		ImGui::Text("MRI Slice Viewer - (Functionality to be implemented)");
 	
 		
+		// TODO : Hvordan implementerer
 		
 		if (standalone) ImGui::End();
 	}

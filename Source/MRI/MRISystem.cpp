@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "Systems/MRISystem.h"
+#include "MRI/MRISystem.h"
 
 #include "Core/AssetRegistry.h"
 
@@ -36,6 +36,7 @@ void MRISystem::OnAttach()
 
 	// We need a cortex mesh
 	cortex_ = CreateScope<NIRS::Cortex>(AssetRegistry::Get("cortex_model.obj"));
+
 	SetupCortexRendering();
 }
 
@@ -54,11 +55,11 @@ void MRISystem::OnGUIRender()
 {
 	mri_viewport_->RenderViewportWindow();
 
-	// Render 2D slice viewer window
-
-
 	ImGui::Begin("MRI Settings");
 
+	
+	ImGui::SeparatorText("MRI Metadata");
+	RenderMRIMetadataPanel();
 
 	ImGui::SeparatorText("Cortex Anatomy");
 	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);
@@ -66,8 +67,6 @@ void MRISystem::OnGUIRender()
 	ImGui::SeparatorText("Camera Settings");
 	mri_viewport_->RenderCameraSettings(false);
 
-	ImGui::SeparatorText("MRI Metadata");
-	RenderMRIMetadataPanel();
 	ImGui::End();
 }
 
@@ -194,5 +193,10 @@ void MRISystem::RenderMRIMetadataPanel() {
 	ImGui::Text("Total Voxels:");
 	ImGui::SameLine();
 	ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "%zu", img.GetVoxelCount());
+}
+
+void MRISystem::RenderSliceViewerPanel() {
+
+	
 }
 

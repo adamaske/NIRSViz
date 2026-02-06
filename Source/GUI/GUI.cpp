@@ -202,14 +202,18 @@ void GUI::RenderWavelengthSelectorSingular(NIRS::Wavelength& out_type)
 	}
 }
 
-void GUI::RenderWavelengthSelectorMultiple(std::unordered_map<NIRS::Wavelength, bool>& out_map)
+bool GUI::RenderWavelengthSelectorMultiple(std::unordered_map<NIRS::Wavelength, bool>& out_map)
 {
+	bool changed = false;
+
 	// Checkboxes - multiple can be active at once
-	ImGui::Checkbox("HbO", &out_map[NIRS::Wavelength::HBO]);
+	if (ImGui::Checkbox("HbO", &out_map[NIRS::Wavelength::HBO])) changed = true;
 	ImGui::SameLine();
 
-	ImGui::Checkbox("HbR", &out_map[NIRS::Wavelength::HBR]);
+	if (ImGui::Checkbox("HbR", &out_map[NIRS::Wavelength::HBR])) changed = true;
 	ImGui::SameLine();
 
-	ImGui::Checkbox("HbT", &out_map[NIRS::Wavelength::HBT]);
+	if (ImGui::Checkbox("HbT", &out_map[NIRS::Wavelength::HBT])) changed = true;
+
+	return changed;
 }

@@ -15,6 +15,9 @@
 
 void FileSystem::OnAttach()
 {
+	loaded_snirf_ = CreateRef<SNIRF>(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
+	AssetManager::Register<SNIRF>("SNIRF", loaded_snirf_);
+
 	snirf_loader_panel_ = new SNIRFFileLoaderPanel();
 }
 
@@ -41,7 +44,6 @@ void FileSystem::RenderMenuBar()
 
 void FileSystem::PostInit() {
 
-	AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf")));
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
@@ -63,7 +65,14 @@ void FileSystem::UserLoadSNIRF()
 	std::string projectPath = std::string(filePath);
 	if (!projectPath.empty()) {
 
-		AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(std::filesystem::path(projectPath)));
+		loaded_snirf_ = CreateRef<SNIRF>(std::filesystem::path(projectPath));
+
+		AssetManager::Register<SNIRF>("SNIRF", loaded_snirf_);
 		EventBus::Instance().Publish<OnSNIRFLoaded>({});
 	}
+}
+
+const Ref<SNIRF>& FileSystem::GetLoadedSNIRF() {
+	// TODO: insert return statement here
+	return AssetManager::Get<SNIRF>("SNIRF");
 }
