@@ -164,6 +164,10 @@ find_package(ITK REQUIRED COMPONENTS
     ITKLabelMap
     ITKWatersheds
     ITKRegionGrowing
+    ITKStatistics              
+    ITKImageIntensity          
+    ITKBiasCorrection          
+    ITKImageLabel              
 )
 include(${ITK_USE_FILE})
 

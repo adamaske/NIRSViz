@@ -236,6 +236,8 @@ void AnatomySystem::SetDrawMode(DrawMode mode)
 
 		case NONE:
 			// Disable all rendering
+			cortex_->SetVisible(false);
+			head_->SetVisible(false);
 			break;
 		case ANATOMY_NO_COORDINATES:
 

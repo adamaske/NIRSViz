@@ -275,10 +275,6 @@ void PlottingSystem::UpdateSelectedChannelsCache()
 
 	// Check if selection has changed
 	if (HasSelectionChanged(currentSelection)) {
-		NVIZ_INFO("Selection changed: {} -> {} channels",
-			m_CachedSelectedChannels.size(),
-			currentSelection.size());
-
 		// Update cache
 		m_CachedSelectedChannels = currentSelection;
 
@@ -315,8 +311,6 @@ void PlottingSystem::RecalculatePlotLimits()
 	if (m_CachedSelectedChannels.empty() || !m_SNIRF) {
 		return;
 	}
-
-	NVIZ_INFO("Recalculating plot limits for {} channels", m_CachedSelectedChannels.size());
 
 	// Get necessary data
 	auto time = m_SNIRF->GetTime();
@@ -385,8 +379,6 @@ void PlottingSystem::HandleSNIRFLoaded()
 
 	// Clear cached selection since we have new data
 	m_CachedSelectedChannels.clear();
-
-	NVIZ_INFO("PlottingSystem: SNIRF loaded");
 }
 
 void PlottingSystem::HandleProjectionTagChanged(size_t index, double actual)

@@ -43,4 +43,5 @@ public:
 	// Slice Viewer
 	Scope<NVMRI::MRISliceViewer> slice_viewer_;
 	void RenderSliceViewerPanel();
+
 };

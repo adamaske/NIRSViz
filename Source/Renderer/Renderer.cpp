@@ -69,7 +69,7 @@ void Renderer::ExecuteQueue()
 			sCurrentBoundFBO = currentView.TargetFBO;
 			sCurrentBoundFBO->Bind();
 
-			Renderer::SetClearColor({ 0.45f, 0.55f, 0.60f, 1.00f });
+			Renderer::SetClearColor({ 0.0f, 0.00f, 0.00f, 1.00f });
 			Renderer::Clear();
 
 		}

@@ -27,6 +27,7 @@ namespace Utils {
             return {};
         }
     }
+
     template <typename T>
     std::vector<T> read_2d_flat_vector(const Group& group, const std::string& name) {
         try {
@@ -50,6 +51,7 @@ namespace Utils {
             return {};
         }
     }
+
     std::string get_dataset_shape(const DataSet& dataset){
         std::vector<size_t> dims = dataset.getDimensions();
         std::string shape_str = "(";
@@ -62,7 +64,7 @@ namespace Utils {
         shape_str += ")";
         return shape_str;
     }
-    // Recursive function to traverse the HDF5 structure
+
     void ParseGroup(const Group& current_group, const std::string& path) {
         // 1. Get all object names in the current group
         std::vector<std::string> object_names = current_group.listObjectNames();

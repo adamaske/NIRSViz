@@ -14,6 +14,17 @@
 // OpenGL includes (adjust based on your setup)
 #include <glad/glad.h>
 
+namespace Utils {
+	// Helper to convert vec4 to uint32_t for the pixel buffer
+	constexpr uint32_t Vec4ToUint32(const glm::vec4& color) {
+		uint8_t r = static_cast<uint8_t>(std::clamp(color.r, 0.0f, 1.0f) * 255.0f);
+		uint8_t g = static_cast<uint8_t>(std::clamp(color.g, 0.0f, 1.0f) * 255.0f);
+		uint8_t b = static_cast<uint8_t>(std::clamp(color.b, 0.0f, 1.0f) * 255.0f);
+		uint8_t a = static_cast<uint8_t>(std::clamp(color.a, 0.0f, 1.0f) * 255.0f);
+		return (a << 24) | (b << 16) | (g << 8) | r; // ABGR format for typical GL buffers
+	}
+}
+
 void ChannelSelectorSystem::OnAttach()
 {
 	// Create OpenGL texture
@@ -88,10 +99,10 @@ void ChannelSelectorSystem::OnGUIRender()
 
 	// Settings panel
 	if (ImGui::CollapsingHeader("Settings")) {
-		ImGui::SliderFloat("World Scale", &config_.settings.world_scale, 10.0f, 200.0f);
-		ImGui::SliderFloat("Source Radius", &config_.settings.source_radius, 2.0f, 20.0f);
-		ImGui::SliderFloat("Detector Radius", &config_.settings.detector_radius, 2.0f, 20.0f);
-		ImGui::SliderFloat("Channel Width", &config_.settings.channel_width, 1.0f, 10.0f);
+		ImGui::SliderInt("World Scale", &config_.settings.world_scale, 1.0, 200.0);
+		ImGui::SliderInt("Source Radius", &config_.settings.source_radius, 2.0, 20.0);
+		ImGui::SliderInt("Detector Radius", &config_.settings.detector_radius, 2.0, 20.0);
+		ImGui::SliderInt("Channel Width", &config_.settings.channel_width, 1.0f, 20.0f);
 		ImGui::SliderFloat("Zoom", &config_.zoom_level, 0.1f, 5.0f);
 
 		if (ImGui::Button("Reset View")) {
@@ -103,13 +114,25 @@ void ChannelSelectorSystem::OnGUIRender()
 		ImGui::Text("Middle Mouse: Pan");
 		ImGui::Text("Left Click: Select Channel");
 		ImGui::Text("Ctrl + Click: Multi-select");
+		
+		ImGui::SeparatorText("Colors");
+		ImGui::ColorEdit4("Background", (float*)&config_.settings.background_color);
+		ImGui::ColorEdit4("Source", (float*)&config_.settings.source_color);
+		ImGui::ColorEdit4("Detector", (float*)&config_.settings.detector_color);
+		ImGui::ColorEdit4("Channel", (float*)&config_.settings.channel_color);
+		ImGui::ColorEdit4("Selected Channel", (float*)&config_.settings.selected_channel_color);
+		ImGui::ColorEdit4("Grid", (float*)&config_.settings.grid_color);
+		
 	}
 
 	// Selection buttons
 	if (ImGui::Button("Select All")) SelectAllChannels();
 	ImGui::SameLine();
 	if (ImGui::Button("Clear Selection")) ClearSelection();
-
+	ImGui::SameLine();
+	ImGui::TextDisabled("CTRL + Click to multi-select: ");
+	ImGui::SameLine();
+	ImGui::Text("%s", (Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl)) ? "ON" : "OFF");
 	ImGui::Text("Selected Channels: %zu", selected_channels_.size());
 
 	// Get viewport info
@@ -212,8 +235,6 @@ bool ChannelSelectorSystem::OnMouseButtonPressed(const MouseButtonPressedEvent& 
 			dirty_ = true;
 			return true;
 		}
-
-		// Could also check sources/detectors here if needed
 	}
 
 	return false;
@@ -229,7 +250,6 @@ void ChannelSelectorSystem::SelectAllChannels() {
 void ChannelSelectorSystem::ClearSelection() {
 	selected_channels_.clear();
 }
-
 // ============================================================================
 // RENDERING IMPLEMENTATION
 // ============================================================================
@@ -237,7 +257,7 @@ void ChannelSelectorSystem::ClearSelection() {
 void ChannelSelectorSystem::RenderToBuffer()
 {
 	// Clear buffer
-	image_buffer_.Clear(config_.settings.background_color);
+	image_buffer_.Clear(Utils::Vec4ToUint32(config_.settings.background_color));
 
 	// Draw in order (back to front)
 	DrawGrid();
@@ -268,17 +288,18 @@ void ChannelSelectorSystem::DrawGrid()
 	// Optional: Draw a subtle grid
 	float grid_spacing = config_.settings.world_scale * config_.zoom_level;
 
+	const auto c = Utils::Vec4ToUint32(config_.settings.grid_color);
 	// Draw vertical lines
 	for (int x = 0; x < (int)image_buffer_.Width; x += (int)grid_spacing) {
 		for (int y = 0; y < (int)image_buffer_.Height; y++) {
-			image_buffer_.SetPixel(x, y, config_.settings.grid_color);
+			image_buffer_.SetPixel(x, y, c);
 		}
 	}
 
 	// Draw horizontal lines
 	for (int y = 0; y < (int)image_buffer_.Height; y += (int)grid_spacing) {
 		for (int x = 0; x < (int)image_buffer_.Width; x++) {
-			image_buffer_.SetPixel(x, y, config_.settings.grid_color);
+			image_buffer_.SetPixel(x, y, c);
 		}
 	}
 }
@@ -291,7 +312,7 @@ void ChannelSelectorSystem::DrawChannels()
 			selected_channels_.end(),
 			id) != selected_channels_.end();
 
-		uint32_t color = is_selected ? config_.settings.selected_channel_color : config_.settings.channel_color;
+		auto color = is_selected ? config_.settings.selected_channel_color : config_.settings.channel_color;
 
 		glm::vec2 screen_start = WorldToScreen(visual.Start);
 		glm::vec2 screen_end = WorldToScreen(visual.End);
@@ -309,7 +330,7 @@ void ChannelSelectorSystem::DrawSources()
 		DrawCircle(screen_pos, config_.settings.source_radius, config_.settings.source_color, true);
 
 		// Optional: Draw border
-		DrawCircle(screen_pos, config_.settings.source_radius + 1, 0xFF000000, false);
+		DrawCircle(screen_pos, config_.settings.source_radius + 1, glm::vec4(0, 0, 0, 1), false);
 	}
 }
 
@@ -322,16 +343,11 @@ void ChannelSelectorSystem::DrawDetectors()
 		DrawCircle(screen_pos, config_.settings.detector_radius, config_.settings.detector_color, true);
 
 		// Optional: Draw border
-		DrawCircle(screen_pos, config_.settings.detector_radius + 1, 0xFF000000, false);
+		DrawCircle(screen_pos, config_.settings.detector_radius + 1, glm::vec4(0,0,0,1), false);
 	}
 }
 
-// ============================================================================
-// DRAWING PRIMITIVES
-// ============================================================================
-
-void ChannelSelectorSystem::DrawLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width)
-{
+void ChannelSelectorSystem::DrawLine(glm::vec2 start, glm::vec2 end, const glm::vec4& color, float width) {
 	// Bresenham's line algorithm with thickness
 	int x0 = (int)start.x;
 	int y0 = (int)start.y;
@@ -345,7 +361,7 @@ void ChannelSelectorSystem::DrawLine(glm::vec2 start, glm::vec2 end, uint32_t co
 	int err = dx - dy;
 
 	while (true) {
-		image_buffer_.SetPixel(x0, y0, color);
+		image_buffer_.SetPixel(x0, y0, Utils::Vec4ToUint32(color));
 
 		if (x0 == x1 && y0 == y1) break;
 
@@ -361,8 +377,52 @@ void ChannelSelectorSystem::DrawLine(glm::vec2 start, glm::vec2 end, uint32_t co
 	}
 }
 
-void ChannelSelectorSystem::DrawThickLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width)
-{
+void ChannelSelectorSystem::DrawCircle(glm::vec2 center, float radius, const glm::vec4& color, bool filled) {
+	int cx = (int)center.x;
+	int cy = (int)center.y;
+	int r = (int)radius;
+
+	auto c = Utils::Vec4ToUint32(color);
+
+	if (filled) {
+		// Filled circle using midpoint algorithm
+		for (int y = -r; y <= r; y++) {
+			for (int x = -r; x <= r; x++) {
+				if (x * x + y * y <= r * r) {
+					image_buffer_.SetPixel(cx + x, cy + y, c);
+				}
+			}
+		}
+	}
+	else {
+		// Circle outline using midpoint algorithm
+		int x = r;
+		int y = 0;
+		int err = 0;
+
+		while (x >= y) {
+			image_buffer_.SetPixel(cx + x, cy + y, c);
+			image_buffer_.SetPixel(cx + y, cy + x, c);
+			image_buffer_.SetPixel(cx - y, cy + x, c);
+			image_buffer_.SetPixel(cx - x, cy + y, c);
+			image_buffer_.SetPixel(cx - x, cy - y, c);
+			image_buffer_.SetPixel(cx - y, cy - x, c);
+			image_buffer_.SetPixel(cx + y, cy - x, c);
+			image_buffer_.SetPixel(cx + x, cy - y, c);
+
+			if (err <= 0) {
+				y += 1;
+				err += 2 * y + 1;
+			}
+			if (err > 0) {
+				x -= 1;
+				err -= 2 * x + 1;
+			}
+		}
+	}
+}
+
+void ChannelSelectorSystem::DrawThickLine(glm::vec2 start, glm::vec2 end, const glm::vec4& color, float width) {
 	// Draw a thick line by drawing multiple offset lines
 	glm::vec2 dir = end - start;
 	float length = glm::length(dir);
@@ -378,57 +438,13 @@ void ChannelSelectorSystem::DrawThickLine(glm::vec2 start, glm::vec2 end, uint32
 	}
 }
 
-void ChannelSelectorSystem::DrawCircle(glm::vec2 center, float radius, uint32_t color, bool filled)
-{
-	int cx = (int)center.x;
-	int cy = (int)center.y;
-	int r = (int)radius;
-
-	if (filled) {
-		// Filled circle using midpoint algorithm
-		for (int y = -r; y <= r; y++) {
-			for (int x = -r; x <= r; x++) {
-				if (x * x + y * y <= r * r) {
-					image_buffer_.SetPixel(cx + x, cy + y, color);
-				}
-			}
-		}
-	}
-	else {
-		// Circle outline using midpoint algorithm
-		int x = r;
-		int y = 0;
-		int err = 0;
-
-		while (x >= y) {
-			image_buffer_.SetPixel(cx + x, cy + y, color);
-			image_buffer_.SetPixel(cx + y, cy + x, color);
-			image_buffer_.SetPixel(cx - y, cy + x, color);
-			image_buffer_.SetPixel(cx - x, cy + y, color);
-			image_buffer_.SetPixel(cx - x, cy - y, color);
-			image_buffer_.SetPixel(cx - y, cy - x, color);
-			image_buffer_.SetPixel(cx + y, cy - x, color);
-			image_buffer_.SetPixel(cx + x, cy - y, color);
-
-			if (err <= 0) {
-				y += 1;
-				err += 2 * y + 1;
-			}
-			if (err > 0) {
-				x -= 1;
-				err -= 2 * x + 1;
-			}
-		}
-	}
-}
-
 // ============================================================================
 // COORDINATE TRANSFORMS
 // ============================================================================
 glm::vec2 ChannelSelectorSystem::WorldToScreen(const glm::vec2& worldPos) const
 {
 	// Apply zoom and pan
-	glm::vec2 viewPos = (worldPos - config_.view_center) * config_.settings.world_scale * config_.zoom_level;
+	glm::vec2 viewPos = (worldPos - config_.view_center) * (float)config_.settings.world_scale * config_.zoom_level;
 
 	// Center in viewport
 	glm::vec2 screenPos = viewPos + glm::vec2(image_buffer_.Width / 2.0f, image_buffer_.Height / 2.0f);
@@ -439,17 +455,13 @@ glm::vec2 ChannelSelectorSystem::WorldToScreen(const glm::vec2& worldPos) const
 	return screenPos + config_.pan_offset;
 }
 
-glm::vec2 ChannelSelectorSystem::ScreenToWorld(const glm::vec2& screenPos) const
-{
-	// NO Y-FLIP HERE - mouse position is already in screen space matching the image
+glm::vec2 ChannelSelectorSystem::ScreenToWorld(const glm::vec2& screenPos) const {
+	glm::vec2 flippedScreen = { screenPos.x, image_buffer_.Height - screenPos.y };
 
-	// Remove pan offset
-	glm::vec2 adjustedScreen = screenPos - config_.pan_offset;
+	glm::vec2 adjustedScreen = flippedScreen - config_.pan_offset;
 
-	// Remove viewport centering
 	glm::vec2 viewPos = adjustedScreen - glm::vec2(image_buffer_.Width / 2.0f, image_buffer_.Height / 2.0f);
 
-	// Remove zoom and scale
 	glm::vec2 worldPos = (viewPos / (config_.settings.world_scale * config_.zoom_level)) + config_.view_center;
 
 	return worldPos;

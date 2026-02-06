@@ -15,16 +15,18 @@
 
 
 struct ChannelSelectorSettings {
-	float source_radius = 10.0f;
-	float detector_radius = 8.0f;
-	float channel_width = 8.0f;
-	float world_scale = 20.0f; // Pixels per world unit
-	uint32_t background_color = 0xFF202020; // Dark gray
-	uint32_t source_color = 0xFF3333FF;     // Red
-	uint32_t detector_color = 0xFF0000FF;   // Blue
-	uint32_t channel_color = 0xFFAAAAAA;    // Gray
-	uint32_t selected_channel_color = 0xFF40FFFF; // Yellow
-	uint32_t grid_color = 0xFF303030;       // Darker gray
+	int source_radius = 12.0;
+	int detector_radius = 12.0;
+	int channel_width = 8.0;
+	int world_scale = 20.0;
+
+	// Using RGBA format (Red, Green, Blue, Alpha)
+	glm::vec4 background_color		 = { 0.125f, 0.125f, 0.125f, 1.0f }; // Dark gray
+	glm::vec4 source_color			 = { 1.0f,   0.2f,   0.2f,   1.0f }; // Red
+	glm::vec4 detector_color		 = { 0.2f,   0.2f,   1.0f,   1.0f }; // Blue
+	glm::vec4 channel_color			 = { 0.66f,  0.66f,  0.66f,  1.0f }; // Gray
+	glm::vec4 selected_channel_color = { 1.0f,   1.0f,   0.0f,   1.0f }; // Yellow
+	glm::vec4 grid_color			 = { 0.18f,  0.18f,  0.18f,  1.0f }; // Darker gray
 };
 
 struct ChannelSelectorConfig {
@@ -66,9 +68,9 @@ struct PixelBuffer {
 class ChannelSelectorSystem : public System, public ISelectedChannelsProvider
 {
 public:
-	ChannelSelectorSystem(ISNIRFProvider& snirf_provider) : snirf_provider_(snirf_provider) {};
+	ChannelSelectorSystem(ISNIRFProvider& snirf_provider) : 
+		snirf_provider_(snirf_provider) {};
 	~ChannelSelectorSystem() = default;
-
 
 	const std::vector<NIRS::Probe::ChannelID>& GetSelectedChannels() override {
 		return selected_channels_;
@@ -124,9 +126,11 @@ private:
 	void DrawDetectors();
 
 	// Drawing primitives
-	void DrawLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width);
-	void DrawCircle(glm::vec2 center, float radius, uint32_t color, bool filled = true);
-	void DrawThickLine(glm::vec2 start, glm::vec2 end, uint32_t color, float width);
+	void DrawLine(glm::vec2 start, glm::vec2 end, const glm::vec4& color, float width);
+	void DrawCircle(glm::vec2 center, float radius, const glm::vec4& color, bool filled = true);
+	void DrawThickLine(glm::vec2 start, glm::vec2 end, const glm::vec4& color, float width);
+
+
 
 	// Coordinate transforms
 	glm::vec2 WorldToScreen(const glm::vec2& worldPos) const;
