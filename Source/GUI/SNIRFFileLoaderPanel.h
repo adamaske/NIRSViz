@@ -3,8 +3,6 @@
 
 #include "NIRS/SNIRFType.h"
 
-struct SNIRFValidationError;
-
 class SNIRFFileLoaderPanel : public ImGuiPanel {
 public:
 	SNIRFFileLoaderPanel();
@@ -18,6 +16,5 @@ private:
 
 	std::string UserSelectedFilepath = "";
 
-	std::vector<SNIRFValidationError> ValidationErrorMessages;
 
 };

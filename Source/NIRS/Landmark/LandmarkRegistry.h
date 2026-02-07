@@ -1,5 +1,5 @@
 #pragma once
-#include "Landmark.h"
+#include "NIRS/Landmark/Landmark.h"
 #include <map>
 #include <vector>
 #include <optional>

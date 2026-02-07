@@ -3,7 +3,6 @@
 #include "Systems/System.h"
 #include "NIRS/Snirf.h"
 #include "Plotting/PlotManager.h"
-
 /**
  * PlottingSystem - Provider Pattern Best Practices
  *
@@ -39,11 +38,13 @@ public:
 class ISelectedChannelsProvider;
 class IProjectionTimeSubscriber;
 class TimeController;
-
+namespace NIRS {
+	class ISNIRFProvider;
+}
 class PlottingSystem : public System, public IChannelDataProvider, public IProjectionTimeTagProvider {
 public:
-	PlottingSystem(ISelectedChannelsProvider& selection_provider) :
-		selected_channels_provider_(selection_provider)
+	PlottingSystem(ISelectedChannelsProvider& selection_provider, NIRS::ISNIRFProvider& snirf_provider) :
+		selected_channels_provider_(selection_provider), snirf_provider_(snirf_provider)
 	{
 	}
 
@@ -129,4 +130,5 @@ private:
 	Ref<TimeController> m_TimeController;
 	IProjectionTimeSubscriber* projection_time_subscriber_ = nullptr;
 	ISelectedChannelsProvider& selected_channels_provider_;
+	NIRS::ISNIRFProvider& snirf_provider_;
 };

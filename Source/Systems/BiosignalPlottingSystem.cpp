@@ -1,39 +1,28 @@
 #include "pch.h"
-#include "Systems/WingsPlottingSystem.h"
-
-#include "Core/AssetManager.h"
-#include "Events/EventBus.h"
+#include "Systems/BiosignalPlottingSystem.h"
 
 #include <imgui.h>
 #include <implot.h>
 
-#include "NIRS/Wings/WingsDataParser.h"
+#include "NIRS/NIRS.h"
 
-void WingsPlottingSystem::OnAttach()
-{
+void BiosignalPlottingSystem::OnAttach() {
 
-	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
-		snirf_ = AssetManager::Get<SNIRF>("SNIRF");
-
-	});
 }
 
-void WingsPlottingSystem::OnDetach()
-{
+void BiosignalPlottingSystem::OnDetach() {
 }
 
-void WingsPlottingSystem::OnUpdate(DeltaTime dt)
-{
+void BiosignalPlottingSystem::OnUpdate(DeltaTime dt) {
 }
 
-void WingsPlottingSystem::OnGUIRender()
+void BiosignalPlottingSystem::OnGUIRender()
 {
-	if (!snirf_) return;
-	if (!snirf_->HasWings()) return;
-
+    auto snirf = snirf_provider_.GetLoadedSNIRF();
+    if (!snirf) return;
+    if (!snirf->HasBiosignals()) return;
 	
-	auto& wings_parser = snirf_->GetWingsParser();
-	auto& wings_data = wings_parser.GetAuxilaryData();
+	auto& wings_data = snirf->biosignals.aux_data;
 
 	ImGui::Begin("Wings Data Plotter");
 
@@ -50,6 +39,7 @@ void WingsPlottingSystem::OnGUIRender()
 
         // 1. Construct the plot title (e.g., "Signal (Unit)")
         std::string plot_title = aux.name + " (" + aux.unit + ")";
+
 		//ImGui::Text(plot_title.c_str());
         // 2. Plotting condition: Check if both time and data vectors have points
         if (aux.time.size() > 0 && aux.time.size() == aux.data.size()) {
@@ -84,10 +74,10 @@ void WingsPlottingSystem::OnGUIRender()
 
 }
 
-void WingsPlottingSystem::OnEvent(Event& event)
+void BiosignalPlottingSystem::OnEvent(Event& event)
 {
 }
 
-void WingsPlottingSystem::RenderMenuBar()
+void BiosignalPlottingSystem::RenderMenuBar()
 {
 }

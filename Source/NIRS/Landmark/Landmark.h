@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include "NIRS/NIRS.h"
+#include "NIRS/Core/Landmarks.h"
 
 namespace NIRS {
 

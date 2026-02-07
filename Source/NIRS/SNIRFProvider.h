@@ -1,8 +1,11 @@
 #pragma once
 #include "Core/Base.h"
-#include "NIRS/Snirf.h"
+#include "NIRS/SNIRF.h"
 
-class ISNIRFProvider {
-public:
-	virtual const Ref<SNIRF>& GetLoadedSNIRF() = 0;
-};
+namespace NIRS {
+	class ISNIRFProvider {
+	public:
+		virtual ~ISNIRFProvider() = default;
+		virtual const Ref<SNIRF>& GetLoadedSNIRF() = 0;
+	};
+}

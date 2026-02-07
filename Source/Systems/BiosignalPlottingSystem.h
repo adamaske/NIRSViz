@@ -3,12 +3,14 @@
 
 #include "Systems/System.h"
 #include "NIRS/Snirf.h"
+#include "NIRS/SNIRFProvider.h"	
 
-class SNIRF;
-
-class WingsPlottingSystem : public System {
+class BiosignalPlottingSystem : public System {
 public:
 
+	BiosignalPlottingSystem(NIRS::ISNIRFProvider& snirf_provider)
+		: snirf_provider_(snirf_provider) {}
+	~BiosignalPlottingSystem() override = default;
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -22,6 +24,5 @@ public:
 	void RenderMenuBar() override;
 
 private:
-	Ref<SNIRF> snirf_ = nullptr;
-
+	NIRS::ISNIRFProvider& snirf_provider_;
 };

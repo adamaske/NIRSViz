@@ -256,7 +256,7 @@ namespace NIRS
             }
 
             // Handle unknown landmark names
-			NVIZ_ERROR("Unknown landmark name: {}", landmark_name);
+            NVIZ_ERROR("Unknown landmark name: {}", landmark_name);
             throw std::out_of_range("Unknown landmark name: " + landmark_name);
         }
     }

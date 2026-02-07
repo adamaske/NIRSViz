@@ -14,6 +14,7 @@
 
 #include "Plotting/ChannelDataPlotter.h"
 #include "NIRS/ChannelSelector.h"
+#include "NIRS/SNIRFProvider.h"
 
 void PlottingSystem::OnAttach()
 {
@@ -375,7 +376,7 @@ void PlottingSystem::RecalculatePlotLimits()
 
 void PlottingSystem::HandleSNIRFLoaded()
 {
-	m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
+	m_SNIRF = snirf_provider_.GetLoadedSNIRF();
 
 	// Clear cached selection since we have new data
 	m_CachedSelectedChannels.clear();

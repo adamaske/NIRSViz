@@ -1,14 +1,21 @@
 #pragma once
 #include "Core/Base.h"
-#include "NIRS/Snirf_NEW.h"
-#include "NIRS/Snirf.h"
-
+#include "NIRS/SNIRF.h"
+#include "NIRS/SNIRFLoader.h"
 #include "NIRS/SNIRFType.h"
-#include "SNIRFError.h"
+#include "NIRS/SNIRFError.h"
+
+#include <filesystem>
+#include <vector>
 
 class SNIRFFactory {
 public:
-	static bool CreateSNIRF(SNIRF& out_snirf, SNIRFType type, std::filesystem::path filepath, std::vector<SNIRFError>& out_errors);
-
-	static SNIRF_NEW CreateSNIRF_NEW(SNIRFType type, std::filesystem::path filepath);
+    /// Creates a fully-populated SNIRF from a file on disk.
+    static bool Create(SNIRF& out_snirf,
+                       SNIRFType type,
+                       const std::filesystem::path& filepath,
+                       std::vector<SNIRFError>& out_errors)
+    {
+        return NIRS::LoadSNIRF(filepath, out_snirf, out_errors);
+    }
 };

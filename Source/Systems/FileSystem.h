@@ -9,7 +9,7 @@ namespace NIRS {
 	class ProjectDatabase;
 }
 
-class FileSystem : public System, public ISNIRFProvider {
+class FileSystem : public System, public NIRS::ISNIRFProvider {
 public:
 
 	void OnAttach() override;

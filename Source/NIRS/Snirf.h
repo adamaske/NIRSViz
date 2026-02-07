@@ -1,90 +1,49 @@
 #pragma once
-#include "Core/Base.h"
-
-#include <string>
-#include <filesystem>
-
-#include <Eigen/Dense>
-
-#include <highfive/H5Group.hpp>
 
 #include "NIRS/NIRS.h"
 
-#include "NIRS/SNIRFError.h"
-#include "NIRS/SNIRFValidator.h"
+struct SNIRF {
 
-class WingsDataParser;
+    // ---- identity / origin ----
+    NIRS::FileDescriptor file_descriptor;
 
-class SNIRF {
-public:
-	SNIRF() = default;
-	SNIRF(const std::filesystem::path& filepath);
+    // ---- metadata tags ----
+    NIRS::Metadata::Metadata metadata;
 
-	void Print();
+    // ---- probe geometry (sources, detectors, wavelengths) ----
+    NIRS::Probe::Probe probe;
 
-	void LoadFile(const std::filesystem::path& filepath);
+    // ---- per-channel hemodynamic time-series ----
+    NIRS::Channels::ChannelDataStore channel_store;
 
-	void ParseMetadataTags(const HighFive::Group& metadata);
-	void ParseProbe(const HighFive::Group& probe);
-	void ParseData1(const HighFive::Group& data1);
-	void ParseStims(const HighFive::Group& nirs);
-	void ParseWings(const HighFive::Group& nirs);
-	std::string GetFilepath() { return filepath_.string(); };
+    // ---- shared time axis ----
+    NIRS::Time::TimeData time_data;
 
-	bool IsFileLoaded() { return !filepath_.empty(); };
-	
-	std::vector<int> GetWavelengths() { return m_Wavelengths; };
+    // ---- stimulus / event markers ----
+    NIRS::Events::EventsContainer events;
 
-	// Get channels
-	NIRS::Probe::ChannelMap GetChannels() { return probe_.channels; };
+    // ---- auxiliary biosignals (respiration, GSR, PPG, …) ----
+    NIRS::Biosignals::BiosignalData biosignals;
 
-	// Get full probe, const and non-const
-	NIRS::Probe::Probe& GetProbe() { return probe_; };
-	const NIRS::Probe::Probe& GetProbe() const { return probe_; };
+    // ---- convenience accessors (match old API surface) ----
+    bool IsFileLoaded() const { return !file_descriptor.filepath.empty(); }
+    std::string GetFilepath() const { return file_descriptor.filepath.string(); }
 
-	int GetSourceAmount()	{ return probe_.sources.size(); };
-	int GetDetectorAmount()	{ return probe_.detectors.size(); };
+    const NIRS::Probe::Probe& GetProbe() const { return probe; }
+    NIRS::Probe::Probe& GetProbe() { return probe; }
 
+    int GetSourceAmount()   const { return static_cast<int>(probe.sources.size()); }
+    int GetDetectorAmount() const { return static_cast<int>(probe.detectors.size()); }
 
-	// --- METADATA ---
-	double GetSamplingRate() { return m_SamplingRate; };
-	std::vector<double> GetTime() { return m_Time; };
-	double GetDurationSeconds() { return m_DurationSeconds; };
-	
-	// --- WINGS ---
-	const bool& HasWings() { return has_wings_; };
-	WingsDataParser& GetWingsParser() const { return *wings_parser_; };
+    double GetSamplingRate()     const { return time_data.sampling_frequency; }
+    double GetDurationSeconds()  const { return time_data.duration; }
+    const std::vector<double>& GetTime() const { return time_data.time; }
 
-private:
-	// --- File ---
-	bool overwrite_allowed_ = false;
+    const std::vector<int>& GetWavelengths() const { return probe.wavelengths; }
 
-	std::filesystem::path filepath_;
+    NIRS::Probe::ChannelMap GetChannels() const { return probe.channels; }
 
-	// --- Metadata ---
-	double m_SamplingRate = 0.0;
-	double m_DurationSeconds = 0.0;
-	std::vector<double> m_Time = {};
-
-
-	NIRS::Probe::Probe probe_;
-
-
-	std::vector<int> m_Wavelengths = {};
-
-
-	// --- Events ---
-	std::vector <NIRS::Events::Event > events_;
-	std::map<std::string, NIRS::Events::Event> event_map_;
-
-
-	// --- Channel Data ---
-
-	Eigen::Matrix<double,
-		Eigen::Dynamic,
-		Eigen::Dynamic,
-		Eigen::RowMajor> m_ChannelData;
-
-	bool has_wings_ = false;
-	Ref<WingsDataParser> wings_parser_ = nullptr;
+	// TODO : This method of checking is not good, we should have a more explicit way of checking if biosignals are present 
+    // (e.g., a metadata tag) instead of relying on the presence of aux data, which could be empty even if biosignals are present.
+    bool HasBiosignals() const { return metadata.has_wings_generation; }
 };

@@ -18,7 +18,11 @@
 
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
+#include "NIRS/SNIRFProvider.h"
 
+namespace NIRS {
+	class ISNIRFProvider;
+}
 
 struct ProbeVisual {
 	NIRS::Probe::Optode optode;
@@ -61,8 +65,10 @@ public:
 
 class ProbeSystem : public System, public IProbeProvider {
 public:
-	ProbeSystem(IAnatomyProvider& anatomy_provider) : anatomy_provider_(anatomy_provider) {};
+	ProbeSystem(IAnatomyProvider& anatomy_provider, NIRS::ISNIRFProvider& snirf_provider) : 
+		anatomy_provider_(anatomy_provider), snirf_provider_(snirf_provider) {};
 	~ProbeSystem() {};
+
 
 	void OnAttach() override;
 	void OnDetach() override;
@@ -107,6 +113,7 @@ public:
 
 private:
 	IAnatomyProvider& anatomy_provider_;
+	NIRS::ISNIRFProvider& snirf_provider_;
 	ViewportType viewport_type_ = ViewportType::AnatomyViewport;
 
 	std::map<NIRS::Probe::ChannelID, ChannelIntersectionResult> channel_intersection_results_;

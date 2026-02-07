@@ -53,16 +53,16 @@ void ProjectionSystem::SetupSubscriptions()
 {
 	auto& bus = EventBus::Instance();
 
-	bus.Subscribe<OnUserStartProjectionCommand>([&](const OnUserStartProjectionCommand& e) {
-		StartProjection();
-		});
+	//bus.Subscribe<OnUserStartProjectionCommand>([&](const OnUserStartProjectionCommand& e) {
+	//	StartProjection();
+	//	});
 
-	bus.Subscribe<OnChannelsSelected>([&](const OnChannelsSelected& e) {
-		selected_channels_.clear();
-		for (const auto& id : e.selectedIDs) {
-			selected_channels_.insert(id);
-		}
-	});
+	//bus.Subscribe<OnChannelsSelected>([&](const OnChannelsSelected& e) {
+	//	selected_channels_.clear();
+	//	for (const auto& id : e.selectedIDs) {
+	//		selected_channels_.insert(id);
+	//	}
+	//});
 }
 
 void ProjectionSystem::StartProjection()

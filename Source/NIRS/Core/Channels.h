@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "Probe.h"
+#include <Eigen/Dense>
 
 namespace NIRS {
     namespace Channels {
@@ -9,27 +9,13 @@ namespace NIRS {
         using ChannelValue = double;
         using ChannelDataVector = std::vector<ChannelValue>;
 
-
-        struct Channel {
-            // What is a channel ?
-            // A channel has a source and detector
-            NIRS::Probe::OptodeID source_id;
-            NIRS::Probe::OptodeID detector_id;
-
-            // A channel has some recordeded data
-            ChannelDataVector data;
+        /// Raw time-series matrix parsed from data1/dataTimeSeries.
+        /// Rows = channels, Cols = time-points (transposed from HDF5 layout).
+        struct ChannelDataStore {
+            Eigen::Matrix<double,
+                Eigen::Dynamic,
+                Eigen::Dynamic,
+                Eigen::RowMajor> matrix;  // [channels x timepoints]
         };
-
-
-        struct ChannelData {
-            std::vector<Channel> channels;
-        };
-
-        inline ChannelDataVector LoadChannelData(std::filesystem::path filepath) {
-            ChannelDataVector channel_data = {};
-
-
-            return channel_data;
-        }
     }
 }

@@ -91,7 +91,7 @@ private:
 #include "Systems/AnatomySystem.h"
 #include "Systems/ChannelSelectorSystem.h"
 #include "Systems/ImGuiSystem.h"
-#include "Systems/WingsPlottingSystem.h"
+#include "Systems/BiosignalPlottingSystem.h"
 #include "Systems/ControlPanelSystem.h"
 #include "Systems/VoxelSystem.h"
 #include "MRI/MRISystem.h"

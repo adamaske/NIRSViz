@@ -70,7 +70,6 @@ private:
 	bool minimized_ = false;
 	float last_time_ = 0.0f;
 
-	//Ref<Coordinator> m_Coordinator;
 	Ref<Window> window_;
 	SystemManager system_manager_;
 

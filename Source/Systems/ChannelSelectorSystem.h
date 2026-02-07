@@ -68,7 +68,7 @@ struct PixelBuffer {
 class ChannelSelectorSystem : public System, public ISelectedChannelsProvider
 {
 public:
-	ChannelSelectorSystem(ISNIRFProvider& snirf_provider) : 
+	ChannelSelectorSystem(NIRS::ISNIRFProvider& snirf_provider) : 
 		snirf_provider_(snirf_provider) {};
 	~ChannelSelectorSystem() = default;
 
@@ -93,7 +93,7 @@ public:
 
 private:
 	bool dirty_;
-	ISNIRFProvider& snirf_provider_;
+	NIRS::ISNIRFProvider& snirf_provider_;
 	// Configuration (settings + runtime state)
 	ChannelSelectorConfig config_;
 

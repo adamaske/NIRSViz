@@ -23,7 +23,12 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	NVIZ_INFO("Application : {}", specification_.name);
 	NVIZ_INFO("\tWorking Directory : {}", specification_.working_directory.c_str());
 
-	AssetRegistry::Init("../../../Assets");
+	// TODO :  Read args and set working directory from that instead of application specification. 
+	// This allows command line overrides without changing the code.
+	// Then we need when we press play there is some default working directory that contains the assets, and we can override that with command line args if we want.
+	bool override_working_dir = false; // Parse args instead for a --assets-dir= argument or something
+	auto default_working_dir = "../../../Assets";
+	AssetRegistry::Init( default_working_dir);
 
 
 	WindowSpecification window_spec;
@@ -47,9 +52,13 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
 	auto file_system = system_manager_.AddSystem<FileSystem>();
 	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>(*file_system);
-	auto plotting_system = system_manager_.AddSystem<PlottingSystem>(*channel_selector);
+	auto plotting_system = system_manager_.AddSystem<PlottingSystem>(
+		*channel_selector, 
+		*file_system);
 	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
-	auto probe_system = system_manager_.AddSystem<ProbeSystem>(*anatomy_system);
+	auto probe_system = system_manager_.AddSystem<ProbeSystem>(
+		*anatomy_system, 
+		*file_system);
 	auto voxel_system = system_manager_.AddSystem<VoxelSystem>();
 	
 	// Projection System - pass systems directly, they'll upcast automatically
@@ -60,17 +69,16 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 		*plotting_system,
 		*probe_system);    
 	
-	auto wings_system = system_manager_.AddSystem<WingsPlottingSystem>();
+	auto biosingal_system = system_manager_.AddSystem<BiosignalPlottingSystem>(*file_system);
 	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
 	auto mri_system = system_manager_.AddSystem<MRISystem>();
 
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 
-	// TODO : Systems should have an optional dependency list that the system manager can use to automatically order initialization and update calls. 
+	// TODO : Systems should have an optional dependency list 
+	// that the system manager can use to automatically order initialization and update calls. 
 	// For now we just call post init manually in the right order.
-
-
 	system_manager_.GetSystem<FileSystem>()->PostInit();
 }
 
@@ -117,8 +125,10 @@ void Application::Close()
 void Application::OnEvent(Event& e)
 {
 	EventDispatcher dispatcher(e); // This event is called from the window when an event occurs
-	dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClose));
-	dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
+	dispatcher.Dispatch<WindowCloseEvent>(
+		BIND_EVENT_FN(Application::OnWindowClose));
+	dispatcher.Dispatch<WindowResizeEvent>(
+		BIND_EVENT_FN(Application::OnWindowResize));
 
 	for (auto it = system_manager_.begin(); it != system_manager_.end(); ++it)
 	{

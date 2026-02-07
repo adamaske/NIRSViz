@@ -1,17 +1,18 @@
 #pragma once
 #include <map>
+#include <vector>
 
 namespace NIRS {
-	namespace Probe {
+    namespace Probe {
 
-		using ChannelID = uint32_t; // UUID for channels
+        using ChannelID    = uint32_t;
         using ChannelValue = double;
-        using ChannelData = std::vector<ChannelValue>;
-		using ChannelDataMap = std::map<ChannelID, ChannelData>;
+        using ChannelData  = std::vector<ChannelValue>;
+        using ChannelDataMap = std::map<ChannelID, ChannelData>;
 
-        using OptodeID = uint32_t; // UUID for optodes
+        using OptodeID = uint32_t;
 
-		using Position2D = glm::vec2;
+        using Position2D = glm::vec2;
         using Position3D = glm::vec3;
 
         enum OptodeType {
@@ -21,17 +22,17 @@ namespace NIRS {
 
         struct Optode {
             OptodeType type;
-            OptodeID id;
+            OptodeID   id;
 
             Position2D position_2D;
             Position3D position_3D;
         };
         using OptodeMap = std::map<OptodeID, Optode>;
 
-		struct Channel { // A channel is just a source-detector pair
+        struct Channel {
             ChannelID id;
 
-            OptodeID source_id; // This is 1-indexed index
+            OptodeID source_id;   // 1-indexed
             OptodeID detector_id;
 
             ChannelData hbo_data;
@@ -41,41 +42,26 @@ namespace NIRS {
         using ChannelMap = std::map<ChannelID, Channel>;
 
         struct Probe {
-            ChannelMap channels;
+            ChannelMap  channels;
+            OptodeMap   sources;
+            OptodeMap   detectors;
 
-            std::vector<Optode> optodes;
-
-            OptodeMap sources;
-			OptodeMap detectors;
+            std::vector<int> wavelengths;
         };
 
-		struct OptodeLayout {
+        struct OptodeLayout {
+            std::vector<Optode> sources;
+            std::vector<Optode> detectors;
+        };
 
-			std::vector<Optode> sources;
-			std::vector<Optode> detectors;
-
-		};
-
-		inline OptodeLayout LoadOptodeLayout(std::filesystem::path filepath) {
-			OptodeLayout layout;
-
-			return layout;
-		}
         namespace Utils {
-
-            //bool ValidateProbe(const Probe& probe, std::vector<ProbeError>& out_errors) {
-            //
-            //    return true;
-            //};
-
             constexpr std::string OptodeTypeToString(OptodeType type) {
                 switch (type) {
-                case SOURCE: return "SOURCE";
+                case SOURCE:   return "SOURCE";
                 case DETECTOR: return "DETECTOR";
-                		default: return "UNKNOWN";
+                default:       return "UNKNOWN";
                 }
             }
-
         }
-	}
+    }
 }

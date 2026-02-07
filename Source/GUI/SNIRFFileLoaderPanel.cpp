@@ -11,7 +11,6 @@
 
 #include "NIRS/Snirf.h"
 #include "NIRS/SNIRFFactory.h"
-#include "NIRS/SNIRFValidator.h"
 
 namespace Utils {
     std::string SNIRFFileDialogFilepath() {
@@ -36,9 +35,10 @@ SNIRFFileLoaderPanel::SNIRFFileLoaderPanel()
 {
 	// Set parameters
 	IsValid = false;
-	SelectedType = SNIRFType::SNIRF_TYPE_NONE;
+	SelectedType = SNIRFType::UNKOWN;
+
     UserSelectedFilepath.resize(256);
-    ValidationErrorMessages.clear();
+
 }
 
 
@@ -70,12 +70,13 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
     // --- Row 2 : Filetype Selector and Validate Button ---
     const char* previewValue = "Unknown";
     switch (SelectedType) {
-    case SNIRFType::SNIRF_TYPE_HOMER3: previewValue = "Homer3"; break;
-    case SNIRFType::SNIRF_TYPE_NIRSPY: previewValue = "NIRSpy"; break;
-    case SNIRFType::SNIRF_TYPE_SATORI: previewValue = "Satori"; break;
-    case SNIRFType::SNIRF_TYPE_AURORA: previewValue = "Aurora"; break;
-    case SNIRFType::SNIRF_TYPE_MNE_NIRS: previewValue = "MNE-NIRS"; break;
-    case SNIRFType::SNIRF_TYPE_CUSTOM: previewValue = "Custom"; break;
+    case SNIRFType::UNKOWN:     previewValue = "UNKOWN"; break;
+    case SNIRFType::AURORA:     previewValue = "AURORA"; break;
+    case SNIRFType::SATORI:     previewValue = "SATORI"; break;
+    case SNIRFType::MNE_NIRS:   previewValue = "MNE_NIRS"; break;
+    case SNIRFType::CUSTOM:     previewValue = "CUSTOM"; break;
+    case SNIRFType::HOMER3:     previewValue = "HOMER3"; break;
+    case SNIRFType::NIRSPY:     previewValue = "NIRSPY"; break;
     }
 
     ImGui::Text("Filetype:");
@@ -93,19 +94,20 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
             }
             };
 
-        SelectSNIRFType("Homer3", SNIRFType::SNIRF_TYPE_HOMER3);
-        SelectSNIRFType("NIRSpy", SNIRFType::SNIRF_TYPE_NIRSPY);
-        SelectSNIRFType("Satori", SNIRFType::SNIRF_TYPE_SATORI);
-        SelectSNIRFType("Aurora", SNIRFType::SNIRF_TYPE_AURORA);
-        SelectSNIRFType("MNE-NIRS", SNIRFType::SNIRF_TYPE_MNE_NIRS);
-        SelectSNIRFType("Custom", SNIRFType::SNIRF_TYPE_CUSTOM);
+        //SelectSNIRFType("Unkown", SNIRFType::UNKOWN);
+        SelectSNIRFType("Homer3", SNIRFType::HOMER3);
+        SelectSNIRFType("NIRSpy", SNIRFType::NIRSPY);
+        SelectSNIRFType("Satori", SNIRFType::SATORI);
+        SelectSNIRFType("Aurora", SNIRFType::AURORA);
+        SelectSNIRFType("MNE-NIRS", SNIRFType::MNE_NIRS);
+        SelectSNIRFType("Custom", SNIRFType::CUSTOM);
 
         ImGui::EndCombo();
     }
 
     ImGui::SameLine();
 
-    bool CanValidate = std::filesystem::exists(UserSelectedFilepath) && SelectedType != SNIRFType::SNIRF_TYPE_NONE;
+    bool CanValidate = std::filesystem::exists(UserSelectedFilepath) && SelectedType != SNIRFType::UNKOWN;
 
     ImVec4 buttonColor = CanValidate
         ? ImVec4(0.2f, 0.8f, 0.2f, 1.0f)  // Green
@@ -124,19 +126,7 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonActiveColor);
 
     if (ImGui::Button("Validate")) {
-
-        if (CanValidate) {
-
-            auto validator = SNIRFValidator();
-            IsValid = validator.Validate(UserSelectedFilepath, SelectedType, ValidationErrorMessages);
-
-        }
-        else {
-            ValidationErrorMessages.clear();
-            IsValid = false;
-            ValidationErrorMessages.push_back({ "", "File path is empty." });
-            ValidationErrorMessages.push_back({ "", "Please select a SNIRF type." });
-        }
+        IsValid = true;
     };
     ImGui::PopStyleColor(3);
 
@@ -145,30 +135,22 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
     ImGui::TextColored(IsValid ? ImVec4(0.0f, 1.0f, 0.0f, 1.0f) : ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Validation Messages:");
 
     if (IsValid) {
-        ValidationErrorMessages.clear();
         ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Borders);
         ImGui::TextWrapped("File is valid. Ready for loading.");
         ImGui::EndChild();
     }
     else {
 
-        if (ValidationErrorMessages.empty()) {
-            ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Borders);
-            ImGui::TextWrapped("No messages...");
-            ImGui::EndChild();
-        }
-        else {
-
             // The second parameter sets the size: 0 width (full width) and 4 lines high.
             if (ImGui::BeginChild("ValidationLog", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 4), ImGuiChildFlags_Borders)) {
-                for (const auto& msg : ValidationErrorMessages) {
-                    // Use ImGui::TextWrapped for better display of long error messages
-                    ImGui::TextWrapped("- %s", msg.message.c_str());
-                }
+                //for (const auto& msg : ValidationErrorMessages) {
+                //    // Use ImGui::TextWrapped for better display of long error messages
+                //    //ImGui::TextWrapped("- %s", msg.message.c_str());
+                //}
                 // Crucially, ImGui::BeginChild creates a scrollable area if the content (ValidationErrorMessages) exceeds this fixed height.
                 ImGui::EndChild();
             }
-        }
+       
         ImGui::Separator();
     }
 
@@ -196,25 +178,17 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
     // The button takes up the remaining width (-1)
     if (ImGui::Button("Open File", ImVec2(-1, 0))) {
 
-		auto factory = SNIRFFactory();
+        auto snirf = CreateRef<SNIRF>();
+        std::vector<SNIRFError> errors;
+        if (!NIRS::LoadSNIRF(UserSelectedFilepath, *snirf, errors)) {
+            for (auto& e : errors)
+                NVIZ_ERROR("SNIRF load error: {}", e.message);
+        }
 
-		std::vector<SNIRFError> loadErrors;
-		SNIRF snirf;
-        auto success = factory.CreateSNIRF(snirf, SelectedType, std::filesystem::path(UserSelectedFilepath), loadErrors);
-
-        AssetManager::Register<SNIRF>("SNIRF", CreateRef<SNIRF>(snirf));
+        AssetManager::Register<SNIRF>("SNIRF", snirf);
 
 
         EventBus::Instance().Publish<OnSNIRFLoaded>({});
-
-        if (!IsValid || !CanValidate) { // We opened an invalid file, dont close window and show warning
-
-            ValidationErrorMessages.clear();
-            ValidationErrorMessages.push_back({ "", "File is invalid. Attempting to open..." });
-        }
-        else {
-            open = false; // We opened a valid file, close window afterwards
-        }
     }
 
     ImGui::PopStyleColor(3);

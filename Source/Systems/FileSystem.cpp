@@ -5,7 +5,10 @@
 #include "Core/AssetManager.h"
 #include "Core/AssetRegistry.h"
 
+#include "NIRS/SNIRFLoader.h"
 #include "NIRS/Snirf.h"
+#include "NIRS/SNIRFError.h"
+
 #include "Events/EventBus.h"
 
 #include <assimp/Importer.hpp>      // Main Assimp importer class
@@ -15,7 +18,16 @@
 
 void FileSystem::OnAttach()
 {
-	loaded_snirf_ = CreateRef<SNIRF>(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
+	SNIRF snirf = {};
+
+	std::vector<SNIRFError> errors;
+	if (!NIRS::LoadSNIRF(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"), snirf, errors)) {
+		for (auto& e : errors)
+			NVIZ_ERROR("SNIRF load error: {}", e.message);
+	}
+
+	loaded_snirf_ = CreateRef<SNIRF>(snirf);
+
 	AssetManager::Register<SNIRF>("SNIRF", loaded_snirf_);
 
 	snirf_loader_panel_ = new SNIRFFileLoaderPanel();
@@ -32,8 +44,8 @@ void FileSystem::RenderMenuBar()
 {
 	ImGui::PushID("FileSystemMenuBar");
 	if (ImGui::BeginMenu("File")) {
-		
-		if(ImGui::MenuItem("Open sNIRF")) {
+
+		if (ImGui::MenuItem("Open sNIRF")) {
 			snirf_loader_panel_open_ = true;
 		};
 
@@ -43,7 +55,7 @@ void FileSystem::RenderMenuBar()
 }
 
 void FileSystem::PostInit() {
-
+	// TODO : Remove this
 	EventBus::Instance().Publish<OnSNIRFLoaded>({});
 }
 
@@ -65,14 +77,24 @@ void FileSystem::UserLoadSNIRF()
 	std::string projectPath = std::string(filePath);
 	if (!projectPath.empty()) {
 
-		loaded_snirf_ = CreateRef<SNIRF>(std::filesystem::path(projectPath));
+		auto snirf = CreateRef<SNIRF>();
 
+		std::vector<SNIRFError> errors;
+		if (!NIRS::LoadSNIRF(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"), *snirf, errors)) {
+			for (auto& e : errors)
+				NVIZ_ERROR("SNIRF load error: {}", e.message);
+		}
+
+		loaded_snirf_ = snirf;
 		AssetManager::Register<SNIRF>("SNIRF", loaded_snirf_);
 		EventBus::Instance().Publish<OnSNIRFLoaded>({});
 	}
 }
 
 const Ref<SNIRF>& FileSystem::GetLoadedSNIRF() {
-	// TODO: insert return statement here
-	return AssetManager::Get<SNIRF>("SNIRF");
+	if (!loaded_snirf_) {
+		NVIZ_WARN("No SNIRF file loaded. Returning nullptr.");
+		return nullptr;
+	}
+	return loaded_snirf_;
 }

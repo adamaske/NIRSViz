@@ -13,6 +13,7 @@
 
 #include "NIRS/NIRS.h"
 #include "NIRS/Snirf.h"
+#include "NIRS/SNIRFProvider.h"
 
 #include "Core/Input.h"
 #include "Core/AssetRegistry.h"
@@ -43,19 +44,13 @@ void ProbeSystem::OnAttach() {
 	m_LineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.9f, 1.0f, 0.25f, 1.0f), 2.0f);
 	m_ProjLineRenderer3D = CreateRef<LineRenderer>(viewport_type_, glm::vec4(0.2f, 0.8f, 0.2f, 1.0f), 2.0f);
 
-
-	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
-		this->HandleSNIRFLoaded();
-
-	});
+	HandleSNIRFLoaded();
 }
 
-void ProbeSystem::OnDetach()
-{
+void ProbeSystem::OnDetach() {
 }
 
-void ProbeSystem::OnUpdate(DeltaTime dt)
-{
+void ProbeSystem::OnUpdate(DeltaTime dt) {
 
 	if (!m_InitalProjectionToCortex) { // TODO : Handle differently
 		ProjectChannelsToCortex();
@@ -63,6 +58,7 @@ void ProbeSystem::OnUpdate(DeltaTime dt)
 
 		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
+
 	auto mesh_scale = glm::vec3(probe_3D_transform_settings_.optode_mesh_scale);
 	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
 		for (auto& [id, pv] : source_visuals_) {
@@ -217,7 +213,7 @@ void ProbeSystem::Render3DProbeTransformControls(bool standalone)
 
 void ProbeSystem::HandleSNIRFLoaded()
 {
-	m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
+	m_SNIRF = snirf_provider_.GetLoadedSNIRF();
 
 	auto& snirf = *m_SNIRF.get();
 	

@@ -1,6 +1,6 @@
 #pragma once
-#include <filesystem>
 #include <string>
+#include <vector>
 
 namespace NIRS {
     namespace Metadata {
@@ -8,16 +8,12 @@ namespace NIRS {
         struct MetadataTag {
             std::string name;
             std::string value;
-
         };
+
         struct Metadata {
-            // TODO : Flexible parsing of the "MetaDataTags"
+            std::vector<MetadataTag> tags;
+
+            bool has_wings_generation = false;
         };
-
-        inline Metadata LoadMetadata(std::filesystem::path filepath) {
-            Metadata md;
-
-            return md;
-        }
     }
 }

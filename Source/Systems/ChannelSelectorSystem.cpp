@@ -25,8 +25,8 @@ namespace Utils {
 	}
 }
 
-void ChannelSelectorSystem::OnAttach()
-{
+inline bool initial_selection = false;
+void ChannelSelectorSystem::OnAttach() {
 	// Create OpenGL texture
 	glGenTextures(1, &texture_id_);
 	glBindTexture(GL_TEXTURE_2D, texture_id_);
@@ -36,7 +36,7 @@ void ChannelSelectorSystem::OnAttach()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 
-	auto snirf = AssetManager::Get<SNIRF>("SNIRF");
+	auto snirf = snirf_provider_.GetLoadedSNIRF();
 	channel_visuals_.clear();
 	selected_channels_.clear();
 
@@ -58,32 +58,20 @@ void ChannelSelectorSystem::OnAttach()
 		};
 	}
 
-	// Auto-fit the view
 	FitViewToData();
 
-	// Select all by default
+	// Select all channels by default
 	SelectAllChannels();
-	// Subscribe to SNIRF loaded event
 }
 
-void ChannelSelectorSystem::OnDetach()
-{
+void ChannelSelectorSystem::OnDetach() {
 	if (texture_id_) {
 		glDeleteTextures(1, &texture_id_);
 		texture_id_ = 0;
 	}
 }
 
-static bool initial_selection = false;
-void ChannelSelectorSystem::OnUpdate(DeltaTime dt)
-{
-	if (!initial_selection && !channels_.empty()) {
-		auto snrirf = snirf_provider_.GetLoadedSNIRF();
-
-		SelectAllChannels();
-		initial_selection = true;
-	}
-
+void ChannelSelectorSystem::OnUpdate(DeltaTime dt) {
 	// Render the scene to our pixel buffer
 	if(dirty_)
 		RenderToBuffer();
@@ -92,11 +80,20 @@ void ChannelSelectorSystem::OnUpdate(DeltaTime dt)
 	UpdateTexture();
 }
 
-void ChannelSelectorSystem::OnGUIRender()
-{
+void ChannelSelectorSystem::OnGUIRender() {
 	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_Once);
 	ImGui::Begin("Channel Selector 2D");
 
+	// Selection buttons
+	if (ImGui::Button("Select All")) SelectAllChannels();
+	ImGui::SameLine();
+	if (ImGui::Button("Clear Selection")) ClearSelection();
+	ImGui::SameLine();
+	ImGui::TextDisabled("CTRL + Click to multi-select: ");
+	ImGui::SameLine();
+	ImGui::Text("%s", (Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl)) ? "ON" : "OFF");
+
+	ImGui::Text("Selected Channels: %zu", selected_channels_.size());
 	// Settings panel
 	if (ImGui::CollapsingHeader("Settings")) {
 		ImGui::SliderInt("World Scale", &config_.settings.world_scale, 1.0, 200.0);
@@ -124,16 +121,6 @@ void ChannelSelectorSystem::OnGUIRender()
 		ImGui::ColorEdit4("Grid", (float*)&config_.settings.grid_color);
 		
 	}
-
-	// Selection buttons
-	if (ImGui::Button("Select All")) SelectAllChannels();
-	ImGui::SameLine();
-	if (ImGui::Button("Clear Selection")) ClearSelection();
-	ImGui::SameLine();
-	ImGui::TextDisabled("CTRL + Click to multi-select: ");
-	ImGui::SameLine();
-	ImGui::Text("%s", (Input::IsKeyPressed(Key::LeftControl) || Input::IsKeyPressed(Key::RightControl)) ? "ON" : "OFF");
-	ImGui::Text("Selected Channels: %zu", selected_channels_.size());
 
 	// Get viewport info
 	ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
@@ -438,41 +425,23 @@ void ChannelSelectorSystem::DrawThickLine(glm::vec2 start, glm::vec2 end, const 
 	}
 }
 
-// ============================================================================
-// COORDINATE TRANSFORMS
-// ============================================================================
-glm::vec2 ChannelSelectorSystem::WorldToScreen(const glm::vec2& worldPos) const
-{
-	// Apply zoom and pan
+glm::vec2 ChannelSelectorSystem::WorldToScreen(const glm::vec2& worldPos) const {
 	glm::vec2 viewPos = (worldPos - config_.view_center) * (float)config_.settings.world_scale * config_.zoom_level;
-
-	// Center in viewport
 	glm::vec2 screenPos = viewPos + glm::vec2(image_buffer_.Width / 2.0f, image_buffer_.Height / 2.0f);
-
-	// NO Y-FLIP HERE - ImGui UV coordinates already handle it
-	// The UV coords (0,1) to (1,0) in ImGui::Image flip Y for us
 
 	return screenPos + config_.pan_offset;
 }
 
 glm::vec2 ChannelSelectorSystem::ScreenToWorld(const glm::vec2& screenPos) const {
 	glm::vec2 flippedScreen = { screenPos.x, image_buffer_.Height - screenPos.y };
-
 	glm::vec2 adjustedScreen = flippedScreen - config_.pan_offset;
-
 	glm::vec2 viewPos = adjustedScreen - glm::vec2(image_buffer_.Width / 2.0f, image_buffer_.Height / 2.0f);
-
 	glm::vec2 worldPos = (viewPos / (config_.settings.world_scale * config_.zoom_level)) + config_.view_center;
 
 	return worldPos;
 }
 
-// ============================================================================
-// HIT TESTING
-// ============================================================================
-
-NIRS::Probe::ChannelID ChannelSelectorSystem::GetChannelAtPosition(const glm::vec2& world_pos)
-{
+NIRS::Probe::ChannelID ChannelSelectorSystem::GetChannelAtPosition(const glm::vec2& world_pos) {
 	float threshold = 0.5f / config_.zoom_level; // Adjust hit detection based on zoom
 
 	for (auto& [id, visual] : channel_visuals_) {
@@ -499,8 +468,7 @@ NIRS::Probe::ChannelID ChannelSelectorSystem::GetChannelAtPosition(const glm::ve
 	return -1; // No channel found
 }
 
-NIRS::Probe::OptodeID ChannelSelectorSystem::GetSourceAtPosition(const glm::vec2& world_pos)
-{
+NIRS::Probe::OptodeID ChannelSelectorSystem::GetSourceAtPosition(const glm::vec2& world_pos) {
 	float threshold = (config_.settings.source_radius / config_.settings.world_scale) / config_.zoom_level;
 
 	for (auto& [id, source] : sources_) {
@@ -515,8 +483,7 @@ NIRS::Probe::OptodeID ChannelSelectorSystem::GetSourceAtPosition(const glm::vec2
 	return -1;
 }
 
-NIRS::Probe::OptodeID ChannelSelectorSystem::GetDetectorAtPosition(const glm::vec2& world_pos)
-{
+NIRS::Probe::OptodeID ChannelSelectorSystem::GetDetectorAtPosition(const glm::vec2& world_pos) {
 	float threshold = (config_.settings.detector_radius / config_.settings.world_scale) / config_.zoom_level;
 
 	for (auto& [id, detector] : detectors_) {
@@ -531,12 +498,7 @@ NIRS::Probe::OptodeID ChannelSelectorSystem::GetDetectorAtPosition(const glm::ve
 	return -1;
 }
 
-// ============================================================================
-// VIEW MANAGEMENT
-// ============================================================================
-
-void ChannelSelectorSystem::FitViewToData()
-{
+void ChannelSelectorSystem::FitViewToData() {
 	if (sources_.empty() && detectors_.empty()) return;
 
 	glm::vec2 min, max;
@@ -563,8 +525,7 @@ void ChannelSelectorSystem::FitViewToData()
 	config_.pan_offset = { 0.0f, 0.0f };
 }
 
-void ChannelSelectorSystem::CalculateWorldBounds(glm::vec2& min, glm::vec2& max)
-{
+void ChannelSelectorSystem::CalculateWorldBounds(glm::vec2& min, glm::vec2& max) {
 	bool first = true;
 
 	for (auto& [id, source] : sources_) {
