@@ -25,6 +25,10 @@ static void GetTextureFormat(ImageFormat format, GLenum& internalFormat, GLenum&
         internalFormat = GL_RGBA32F;
         dataFormat = GL_RGBA;
         break;
+    case ImageFormat::R32F:
+        internalFormat = GL_R32F;
+        dataFormat = GL_RED;
+        break;
     default:
 		NVIZ_ERROR("UNSUPPORTED IMAGE FORMAT!");
         internalFormat = 0;

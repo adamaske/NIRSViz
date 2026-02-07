@@ -14,7 +14,7 @@ void MRISystem::OnAttach()
 	config.windowTitle = "MRI Viewport";
 	mri_viewport_ = CreateScope<Viewport3D>(config);
 
-	
+
 	// Load shaders
 	phong_shader_ = CreateRef<Shader>(
 		AssetRegistry::Get("Phong.vert"),
@@ -26,13 +26,15 @@ void MRISystem::OnAttach()
 		AssetRegistry::Get("FlatColor.frag")
 	);
 
-	slice_plane_shader_ = CreateRef<Shader>(
-		AssetRegistry::Get("SlicePlane.vert"),
-		AssetRegistry::Get("SlicePlane.frag")
-	);
+	//slice_plane_shader_ = CreateRef<Shader>(
+	//	AssetRegistry::Get("SlicePlane.vert"),
+	//	AssetRegistry::Get("SlicePlane.frag")
+	//);
 
 	LoadMRI(AssetRegistry::Get("sub-116_ses-BL_T1w.nii.gz"));
 
+	slice_viewer_ = CreateScope<NVMRI::MRISliceViewer>();
+	slice_viewer_->OnAttach(mri_image_.get());
 
 	// We need a cortex mesh
 	cortex_ = CreateScope<NIRS::Cortex>(AssetRegistry::Get("cortex_model.obj"));
@@ -43,6 +45,8 @@ void MRISystem::OnAttach()
 void MRISystem::OnUpdate(DeltaTime dt)
 {
 	mri_viewport_->OnUpdate(dt);
+
+	slice_viewer_->OnUpdate(dt);
 
 	// Render Cortex
 	if (cortex_->IsVisible()) {
@@ -57,13 +61,18 @@ void MRISystem::OnGUIRender()
 
 	ImGui::Begin("MRI Settings");
 
-	
+	// Metadata	
 	ImGui::SeparatorText("MRI Metadata");
 	RenderMRIMetadataPanel();
 
+	// Indepedent Slice Viewer
+	slice_viewer_->Render(false);
+
+	// Cortex
 	ImGui::SeparatorText("Cortex Anatomy");
 	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);
 
+	// Camera Settings
 	ImGui::SeparatorText("Camera Settings");
 	mri_viewport_->RenderCameraSettings(false);
 
@@ -193,9 +202,4 @@ void MRISystem::RenderMRIMetadataPanel() {
 	ImGui::Text("Total Voxels:");
 	ImGui::SameLine();
 	ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "%zu", img.GetVoxelCount());
-}
-
-void MRISystem::RenderSliceViewerPanel() {
-
-	
 }

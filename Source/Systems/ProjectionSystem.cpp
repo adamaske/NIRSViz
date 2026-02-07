@@ -18,10 +18,8 @@ void ProjectionSystem::OnAttach()
 {
 	// TODO : Fix the shader class such that I can have a reference of it. 
 	projection_shader_ = CreateRef<Shader>(
-		AssetRegistry::Get("Projection.vert"), 
+		AssetRegistry::Get("Projection.vert"),
 		AssetRegistry::Get("Projection.frag"));
-
-	SetupSubscriptions();
 
 	SetupCortexRendering();
 }
@@ -49,36 +47,20 @@ void ProjectionSystem::OnEvent(Event& event) {
 void ProjectionSystem::RenderMenuBar() {
 }
 
-void ProjectionSystem::SetupSubscriptions()
-{
-	auto& bus = EventBus::Instance();
-
-	//bus.Subscribe<OnUserStartProjectionCommand>([&](const OnUserStartProjectionCommand& e) {
-	//	StartProjection();
-	//	});
-
-	//bus.Subscribe<OnChannelsSelected>([&](const OnChannelsSelected& e) {
-	//	selected_channels_.clear();
-	//	for (const auto& id : e.selectedIDs) {
-	//		selected_channels_.insert(id);
-	//	}
-	//});
-}
-
 void ProjectionSystem::StartProjection()
 {
 	// Get Probe from probe provider
 	// auto probe = probe_provider_.GetProbe();
 
 	// TODO : Wrapp StartProjeciton in a bool so that service can be denied
-	projection_time_tag_provider_.StartProjection(wavelength_);
+	projection_time_tag_provider_.StartProjection(settings_.wavelength);
 
 	is_projecting_ = true;
 
 	SetupCortexRendering();
 
 	UpdateInfluenceMap();
-	
+
 	UpdateActivatedVertices();
 }
 
@@ -92,7 +74,7 @@ void ProjectionSystem::StopProjection()
 
 void ProjectionSystem::SetProjectionWavelength(const NIRS::Wavelength& wavelength)
 {
-	wavelength_ = wavelength;
+	settings_.wavelength = wavelength;
 }
 
 void ProjectionSystem::OnProjectionTimeChanged(size_t index, double actualTime)
@@ -139,14 +121,14 @@ void ProjectionSystem::UpdateActivatedVertices()
 	auto selected_channels = selected_channels_provider_.GetSelectedChannels();
 
 	std::unordered_map<NIRS::Probe::ChannelID, NIRS::Probe::ChannelValue> channels =
-		channel_data_provider_.GetChannelDataAtTimeIndex(wavelength_, settings_.time_index);
+		channel_data_provider_.GetChannelDataAtTimeIndex(settings_.wavelength, settings_.time_index);
 
-	for(auto& [channel_id, influenced_vertices] : influenced_vertices_) {
+	for (auto& [channel_id, influenced_vertices] : influenced_vertices_) {
 
 		// Ignore not selcetd chanels ? 
 		// selected_channels is a vector of ChannelID
-		for(auto& sel_channel_id : selected_channels) {
-			if(sel_channel_id == channel_id) {
+		for (auto& sel_channel_id : selected_channels) {
+			if (sel_channel_id == channel_id) {
 				// I want that distance = radius -> influence = 0, but if distance = 0, then infuelnce = 1
 				// is my equation correct?
 				double activation_strength = channels[channel_id];
@@ -170,7 +152,7 @@ void ProjectionSystem::UpdateActivatedVertices()
 			}
 		}
 
-		
+
 	}
 
 	cortex_vbo_->SetData(&projection_vertices[0], projection_vertices.size() * sizeof(ProjectionVertex));
@@ -187,10 +169,10 @@ void ProjectionSystem::SetupCortexRendering()
 
 	for (int i = 0; i < vertices.size(); i++)
 	{
-		projection_vertices_[i].position		= vertices[i].position;
-		projection_vertices_[i].normal			= vertices[i].normal;
-		projection_vertices_[i].tex				= vertices[i].tex_coords;
-		projection_vertices_[i].activity_level	= 0.0f;
+		projection_vertices_[i].position = vertices[i].position;
+		projection_vertices_[i].normal = vertices[i].normal;
+		projection_vertices_[i].tex = vertices[i].tex_coords;
+		projection_vertices_[i].activity_level = 0.0f;
 	}
 
 	zeroed_projection_vertices_ = projection_vertices_;
@@ -264,10 +246,10 @@ void ProjectionSystem::RenderProjectionCortex()
 
 void ProjectionSystem::RenderProjectionSettings(bool standalone)
 {
-	if(standalone) 		
+	if (standalone)
 		ImGui::Begin("Projection Settings");
 	else
-		if(!ImGui::CollapsingHeader("Projection Settings")) 
+		if (!ImGui::CollapsingHeader("Projection Settings"))
 			return;
 
 	{
@@ -276,8 +258,8 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 		ImVec4 im_button_color = ImVec4(buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
 
 		ImGui::PushStyleColor(ImGuiCol_Button, im_button_color);
-		if(ImGui::Button(buttonText)) {
-			if(is_projecting_)
+		if (ImGui::Button(buttonText)) {
+			if (is_projecting_)
 				StopProjection();
 			else
 				StartProjection();
@@ -286,7 +268,7 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 	}
 
 	ImGui::SameLine();
-	GUI::RenderWavelengthSelectorSingular(wavelength_);
+	GUI::RenderWavelengthSelectorSingular(settings_.wavelength);
 
 	// Set up a two-column layout. The string "SettingsColumns" is a unique ID for the column set.
 // The 'false' means the column width is not border-locked (no vertical separator line).
@@ -307,23 +289,23 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 	ImGui::PopItemWidth();
 	ImGui::NextColumn();
 
-	ImGui::Text("Falloff Power"); 
-	ImGui::NextColumn(); 
+	ImGui::Text("Falloff Power");
+	ImGui::NextColumn();
 	ImGui::DragFloat("##FalloffPower", &settings_.FalloffPower, 0.01f, 0.0f, 10.0f);
 	ImGui::NextColumn();
 
-	ImGui::Text("Radius"); 
-	ImGui::NextColumn(); 
-	if(ImGui::DragFloat("##Radius", &settings_.Radius, 0.1f, 0.1f, 10.0f))
+	ImGui::Text("Radius");
+	ImGui::NextColumn();
+	if (ImGui::DragFloat("##Radius", &settings_.Radius, 0.1f, 0.1f, 10.0f))
 		influence_radius_dirty_ = true;
 	ImGui::NextColumn();
 
-	ImGui::Text("Decay Power"); 
-	ImGui::NextColumn(); 
+	ImGui::Text("Decay Power");
+	ImGui::NextColumn();
 	ImGui::DragFloat("##DecayPower", &settings_.decay_constant, 0.1f, 0.1f, 20.0f);
 	ImGui::NextColumn();
 
-	ImGui::Text("Cortex Color"); 
+	ImGui::Text("Cortex Color");
 	ImGui::NextColumn();
 	ImGui::ColorEdit4("##CortexColor", &settings_.object_color[0]);
 	ImGui::NextColumn();
@@ -340,6 +322,6 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 		}
 	}
 
-	if (standalone) 
+	if (standalone)
 		ImGui::End();
 }

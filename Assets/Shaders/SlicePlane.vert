@@ -11,6 +11,7 @@ uniform mat4 u_Transform;
 
 void main()
 {
+    // Standard MVP transformation
     gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_Transform * vec4(a_Position, 1.0);
     v_TexCoord = a_TexCoord;
 }

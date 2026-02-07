@@ -14,22 +14,19 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 {
 	sInstance = this;
 	// Set working directory here// Check if the WorkingDirectory string is NOT empty.
-	if (!specification_.working_directory.empty())
+	if (specification_.working_directory.empty())
 	{
 		// If it's not empty, set the current path to the specified directory.
 		// Note: You might want to add error handling here in case the path is invalid.
-		std::filesystem::current_path(specification_.working_directory);
+		specification_.working_directory = std::string(spec.args.args[0]); // Default to the executable's directory
 	}
 	NVIZ_INFO("Application : {}", specification_.name);
-	NVIZ_INFO("\tWorking Directory : {}", specification_.working_directory.c_str());
+	NVIZ_INFO("\tWorking Directory : {}", specification_.working_directory);
 
-	// TODO :  Read args and set working directory from that instead of application specification. 
-	// This allows command line overrides without changing the code.
-	// Then we need when we press play there is some default working directory that contains the assets, and we can override that with command line args if we want.
-	bool override_working_dir = false; // Parse args instead for a --assets-dir= argument or something
-	auto default_working_dir = "../../../Assets";
-	AssetRegistry::Init( default_working_dir);
-
+	// Exe is in out/build/x64-debug — go up 3 levels to reach the project root
+	auto exe_dir = std::filesystem::path(specification_.working_directory).parent_path();
+	auto assets_path = exe_dir.parent_path().parent_path().parent_path() / "Assets";
+	AssetRegistry::Init(assets_path);
 
 	WindowSpecification window_spec;
 	window_spec.title = spec.name;

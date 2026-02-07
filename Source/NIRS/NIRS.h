@@ -76,6 +76,8 @@ namespace NIRS {
 
         glm::vec4 object_color = { 0.4f, 0.4f, 0.4f, 1.0f };
         float     ambient_strength = 0.4f;
+        
+		NIRS::Wavelength wavelength = NIRS::Wavelength::HBO;
     };
 };
 

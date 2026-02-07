@@ -4,15 +4,14 @@
 #include <string>
 #include <glad/glad.h>
 
-enum class ImageFormat
-{
+enum class ImageFormat {
 	None = 0,
 	R8,
+	R32F,    // Add this for MRI/Scalar data
 	RGB8,
 	RGBA8,
 	RGBA32F
 };
-
 struct TextureSpecification
 {
 	uint32_t Width = 1;
