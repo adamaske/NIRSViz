@@ -37,7 +37,7 @@ void MRISystem::OnAttach()
 	slice_viewer_->OnAttach(mri_image_.get());
 
 	// We need a cortex mesh
-	cortex_ = CreateScope<NIRS::Cortex>(AssetRegistry::Get("cortex_model.obj"));
+	cortex_ = CreateScope<NIRS::Cortex>(AssetRegistry::Get("sub-116_anat_low.obj"));
 
 	SetupCortexRendering();
 }

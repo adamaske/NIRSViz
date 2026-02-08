@@ -23,7 +23,7 @@ void AnatomySystem::OnAttach()
 	SetupRendering();
 
 	LoadHead(AssetRegistry::Get("head_model.obj"));
-	LoadCortex(AssetRegistry::Get("cortex_model.obj"));
+	LoadCortex(AssetRegistry::Get("sub-116_anat_low.obj"));
 }
 
 void AnatomySystem::OnDetach()
