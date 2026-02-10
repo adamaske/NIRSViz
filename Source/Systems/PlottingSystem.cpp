@@ -7,7 +7,6 @@
 #include <implot_internal.h>
 
 #include "Core/AssetManager.h"
-#include "Events/EventBus.h"
 
 #include "GUI/GUI.h"
 #include "Core/Application.h"
@@ -19,9 +18,11 @@
 void PlottingSystem::OnAttach()
 {
 	// Subscribe to SNIRF loaded event
-	EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
-		this->HandleSNIRFLoaded();
-		});
+	
+	// TODO : Implement answer to snirf_provider_
+	// This can be called only becasue I 
+	// KNOW that the filesystem loads this stuff immediatly.
+	HandleSNIRFLoaded();
 
 	plot_manager_.AddPlot<ChannelDataPlotter>();
 }
@@ -403,7 +404,7 @@ void PlottingSystem::HandleProjectionTagChanged(size_t index, double actual)
 
 void PlottingSystem::SetChannelValuesAtTimeIndex(int index)
 {
-	auto channelMap = m_SNIRF->GetChannels();
+	const auto& channelMap = m_SNIRF->GetChannels();
 	size_t time_index = static_cast<size_t>(index);
 
 	for (auto& [ID, channel] : channelMap) {

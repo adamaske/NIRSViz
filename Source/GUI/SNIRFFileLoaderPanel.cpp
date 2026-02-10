@@ -6,7 +6,6 @@
 #include <imgui.h>
 
 #include "Core/AssetManager.h"
-#include "Events/EventBus.h"
 
 
 #include "NIRS/Snirf.h"
@@ -186,9 +185,6 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
         }
 
         AssetManager::Register<SNIRF>("SNIRF", snirf);
-
-
-        EventBus::Instance().Publish<OnSNIRFLoaded>({});
     }
 
     ImGui::PopStyleColor(3);

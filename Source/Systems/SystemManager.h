@@ -6,8 +6,6 @@
 #include <vector>
 #include <algorithm>
 #include <memory>
-// TODO : What happends if two systems of the same type are added?
-// Should we allow that or prevent it?
 
 class SystemManager {
 public:

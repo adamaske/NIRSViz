@@ -8,7 +8,6 @@
 
 #include "GUI/GUI.h"
 
-#include "Events/EventBus.h"
 
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Texture.h"

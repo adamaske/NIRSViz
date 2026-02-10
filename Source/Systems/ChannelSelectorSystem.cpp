@@ -9,7 +9,6 @@
 #include "Core/AssetManager.h"
 #include "Events/MouseCodes.h"
 #include "Events/KeyCodes.h"
-#include "Events/EventBus.h"
 
 // OpenGL includes (adjust based on your setup)
 #include <glad/glad.h>

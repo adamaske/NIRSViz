@@ -16,8 +16,6 @@ public:
 	void OnGUIRender() override;
 	void RenderMenuBar() override;
 
-	void PostInit();
-
 	void UserLoadSNIRF();
 
 	virtual const Ref<SNIRF>& GetLoadedSNIRF() override;
@@ -25,7 +23,7 @@ public:
 private:
 	bool snirf_loader_panel_open_ = false;
 
-	SNIRFFileLoaderPanel* snirf_loader_panel_ = nullptr;
+	SNIRFFileLoaderPanel snirf_loader_panel_ = {};
 
 	Ref<SNIRF> loaded_snirf_ = nullptr;
 };

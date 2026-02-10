@@ -27,10 +27,11 @@ std::vector<glm::vec3> Anatomy::GetWorldSpaceVertexPositions() const
 	return world_space_vertices;
 }
 
-unsigned int Anatomy::FindClosestVertex(const glm::vec3& position) const
-{
+unsigned int Anatomy::FindClosestVertex(const glm::vec3& position) const {
+	
 	auto local_to_world = transform_.GetMatrix();
 	const auto& vertices = mesh_.geometry.vertices;
+
 	float minDistance = std::numeric_limits<float>::max();
 	unsigned int closestIndex = 0;
 	for (unsigned int i = 0; i < vertices.size(); i++) {
@@ -43,6 +44,7 @@ unsigned int Anatomy::FindClosestVertex(const glm::vec3& position) const
 			closestIndex = i;
 		}
 	}
+
 	return closestIndex;
 }
 

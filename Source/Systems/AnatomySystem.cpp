@@ -5,6 +5,7 @@
 
 #include <imgui.h>
 #include "GUI/GUI.h"
+#include "Core/FileDialogService.h"
 
 void AnatomySystem::OnAttach()
 {
@@ -80,41 +81,23 @@ void AnatomySystem::RenderMenuBar()
 
 
 		if (ImGui::MenuItem("Load Cortex")) {
-			// Open Editor Panel
-			char filePath[MAX_PATH] = "";
-			OPENFILENAMEA ofn;
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = filePath;
-			ofn.nMaxFile = sizeof(filePath);
-			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
-			ofn.nFilterIndex = 1;
-			ofn.lpstrInitialDir = NULL;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-			GetOpenFileNameA(&ofn);
-			std::string path(filePath);
-			LoadCortex(std::filesystem::path(path));
+			std::string path;
+			bool opened = FileDialogService::OpenFile(
+				FileDialogService::FILTER_MESH.name,
+				FileDialogService::FILTER_MESH.spec,
+				path);
+
+			if (opened) LoadCortex(path);
 		}
 
 		if (ImGui::MenuItem("Load Head")) {
-			// Open Editor Panel
+			std::string path;
+			bool opened = FileDialogService::OpenFile(
+				FileDialogService::FILTER_MESH.name,
+				FileDialogService::FILTER_MESH.spec,
+				path);
 
-			// Open Editor Panel
-			char filePath[MAX_PATH] = "";
-			OPENFILENAMEA ofn;
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = filePath;
-			ofn.nMaxFile = sizeof(filePath);
-			ofn.lpstrFilter = "OBJ Files (*.obj)\0*.obj\0All Files (*.*)\0*.*\0";
-			ofn.nFilterIndex = 1;
-			ofn.lpstrInitialDir = NULL;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-			GetOpenFileNameA(&ofn);
-			std::string path(filePath);
-			LoadHead(std::filesystem::path(path));
+			if (opened) LoadHead(path);
 		}
 
 		ImGui::EndMenu();

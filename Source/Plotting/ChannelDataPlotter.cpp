@@ -6,7 +6,6 @@
 #include <fmt/core.h>
 
 #include "Core/AssetManager.h"
-#include "Events/EventBus.h"
 
 ChannelDataPlotter::ChannelDataPlotter() {
     // Start with one empty plot
@@ -15,24 +14,24 @@ ChannelDataPlotter::ChannelDataPlotter() {
 
 void ChannelDataPlotter::OnAttach() {
     // Subscribe to SNIRF loaded event
-    EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
-        m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
-
-        // Reset all plots when new SNIRF is loaded
-        for (auto& plot : plot_data_) {
-            plot.selected_channels_.clear();
-            plot.need_axis_fit = true;
-        }
-    });
-
-    // Subscribe to channel selection events
-    EventBus::Instance().Subscribe<OnChannelsSelected>([this](const OnChannelsSelected& e) {
-        // Assign selected channels to the active plot
-        if (active_plot_index_ >= 0 && active_plot_index_ < plot_data_.size()) {
-            plot_data_[active_plot_index_].selected_channels_ = e.selectedIDs;
-            plot_data_[active_plot_index_].need_axis_fit = true;
-        }
-    });
+    //EventBus::Instance().Subscribe<OnSNIRFLoaded>([this](const OnSNIRFLoaded& e) {
+    //    m_SNIRF = AssetManager::Get<SNIRF>("SNIRF");
+    //
+    //    // Reset all plots when new SNIRF is loaded
+    //    for (auto& plot : plot_data_) {
+    //        plot.selected_channels_.clear();
+    //        plot.need_axis_fit = true;
+    //    }
+    //});
+    //
+    //// Subscribe to channel selection events
+    //EventBus::Instance().Subscribe<OnChannelsSelected>([this](const OnChannelsSelected& e) {
+    //    // Assign selected channels to the active plot
+    //    if (active_plot_index_ >= 0 && active_plot_index_ < plot_data_.size()) {
+    //        plot_data_[active_plot_index_].selected_channels_ = e.selectedIDs;
+    //        plot_data_[active_plot_index_].need_axis_fit = true;
+    //    }
+    //});
 }
 
 void ChannelDataPlotter::OnDetach() {

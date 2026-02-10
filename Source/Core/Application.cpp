@@ -2,24 +2,25 @@
 
 #include "Core/Application.h"
 #include "Core/AssetManager.h"
-#include "Events/EventBus.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/ViewportManager.h"
 #include <GLFW/glfw3.h>
 #include "Core/AssetRegistry.h"
 
+#include "Core/FileDialogService.h"
 
 Application* Application::sInstance = nullptr;
-Application::Application(const ApplicationSpecification& spec) : specification_(spec)
-{
+Application::Application(const ApplicationSpecification& spec) : specification_(spec) {
 	sInstance = this;
+
+
 	// Set working directory here// Check if the WorkingDirectory string is NOT empty.
-	if (specification_.working_directory.empty())
-	{
+	if (specification_.working_directory.empty()) {
 		// If it's not empty, set the current path to the specified directory.
 		// Note: You might want to add error handling here in case the path is invalid.
 		specification_.working_directory = std::string(spec.args.args[0]); // Default to the executable's directory
 	}
+
 	NVIZ_INFO("Application : {}", specification_.name);
 	NVIZ_INFO("\tWorking Directory : {}", specification_.working_directory);
 
@@ -27,7 +28,9 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto exe_dir = std::filesystem::path(specification_.working_directory).parent_path();
 	auto assets_path = exe_dir.parent_path().parent_path().parent_path() / "Assets";
 	AssetRegistry::Init(assets_path);
-
+	
+	FileDialogService::Init();
+	
 	WindowSpecification window_spec;
 	window_spec.title = spec.name;
 	window_spec.width = 1280;
@@ -37,10 +40,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	window_ = CreateRef<Window>(window_spec);
 	window_->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
-
-	EventBus::Instance().Subscribe<ExitApplicationCommand>([this](const ExitApplicationCommand& cmd) {
-		this->Close();
-		});
 
 	Renderer::Init();
 	ViewportManager::Init();
@@ -73,10 +72,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 
-	// TODO : Systems should have an optional dependency list 
-	// that the system manager can use to automatically order initialization and update calls. 
-	// For now we just call post init manually in the right order.
-	system_manager_.GetSystem<FileSystem>()->PostInit();
+	// TODO : We need some way to call application-> close globally. 
 }
 
 Application::~Application()

@@ -2,8 +2,6 @@
 
 #include "App/Controllers/CoordinateSystemController.h"
 
-#include "Events/EventBus.h"
-
 namespace App {
 
 	CoordinateSystemController::CoordinateSystemController(IAnatomyProvider &anatomy_provider) :
@@ -31,9 +29,6 @@ namespace App {
 	    m_CoordinateSystem.SetGenerated(true);
 
 		Generate1010SystemBasedOn1020System();
-
-		EventBus::Instance().Publish<OnCoordinateSystemGenerated>({});
-
 
 		for (auto& landmark : m_CoordinateSystem.GetLandmarks().GetAllLandmarks()) {
 

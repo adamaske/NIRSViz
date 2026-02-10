@@ -1,8 +1,6 @@
 #include "pch.h"
 #include "Core/Application.h"
 
-#include <windows.h>
-
 int main(int argc, char** argv){
 	Log::Init();
 	

@@ -19,7 +19,6 @@
 #include "Core/AssetRegistry.h"
 #include "App/Data/Raycast.h"
 
-#include "Events/EventBus.h"
 #include "GUI/GUI.h"
 
 namespace Utils {
@@ -56,7 +55,6 @@ void ProbeSystem::OnUpdate(DeltaTime dt) {
 		ProjectChannelsToCortex();
 		m_InitalProjectionToCortex = true;
 
-		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
 
 	auto mesh_scale = glm::vec3(probe_3D_transform_settings_.optode_mesh_scale);
@@ -100,8 +98,6 @@ void ProbeSystem::OnGUIRender()
 	
 	if (ImGui::Button("Project To Cortex")) {
 		ProjectChannelsToCortex();
-
-		EventBus::Instance().Publish<OnChannelIntersectionsUpdated>({});
 	}
 
 	ImGui::TextDisabled("Render Settings");

@@ -7,8 +7,7 @@ RendererData Renderer::sRendererData = {};
 Framebuffer* Renderer::sCurrentBoundFBO = nullptr;
 Camera* Renderer::sCurrentBoundCamera = nullptr;
 
-void Renderer::Init()
-{
+void Renderer::Init() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_DEPTH_TEST);
@@ -17,23 +16,20 @@ void Renderer::Init()
 	glEnable(GL_PROGRAM_POINT_SIZE); // Allows Vertex Shader to set gl_PointSize
 }
 
-void Renderer::Shutdown()
-{
+void Renderer::Shutdown() {
+
 }
 
-
-void Renderer::BeginScene()
-{
+void Renderer::BeginScene() {
 	sRendererData.CommandQueue.clear();
 	//sRendererData.ActiveViews.clear();
 }
 
-void Renderer::EndScene()
-{
+void Renderer::EndScene() {
+
 }
  
-void Renderer::ExecuteQueue()
-{
+void Renderer::ExecuteQueue() {
 	if (sRendererData.CommandQueue.empty()) {
 		return;
 	}
@@ -156,49 +152,42 @@ void Renderer::ExecuteQueue()
 			glBindTexture(GL_TEXTURE_1D, 0);
 		}
 	}
+
 	sCurrentBoundFBO->Unbind();
 }
 
-void Renderer::Submit(const RenderCommand& command)
-{
+void Renderer::Submit(const RenderCommand& command) {
 	sRendererData.CommandQueue.push_back(command);
 }
 
-void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewportType view, DrawMode mode)
-{
+void Renderer::Submit(Shader& shader, VertexArray& va, const glm::mat4& transform, ViewportType view, DrawMode mode) {
 	sRendererData.CommandQueue.push_back(RenderCommand{ &shader, &va, transform, view,  mode});
 }
 
-void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount)
-{
+void Renderer::DrawIndexed(const VertexArray* vertexArray, uint32_t indexCount) {
 	vertexArray->Bind();
 	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(vertexArray->GetIndexBuffer()->GetCount()), GL_UNSIGNED_INT, 0);
 	vertexArray->Unbind();
 }
 
-void Renderer::DrawIndexedInstanced(const VertexArray* vertexArray, uint32_t instanceCount, uint32_t indexCount)
-{
+void Renderer::DrawIndexedInstanced(const VertexArray* vertexArray, uint32_t instanceCount, uint32_t indexCount) {
 	vertexArray->Bind();
 	uint32_t count = indexCount == 0 ? vertexArray->GetIndexBuffer()->GetCount() : indexCount;
 	glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(count), GL_UNSIGNED_INT, 0, static_cast<GLsizei>(instanceCount));
 	vertexArray->Unbind();
 }
 
-void Renderer::DrawLines(const VertexArray* vertexArray, uint32_t vertexCount)
-{
+void Renderer::DrawLines(const VertexArray* vertexArray, uint32_t vertexCount) {
 	vertexArray->Bind();
 	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
 }
 
-void Renderer::DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount)
-{
+void Renderer::DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount) {
 	vertexArray->Bind();
 	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
 }
 
-void Renderer::DrawPoints(const VertexArray* vertexArray, uint32_t vertexCount)
-{
-	NVIZ_INFO("DRAW POINTS CALLED WITH VERTEX COUNT: {0}", vertexArray->GetVertexCount());
+void Renderer::DrawPoints(const VertexArray* vertexArray, uint32_t vertexCount) {
 	vertexArray->Bind();
 	glDrawArrays(GL_POINTS, 0, vertexArray->GetVertexCount());
 }

@@ -225,7 +225,8 @@ namespace NIRS {
         auto ts_ds = data1.getDataSet("dataTimeSeries");
         auto dims = ts_ds.getDimensions();
 
-        NVIZ_INFO("       Reading dataTimeSeries: {} timepoints x {} measurements",
+        // We need to verify dims elns 
+        NVIZ_INFO("      Reading dataTimeSeries: {} timepoints x {} measurements",
             dims[0], dims[1]);
 
         std::vector<double> raw(dims[0] * dims[1]);

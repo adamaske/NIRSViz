@@ -2,7 +2,16 @@
 #include <memory>
 
 #define NVIZ_ENABLE_ASSERTS
+
+#if defined(_MSC_VER)
 #define NVIZ_DEBUGBREAK() __debugbreak()
+#elif defined(__clang__) || defined(__GNUC__)
+#define NVIZ_DEBUGBREAK() __builtin_trap()
+#else
+// Fallback for other compilers
+#include <cstdlib>
+#define NVIZ_DEBUGBREAK() std::abort()
+#endif
 
 #define NVIZ_EXPAND_MACRO(x) x
 #define NVIZ_STRINGIFY_MACRO(x) #x

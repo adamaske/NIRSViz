@@ -6,6 +6,9 @@
 #include <imgui.h>
 #include "GUI/GUI.h"
 
+#include "Core/FileDialogService.h"
+
+
 void MRISystem::OnAttach()
 {
 	// Setup MRI Viewport
@@ -85,22 +88,14 @@ void MRISystem::RenderMenuBar()
 	if (ImGui::BeginMenu("Anatomy")) {
 
 		if (ImGui::MenuItem("Load MRI (.nii.gz)")) {
-			// Open Editor Panel
-			char filePath[MAX_PATH] = "";
-			OPENFILENAMEA ofn;
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = filePath;
-			ofn.nMaxFile = sizeof(filePath);
-			ofn.lpstrFilter = "NIfTI Files (*.nii;*.nii.gz)\0*.nii;*.nii.gz\0All Files (*.*)\0*.*\0";
-			ofn.nFilterIndex = 1;
-			ofn.lpstrInitialDir = NULL;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-			GetOpenFileNameA(&ofn);
 
-			
-			LoadMRI(filePath);
+			std::string path;
+			if (FileDialogService::OpenFile(
+				FileDialogService::FILTER_NIFTI.name,
+				FileDialogService::FILTER_NIFTI.spec,
+				path));
+				
+			LoadMRI(path);
 		};
 
 		ImGui::EndMenu();
@@ -116,7 +111,7 @@ bool MRISystem::LoadMRI(const std::filesystem::path& path)
 	}
 
 	// Check path exists
-	if(!std::filesystem::exists(path)){
+	if (!std::filesystem::exists(path)) {
 		NVIZ_ERROR("MRI Image path does not exist: {}", path.string());
 		return false;
 	}
@@ -175,7 +170,7 @@ void MRISystem::RenderMRIMetadataPanel() {
 		ImGui::TextDisabled("No MRI image loaded");
 		return;
 	}
-	
+
 	if (!ImGui::CollapsingHeader("File Information")) return;
 
 	const auto& img = *mri_image_;
