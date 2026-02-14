@@ -50,7 +50,7 @@ private:
 	void RenderLandmarks();
 
 	Scope<LineRenderer> ray_renderer_;
-	bool draw_rays_ = true;
+	bool draw_rays_ = false;
 	void RenderRaySettings();
 	
 	Scope<LineRenderer> path_renderer_;
@@ -58,7 +58,7 @@ private:
 	void RenderPathSettings();
 
 	Scope<PointRenderer> waypoint_renderer_;
-	bool draw_waypoints_ = true;
+	bool draw_waypoints_ = false;
 	void RenderWaypointSettings();
 
 	friend class AnatomySystem;

@@ -2,22 +2,24 @@
 
 #include "Systems/System.h"
 
-#include "MRI/MRIImage.h"
-#include "MRI/MRISliceViewer.h"
-
 #include "Renderer/Viewport/Viewport3D.h"
 
 #include "NIRS/Anatomy/Cortex.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Shader.h"
 
+#include "MRI/MRISliceViewer.h"
 class AnatomyService;
+namespace NVMRI {
+	class MRIImage;
+	class MRIVolumetricImage;
+}
 
 class MRISystem : public System {
 
 public:
 	MRISystem() = default;
-	~MRISystem() = default;
+	~MRISystem() {};
 
 	void OnAttach() override;
 	void OnUpdate(DeltaTime dt) override;
@@ -34,6 +36,7 @@ private:
 
 	// MRI data
 	Ref<NVMRI::MRIImage> mri_image_;
+	Ref<NVMRI::MRIVolumetricImage> volumetric_image_;
 	Scope<Viewport3D> mri_viewport_;
 
 	// GUI panels

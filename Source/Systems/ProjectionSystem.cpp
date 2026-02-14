@@ -53,7 +53,7 @@ void ProjectionSystem::StartProjection()
 
 	// TODO : Wrapp StartProjeciton in a bool so that service can be denied
 	projection_time_tag_provider_.StartProjection(settings_.wavelength);
-
+	anatomy_provider_.GetCortexMutable().SetVisible(false);
 	is_projecting_ = true;
 
 	SetupCortexRendering();
@@ -67,6 +67,7 @@ void ProjectionSystem::StopProjection()
 {
 	is_projecting_ = false;
 
+	anatomy_provider_.GetCortexMutable().SetVisible(true);
 	// Shutdown logic
 	//EventBus::Instance().Publish<OnStopProjection>({});
 }

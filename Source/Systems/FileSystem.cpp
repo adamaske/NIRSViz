@@ -13,7 +13,7 @@
 #include <assimp/scene.h>           // The Assimp scene structure
 #include <assimp/postprocess.h>     // Post-processing flags
 
-#include "Core/FileDialogService.h"
+#include "Services/FileDialogService.h"
 
 void FileSystem::OnAttach() {
 	snirf_loader_panel_ = SNIRFFileLoaderPanel();

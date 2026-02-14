@@ -1,6 +1,6 @@
 ﻿#include "SNIRFService.h"
 
-#include "Core/FileDialogService.h"
+#include "Services/FileDialogService.h"
 #include "Core/AssetRegistry.h"
 #include "NIRS/SNIRFLoader.h"
 

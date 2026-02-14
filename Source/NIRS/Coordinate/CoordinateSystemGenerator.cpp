@@ -107,11 +107,10 @@ void CoordinateSystemGenerator::RenderCoordinateSystem()
 {
 	
 
-	if(draw_landmarks_) landmark_renderer_->Draw();
+	if (draw_landmarks_) landmark_renderer_->Draw();
 	if (draw_rays_) ray_renderer_->Draw();
 	if (draw_paths_) path_renderer_->Draw();
 	if (draw_waypoints_) waypoint_renderer_->Draw();
-
 	if (draw_manual_landmarks_)
 		manual_landmark_editor_->RenderManualLandmarks();
 

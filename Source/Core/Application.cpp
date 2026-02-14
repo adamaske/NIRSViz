@@ -7,7 +7,7 @@
 #include <GLFW/glfw3.h>
 #include "Core/AssetRegistry.h"
 
-#include "Core/FileDialogService.h"
+#include "Services/FileDialogService.h"
 
 #include "Services/SNIRFService.h"
 #include "Services/AnatomyService.h"
@@ -113,7 +113,7 @@ void Application::Run()
 			window_->OnUpdate(delta_time);
 
 			Renderer::BeginScene();
-
+			
 			for (auto& system : system_manager_)
 				system->OnUpdate(delta_time);
 

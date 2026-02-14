@@ -27,8 +27,13 @@ struct Slice {
 
 namespace NVMRI {
 
+
+
 	class MRISliceViewer {
 	public:
+		MRISliceViewer() {};
+		~MRISliceViewer() {};
+
 		void OnAttach(NVMRI::MRIImage* mri_image);
 		void OnUpdate(DeltaTime dt);
 		void Render(bool standalone);

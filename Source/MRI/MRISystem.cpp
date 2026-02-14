@@ -6,10 +6,14 @@
 #include <imgui.h>
 #include "GUI/GUI.h"
 
-#include "Core/FileDialogService.h"
+#include "Services/FileDialogService.h"
 
 #include "Services/SessionService.h"
 #include "Services/AnatomyService.h"
+
+#include "MRI/MRIVolumetricImage.h"
+#include "MRI/MRIImage.h"
+
 
 void MRISystem::OnAttach()
 {
@@ -42,6 +46,10 @@ void MRISystem::OnAttach()
 
 	slice_viewer_ = CreateScope<NVMRI::MRISliceViewer>();
 	slice_viewer_->OnAttach(mri_image_.get());
+
+	// Create a Volumetric Rendering Component and pass the MRI image to it.
+	volumetric_image_ = CreateRef<NVMRI::MRIVolumetricImage>();
+ 
 }
 
 void MRISystem::OnUpdate(DeltaTime dt)
@@ -49,6 +57,8 @@ void MRISystem::OnUpdate(DeltaTime dt)
 	mri_viewport_->OnUpdate(dt);
 
 	slice_viewer_->OnUpdate(dt);
+
+	volumetric_image_->OnUpdate(dt);
 }
 
 void MRISystem::OnGUIRender()
@@ -63,6 +73,7 @@ void MRISystem::OnGUIRender()
 
 	// Volumetric Rendering Settings
 	ImGui::SeparatorText("Volumetric Rendering");
+	volumetric_image_->RenderGUI(false);
 	// TODO : Move these to a dedicated Volumetric Rendering Settings panel
 
 	// Indepedent Slice Viewer

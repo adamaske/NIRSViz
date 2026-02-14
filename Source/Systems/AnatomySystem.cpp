@@ -7,7 +7,7 @@
 
 #include <imgui.h>
 #include "GUI/GUI.h"
-#include "Core/FileDialogService.h"
+#include "Services/FileDialogService.h"
 
 void AnatomySystem::OnAttach() {
 
@@ -19,8 +19,12 @@ void AnatomySystem::OnAttach() {
 	config.type = ViewportType::AnatomyViewport;
 	config.windowTitle = "Anatomy Viewport";
 	anatomy_viewport_ = CreateScope<Viewport3D>(config);
+	anatomy_viewport_->SetCameraMode(CameraMode::ORBIT);
+	anatomy_viewport_->GetActiveCamera()->SetOrthographic(true);
 
 	SetupRendering();
+	
+	GenerateCoordinateSystem();
 }
 
 void AnatomySystem::OnDetach() {
