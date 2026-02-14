@@ -26,8 +26,8 @@ public:
 		CameraMode initialCameraMode = CameraMode::ROAM;
 
 		// Initial camera settings
-		glm::vec3 initialPosition = { -14.0f, 5.0f, -15.0f };
-		float initialYaw = 50.0f;
+		glm::vec3 initialPosition = { 14.0f, 5.0f, 15.0f };
+		float initialYaw = 230.0f;
 		float initialPitch = -15.0f;
 		float initialOrbitRadius = 20.0f;
 	};

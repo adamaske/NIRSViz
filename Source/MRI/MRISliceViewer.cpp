@@ -156,7 +156,7 @@ namespace NVMRI {
 		cmd.VAOPtr = plane_vao_.get();
 		cmd.ShaderPtr = slice_shader_.get();
 		cmd.Transform = slice.transform.GetMatrix();
-		cmd.target_viewport = ViewportType::MRIViewport;
+		cmd.target_viewport = ViewportType::AnatomyViewport;
 
 		cmd.TextureBindings.push_back({ slice.texture->GetRendererID(), 0, nullptr });
 

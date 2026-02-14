@@ -5,6 +5,10 @@
 #include "Events/ApplicationEvent.h"
 #include "Systems/SystemManager.h"
 
+class SNIRFService;
+class AnatomyService;
+class SessionService;
+
 struct ApplicationCommandLineArgs
 {
 
@@ -74,6 +78,10 @@ private:
 	SystemManager system_manager_;
 
 	ImGuiSystem* gui_system_ = nullptr;
+
+	Ref<SNIRFService> snirf_service_;
+	Ref<AnatomyService> anatomy_service_;
+	Ref<SessionService> session_service_;
 
 	friend class ControlPanel; // For now let control panel access application settings directly
 };

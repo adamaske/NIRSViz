@@ -36,18 +36,20 @@ public:
 	void Shutdown();
 
 	void OnUpdate(float dt);
-	unsigned int GetWidth() const { return m_Data.width; }
-	unsigned int GetHeight() const { return m_Data.height; }
+	unsigned int GetWidth() const { return data_.width; }
+	unsigned int GetHeight() const { return data_.height; }
 
-	void SetEventCallback(const EventCallbackFn& callback) { m_Data.EventCallback = callback; }
+	void SetEventCallback(const EventCallbackFn& callback) { data_.EventCallback = callback; }
 	void SetVSync(bool enabled);
-	bool IsVSync() const { return m_Data.vsync; }
+	bool IsVSync() const { return data_.vsync; }
 
-	GLFWwindow* GetNativeWindow() { return m_Window; }
+	bool Maximize();
+
+	GLFWwindow* GetNativeWindow() { return window_; }
 
 private:
-	GLFWwindow* m_Window = nullptr;
-	WindowData m_Data;
-	Scope<GraphicsContext> m_Context;
+	GLFWwindow* window_ = nullptr;
+	WindowData data_;
+	Scope<GraphicsContext> context_;
 
 };

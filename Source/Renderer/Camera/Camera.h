@@ -44,7 +44,47 @@ public:
 
 	float GetAspectRatio() const { return m_AspectRatio; };
 	float GetFOV() const { return m_FOV; };
+
+	// ── Orthographic Projection ──────────────────────────────
+
+	/// Toggle between perspective and orthographic projection.
+	void SetOrthographic(bool ortho) {
+		if (m_Orthographic == ortho) return;
+		m_Orthographic = ortho;
+		UpdateProjectionMatrix();
+	}
+
+	bool IsOrthographic() const { return m_Orthographic; }
+
+	/// Zoom level for orthographic mode. Controls the visible
+	/// vertical half-extent in world units.  Horizontal extent
+	/// is derived from the aspect ratio automatically.
+	void SetOrthoZoom(float zoom) {
+		m_OrthoZoom = zoom;
+		if (m_Orthographic) UpdateProjectionMatrix();
+	}
+
+	float GetOrthoZoom() const { return m_OrthoZoom; }
+	float& GetOrthoZoomRef() { return m_OrthoZoom; }
+
 protected:
+
+	/// Subclasses call this from UpdateProjectionMatrix() to get
+	/// the correct matrix for the current projection mode.
+	/// Returns true if orthographic was applied (caller can skip
+	/// its own perspective computation).
+	bool ApplyProjectionMatrix() {
+		if (m_Orthographic) {
+			float left   = -m_AspectRatio * m_OrthoZoom;
+			float right  =  m_AspectRatio * m_OrthoZoom;
+			float bottom = -m_OrthoZoom;
+			float top    =  m_OrthoZoom;
+			m_ProjectionMatrix = glm::ortho(left, right, bottom, top, m_NearClip, m_FarClip);
+			return true;
+		}
+		return false;
+	}
+
 	glm::mat4 m_ViewMatrix = glm::mat4(1.0f);
 	glm::mat4 m_ProjectionMatrix = glm::mat4(1.0f);
 
@@ -61,4 +101,7 @@ protected:
 	glm::vec3 front = WORLD_FORWARD;
 	glm::vec3 up = WORLD_UP;
 	glm::vec3 right = WORLD_RIGHT;
+
+	bool  m_Orthographic = false;
+	float m_OrthoZoom    = 10.0f;
 };

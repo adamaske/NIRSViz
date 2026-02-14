@@ -9,16 +9,17 @@
 
 #include "Core/FileDialogService.h"
 
+#include "Services/SNIRFService.h"
+#include "Services/AnatomyService.h"
+#include "Services/SessionService.h"
+
 Application* Application::sInstance = nullptr;
 Application::Application(const ApplicationSpecification& spec) : specification_(spec) {
 	sInstance = this;
 
-
-	// Set working directory here// Check if the WorkingDirectory string is NOT empty.
+	// Default to the executable's directory
 	if (specification_.working_directory.empty()) {
-		// If it's not empty, set the current path to the specified directory.
-		// Note: You might want to add error handling here in case the path is invalid.
-		specification_.working_directory = std::string(spec.args.args[0]); // Default to the executable's directory
+		specification_.working_directory = std::string(spec.args.args[0]); 
 	}
 
 	NVIZ_INFO("Application : {}", specification_.name);
@@ -40,39 +41,58 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 
 	window_ = CreateRef<Window>(window_spec);
 	window_->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
+	window_->Maximize();
 
 	Renderer::Init();
 	ViewportManager::Init();
 
+	// --- Serives
+	snirf_service_ = CreateRef<SNIRFService>();
+	snirf_service_->Load(
+		AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
+
+	anatomy_service_ = CreateRef<AnatomyService>();
+	anatomy_service_->LoadHead(
+		AssetRegistry::Get("head_model.obj"));
+	anatomy_service_->LoadCortex(
+		AssetRegistry::Get("sub-116_anat_low.obj"));
+
+	session_service_ = CreateRef<SessionService>(
+						*snirf_service_, *anatomy_service_);
+
 	// --- Systems
 	gui_system_ = system_manager_.AddSystem<ImGuiSystem>();
 	auto file_system = system_manager_.AddSystem<FileSystem>();
-	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>(*file_system);
+	auto channel_selector = system_manager_.AddSystem<ChannelSelectorSystem>(*snirf_service_);
+
 	auto plotting_system = system_manager_.AddSystem<PlottingSystem>(
 		*channel_selector, 
-		*file_system);
-	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>();
+		*snirf_service_);
+	auto anatomy_system = system_manager_.AddSystem<AnatomySystem>(*anatomy_service_);
+
 	auto probe_system = system_manager_.AddSystem<ProbeSystem>(
-		*anatomy_system, 
-		*file_system);
+		*anatomy_service_,
+		*snirf_service_);
+
 	auto voxel_system = system_manager_.AddSystem<VoxelSystem>();
 	
 	// Projection System - pass systems directly, they'll upcast automatically
 	auto projection_system = system_manager_.AddSystem<ProjectionSystem>(
-		*anatomy_system,   
+		*anatomy_service_,
 		*channel_selector, 
 		*plotting_system,  
 		*plotting_system,
 		*probe_system);    
 	
-	auto biosingal_system = system_manager_.AddSystem<BiosignalPlottingSystem>(*file_system);
+	auto biosingal_system = system_manager_.AddSystem<BiosignalPlottingSystem>(*snirf_service_);
 	auto control_panel_system_ = system_manager_.AddSystem<ControlPanelSystem>(*this);
 	auto mri_system = system_manager_.AddSystem<MRISystem>();
 
 	// Register
 	plotting_system->RegisterProjectionTimeSubscriber(projection_system);
 
-	// TODO : We need some way to call application-> close globally. 
+	// TODO : We need some way to call application-> close globally.
+	// 
 }
 
 Application::~Application()

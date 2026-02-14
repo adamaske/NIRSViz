@@ -56,6 +56,18 @@ void OrbitCamera::OnImGuiRender(bool standalone)
 
         if (i % 3 != 0) ImGui::SameLine();
     }
+
+    // ── Orthographic toggle ──────────────────────────────────
+    bool ortho = IsOrthographic();
+    if (ImGui::Checkbox("Orthographic", &ortho)) {
+        SetOrthographic(ortho);
+    }
+    if (ortho) {
+        if (ImGui::SliderFloat("Ortho Zoom", &GetOrthoZoomRef(), 0.1f, 200.0f)) {
+            UpdateProjectionMatrix();
+        }
+    }
+
     if (standalone) ImGui::End();
 }
 
@@ -66,6 +78,9 @@ void OrbitCamera::UpdateViewMatrix()
 
 void OrbitCamera::UpdateProjectionMatrix()
 {
+    // ApplyProjectionMatrix() handles orthographic; returns true if applied.
+    if (ApplyProjectionMatrix()) return;
+
     m_ProjectionMatrix = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
 }
 

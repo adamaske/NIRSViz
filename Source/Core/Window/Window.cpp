@@ -8,6 +8,8 @@
 
 #include <GLFW/glfw3.h>
 
+
+
 static uint8_t s_GLFWWindowCount = 0;
 
 static void GLFWErrorCallback(int error, const char* description)
@@ -17,10 +19,10 @@ static void GLFWErrorCallback(int error, const char* description)
 
 Window::Window(const WindowSpecification& spec)
 {
-	m_Data.title = spec.title;
-	m_Data.width = spec.width;
-	m_Data.height = spec.height;
-	m_Data.vsync = spec.vsync;
+	data_.title = spec.title;
+	data_.width = spec.width;
+	data_.height = spec.height;
+	data_.vsync = spec.vsync;
 	
 
 	if(s_GLFWWindowCount == 0)
@@ -31,19 +33,19 @@ Window::Window(const WindowSpecification& spec)
 		glfwSetErrorCallback(GLFWErrorCallback);
 	}
 
-	m_Window = glfwCreateWindow((int)m_Data.width, (int)m_Data.height, m_Data.title.c_str(), nullptr, nullptr);
+	window_ = glfwCreateWindow((int)data_.width, (int)data_.height, data_.title.c_str(), nullptr, nullptr);
 	++s_GLFWWindowCount;
 
-	m_Context = CreateScope<GraphicsContext>(m_Window);
-	m_Context->Init();
+	context_ = CreateScope<GraphicsContext>(window_);
+	context_->Init();
 
-	glfwSetWindowUserPointer(m_Window, &m_Data);
+	glfwSetWindowUserPointer(window_, &data_);
 	SetVSync(true);
 
 
-	//glfwMaximizeWindow(m_Window);
+	//glfwMaximizeWindow(window_);
 
-	glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height)
+	glfwSetWindowSizeCallback(window_, [](GLFWwindow* window, int width, int height)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 			data.width = width;
@@ -53,14 +55,14 @@ Window::Window(const WindowSpecification& spec)
 			data.EventCallback(event);
 		});
 
-	glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window)
+	glfwSetWindowCloseCallback(window_, [](GLFWwindow* window)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 			WindowCloseEvent event;
 			data.EventCallback(event);
 		});
 
-	glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+	glfwSetKeyCallback(window_, [](GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
@@ -87,7 +89,7 @@ Window::Window(const WindowSpecification& spec)
 			}
 		});
 
-	glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int keycode)
+	glfwSetCharCallback(window_, [](GLFWwindow* window, unsigned int keycode)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
@@ -95,7 +97,7 @@ Window::Window(const WindowSpecification& spec)
 			data.EventCallback(event);
 		});
 
-	glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods)
+	glfwSetMouseButtonCallback(window_, [](GLFWwindow* window, int button, int action, int mods)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
@@ -116,7 +118,7 @@ Window::Window(const WindowSpecification& spec)
 			}
 		});
 
-	glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset)
+	glfwSetScrollCallback(window_, [](GLFWwindow* window, double xOffset, double yOffset)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
@@ -125,7 +127,7 @@ Window::Window(const WindowSpecification& spec)
 
 		});
 
-	glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)
+	glfwSetCursorPosCallback(window_, [](GLFWwindow* window, double xPos, double yPos)
 		{
 			WindowData& data = *(WindowData*)glfwGetWindowUserPointer(window);
 
@@ -141,7 +143,7 @@ Window::~Window()
 
 void Window::Shutdown()
 {
-	glfwDestroyWindow(m_Window);
+	glfwDestroyWindow(window_);
 	--s_GLFWWindowCount;
 
 	if (s_GLFWWindowCount == 0)
@@ -154,7 +156,7 @@ void Window::Shutdown()
 void Window::OnUpdate(float dt)
 {
 	glfwPollEvents();
-	m_Context->SwapBuffers();
+	context_->SwapBuffers();
 }
 
 
@@ -165,5 +167,10 @@ void Window::SetVSync(bool enabled)
 	else
 		glfwSwapInterval(0);
 
-	m_Data.vsync = enabled;
+	data_.vsync = enabled;
+}
+
+bool Window::Maximize() {
+	glfwMaximizeWindow(window_);
+	return true;
 }

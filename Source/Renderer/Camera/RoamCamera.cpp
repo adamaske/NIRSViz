@@ -44,6 +44,17 @@ void RoamCamera::OnImGuiRender(bool standalone)
     ImGui::Text("Pitch:    %.2f", GetPitch());
     ImGui::Text("Yaw:      %.2f", GetYaw());
 
+    // ── Orthographic toggle ──────────────────────────────────
+    bool ortho = IsOrthographic();
+    if (ImGui::Checkbox("Orthographic", &ortho)) {
+        SetOrthographic(ortho);
+    }
+    if (ortho) {
+        if (ImGui::SliderFloat("Ortho Zoom", &GetOrthoZoomRef(), 0.1f, 200.0f)) {
+            UpdateProjectionMatrix();
+        }
+    }
+
 	if (standalone) ImGui::End();
 }
 
@@ -114,5 +125,8 @@ void RoamCamera::UpdateViewMatrix()
 
 void RoamCamera::UpdateProjectionMatrix()
 {
+    // ApplyProjectionMatrix() handles orthographic; returns true if applied.
+    if (ApplyProjectionMatrix()) return;
+
     m_ProjectionMatrix = glm::perspective(glm::radians(m_FOV), m_AspectRatio, m_NearClip, m_FarClip);
 }

@@ -13,15 +13,14 @@
 
 #include "Renderer/Mesh/Mesh.h"
 
-#include "NIRS/Anatomy/Head.h"
-#include "NIRS/Anatomy/Cortex.h"
-
+class AnatomyService;
 // TODO : Delete Anatomy Manager, this system takes all of AnatomyManager's roles
 
-class AnatomySystem : public System, public IAnatomyProvider, public IAnatomyRenderer {
+class AnatomySystem : public System, public IAnatomyRenderer {
 public:
-    AnatomySystem() = default;
-    ~AnatomySystem() = default;
+    AnatomySystem(AnatomyService& anat_serv) : 
+        anatomy_service_(anat_serv) 
+    {};
 
     void OnAttach() override;
     void OnDetach() override;
@@ -41,15 +40,6 @@ public:
 
 	void GenerateCoordinateSystem();
 
-	void LoadHead(const std::filesystem::path& obj_filepath);
-	void LoadCortex(const std::filesystem::path& obj_filepath);
-
-	const NIRS::Head& GetHead() override { return *head_; };
-	NIRS::Head& GetHeadMutable() override { return *head_; };
-
-	const NIRS::Cortex& GetCortex() override { return *cortex_; };
-	NIRS::Cortex& GetCortexMutable() override { return *cortex_; };
-
     const CoordinateSystemGenerator& GetCoordinateSystemGenerator()
 		{return *coordinate_generator_; };
     CoordinateSystemGenerator& GetCoordinateSystemGeneratorMuteable()
@@ -66,8 +56,7 @@ public:
 
 private:
 
-	Scope<NIRS::Head> head_;
-	Scope<NIRS::Cortex> cortex_;
+    AnatomyService& anatomy_service_;
 
 	Ref<Shader> phong_shader_;
 	Ref<Shader> flat_shader_;

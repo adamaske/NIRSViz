@@ -3,17 +3,16 @@
 
 #include "Core/AssetRegistry.h"
 
+#include "Services/AnatomyService.h"
+
 #include <imgui.h>
 #include "GUI/GUI.h"
 #include "Core/FileDialogService.h"
 
-void AnatomySystem::OnAttach()
-{
-	// Load anatomy data here if needed
+void AnatomySystem::OnAttach() {
 
 	// Setup Coordinate System Generator
-	auto provider = static_cast<IAnatomyProvider*>(this);
-	coordinate_generator_ = CreateScope<CoordinateSystemGenerator>(ViewportType::AnatomyViewport, *provider);
+	coordinate_generator_ = CreateScope<CoordinateSystemGenerator>(ViewportType::AnatomyViewport, anatomy_service_);
 
 	// Setup Anatomy Viewport
 	Viewport3D::Config config;
@@ -22,13 +21,9 @@ void AnatomySystem::OnAttach()
 	anatomy_viewport_ = CreateScope<Viewport3D>(config);
 
 	SetupRendering();
-
-	LoadHead(AssetRegistry::Get("head_model.obj"));
-	LoadCortex(AssetRegistry::Get("sub-116_anat_low.obj"));
 }
 
-void AnatomySystem::OnDetach()
-{
+void AnatomySystem::OnDetach() {
 }
 
 void AnatomySystem::OnUpdate(DeltaTime dt)
@@ -47,12 +42,14 @@ void AnatomySystem::OnGUIRender()
 
 	ImGui::Begin("Anatomy System Settings");
 
+	auto& cortex = anatomy_service_.GetCortexMutable();
+	auto& head = anatomy_service_.GetHeadMutable();
 
 	ImGui::SeparatorText("Cortex Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);
+	GUI::RenderAnatomySettings<NIRS::Cortex>(&cortex, "Cortex", "Cortex Anatomy Settings", false);
 
 	ImGui::SeparatorText("Head Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Head>(head_.get(), "Head", "Head Anatomy Settings", false);
+	GUI::RenderAnatomySettings<NIRS::Head>(&head, "Head", "Head Anatomy Settings", false);
 
 
 	ImGui::SeparatorText("Coordinate System Generation");
@@ -87,7 +84,7 @@ void AnatomySystem::RenderMenuBar()
 				FileDialogService::FILTER_MESH.spec,
 				path);
 
-			if (opened) LoadCortex(path);
+			//if (opened) LoadCortex(path);
 		}
 
 		if (ImGui::MenuItem("Load Head")) {
@@ -97,7 +94,7 @@ void AnatomySystem::RenderMenuBar()
 				FileDialogService::FILTER_MESH.spec,
 				path);
 
-			if (opened) LoadHead(path);
+			//if (opened) LoadHead(path);
 		}
 
 		ImGui::EndMenu();
@@ -131,20 +128,23 @@ void AnatomySystem::RenderAnatomy()
 	light_pos.Name = "u_LightPos";
 	light_pos.Data.f3 = anatomy_viewport_->GetActiveCamera()->GetPosition();
 
-	if (cortex_ && cortex_->IsVisible()) {
+	auto* cortex = &anatomy_service_.GetCortexMutable();
+	auto* head = &anatomy_service_.GetHeadMutable();
+
+	if (cortex && cortex->IsVisible()) {
 
 		RenderCommand cmd;
 		cmd.ShaderPtr = phong_shader_.get();
-		cmd.VAOPtr = cortex_->GetMesh().buffers.vao.get();
+		cmd.VAOPtr = cortex->GetMesh().buffers.vao.get();
 		cmd.target_viewport = ViewportType::AnatomyViewport;
-		cmd.Transform = cortex_->GetTransform().GetMatrix();
+		cmd.Transform = cortex->GetTransform().GetMatrix();
 		cmd.Mode = DRAW_ELEMENTS;
 
 
 		UniformData opacity;
 		opacity.Type = UniformDataType::FLOAT1;
 		opacity.Name = "u_Opacity";
-		opacity.Data.f1 = cortex_->GetOpacity();
+		opacity.Data.f1 = cortex->GetOpacity();
 
 		UniformData object_color;
 		object_color.Type = UniformDataType::FLOAT4;
@@ -157,19 +157,19 @@ void AnatomySystem::RenderAnatomy()
 
 	}
 
-	if (head_ && head_->IsVisible()) {
+	if (head && head->IsVisible()) {
 
 		RenderCommand cmd;
 		cmd.ShaderPtr = phong_shader_.get();
-		cmd.VAOPtr = head_->GetMesh().buffers.vao.get();
+		cmd.VAOPtr = head->GetMesh().buffers.vao.get();
 		cmd.target_viewport = ViewportType::AnatomyViewport;
-		cmd.Transform = head_->GetTransform().GetMatrix();
+		cmd.Transform = head->GetTransform().GetMatrix();
 		cmd.Mode = DRAW_ELEMENTS;
 
 		UniformData opacity;
 		opacity.Type = UniformDataType::FLOAT1;
 		opacity.Name = "u_Opacity";
-		opacity.Data.f1 = head_->GetOpacity();
+		opacity.Data.f1 = head->GetOpacity();
 
 		UniformData object_color;
 		object_color.Type = UniformDataType::FLOAT4;
@@ -190,8 +190,7 @@ void AnatomySystem::StartRenderingAnatomy() {
 
 };
 
-void AnatomySystem::GenerateCoordinateSystem()
-{
+void AnatomySystem::GenerateCoordinateSystem(){
 	NVIZ_PROFILE_FUNCTION();
 
 	CoordinateSystemGenerator::CoordinateSystemData coord_data;
@@ -205,22 +204,17 @@ void AnatomySystem::GenerateCoordinateSystem()
 			NVIZ_ERROR("AnatomySystem: Coordinate system generation error: {}", error.Message);
 }
 
-void AnatomySystem::LoadHead(const std::filesystem::path &obj_filepath) {
-		head_ = CreateScope<NIRS::Head>(obj_filepath);
-}
+void AnatomySystem::SetDrawMode(DrawMode mode) {
+	
+	auto cortex =	&anatomy_service_.GetCortexMutable();
+	auto head =		&anatomy_service_.GetHeadMutable();
 
-void AnatomySystem::LoadCortex(const std::filesystem::path &obj_filepath) {
-	cortex_ = CreateScope<NIRS::Cortex>(obj_filepath);
-}
-
-void AnatomySystem::SetDrawMode(DrawMode mode)
-{
 	switch (mode) {
 
 		case NONE:
 			// Disable all rendering
-			cortex_->SetVisible(false);
-			head_->SetVisible(false);
+			cortex->SetVisible(false);
+			head->SetVisible(false);
 			break;
 		case ANATOMY_NO_COORDINATES:
 

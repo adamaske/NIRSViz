@@ -11,9 +11,13 @@
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Shader.h"
 
+class AnatomyService;
+
 class MRISystem : public System {
 
 public:
+	MRISystem() = default;
+	~MRISystem() = default;
 
 	void OnAttach() override;
 	void OnUpdate(DeltaTime dt) override;
@@ -22,6 +26,7 @@ public:
 
 	bool LoadMRI(const std::filesystem::path& path);
 
+private:
 	// Shaders
 	Ref<Shader> phong_shader_;
 	Ref<Shader> flat_shader_;
@@ -31,16 +36,9 @@ public:
 	Ref<NVMRI::MRIImage> mri_image_;
 	Scope<Viewport3D> mri_viewport_;
 
-	// Cortex rendering
-	Scope<NIRS::Cortex> cortex_;
-	void SetupCortexRendering();
-	void UpdateCortexRenderCommand();
-	RenderCommand cortex_render_command_;
-
 	// GUI panels
 	void RenderMRIMetadataPanel();
 
 	// Slice Viewer
 	Scope<NVMRI::MRISliceViewer> slice_viewer_;
-	
 };

@@ -8,9 +8,13 @@
 
 #include "Core/FileDialogService.h"
 
+#include "Services/SessionService.h"
+#include "Services/AnatomyService.h"
 
 void MRISystem::OnAttach()
 {
+	// Anatomy Serivce
+
 	// Setup MRI Viewport
 	Viewport3D::Config config;
 	config.type = ViewportType::MRIViewport;
@@ -38,11 +42,6 @@ void MRISystem::OnAttach()
 
 	slice_viewer_ = CreateScope<NVMRI::MRISliceViewer>();
 	slice_viewer_->OnAttach(mri_image_.get());
-
-	// We need a cortex mesh
-	cortex_ = CreateScope<NIRS::Cortex>(AssetRegistry::Get("sub-116_anat_low.obj"));
-
-	SetupCortexRendering();
 }
 
 void MRISystem::OnUpdate(DeltaTime dt)
@@ -50,12 +49,6 @@ void MRISystem::OnUpdate(DeltaTime dt)
 	mri_viewport_->OnUpdate(dt);
 
 	slice_viewer_->OnUpdate(dt);
-
-	// Render Cortex
-	if (cortex_->IsVisible()) {
-		UpdateCortexRenderCommand();
-		Renderer::Submit(cortex_render_command_);
-	}
 }
 
 void MRISystem::OnGUIRender()
@@ -68,12 +61,12 @@ void MRISystem::OnGUIRender()
 	ImGui::SeparatorText("MRI Metadata");
 	RenderMRIMetadataPanel();
 
+	// Volumetric Rendering Settings
+	ImGui::SeparatorText("Volumetric Rendering");
+	// TODO : Move these to a dedicated Volumetric Rendering Settings panel
+
 	// Indepedent Slice Viewer
 	slice_viewer_->Render(false);
-
-	// Cortex
-	ImGui::SeparatorText("Cortex Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Cortex>(cortex_.get(), "Cortex", "Cortex Anatomy Settings", false);
 
 	// Camera Settings
 	ImGui::SeparatorText("Camera Settings");
@@ -126,43 +119,6 @@ bool MRISystem::LoadMRI(const std::filesystem::path& path)
 	NVMRI::PrintMRIInfo(*mri_image_);
 
 	return true;
-}
-
-void MRISystem::SetupCortexRendering() {
-	RenderCommand cmd;
-
-	UniformData light_pos;
-	light_pos.Type = UniformDataType::FLOAT3;
-	light_pos.Name = "u_LightPos";
-	light_pos.Data.f3 = mri_viewport_->GetActiveCamera()->GetPosition();
-
-	cmd.ShaderPtr = phong_shader_.get();
-	cmd.VAOPtr = cortex_->GetMesh().buffers.vao.get();
-	cmd.target_viewport = ViewportType::MRIViewport;
-	cmd.Transform = cortex_->GetTransform().GetMatrix();
-	cmd.Mode = DRAW_ELEMENTS;
-
-	UniformData opacity;
-	opacity.Type = UniformDataType::FLOAT1;
-	opacity.Name = "u_Opacity";
-	opacity.Data.f1 = cortex_->GetOpacity();
-
-	UniformData object_color;
-	object_color.Type = UniformDataType::FLOAT4;
-	object_color.Name = "u_ObjectColor";
-	object_color.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
-
-	cmd.UniformCommands = { light_pos, object_color, opacity };
-	cortex_render_command_ = cmd;
-}
-
-void MRISystem::UpdateCortexRenderCommand() {
-	auto& cmd = cortex_render_command_;
-
-	cmd.Transform = cortex_->GetTransform().GetMatrix();
-	cmd.UniformCommands[0].Data.f3 = mri_viewport_->GetActiveCamera()->GetPosition();
-	cmd.UniformCommands[2].Data.f1 = cortex_->GetOpacity();
-
 }
 
 void MRISystem::RenderMRIMetadataPanel() {
