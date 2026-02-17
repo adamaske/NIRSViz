@@ -35,6 +35,9 @@ public:
 	void OnEvent(Event& e) override;
 	void OnImGuiRender(bool standalone) override;
 
+	void StartControl(glm::vec2 initialPos);
+	void OnControlled(float dt);
+
 	void UpdateViewMatrix() override;
 	void UpdateProjectionMatrix() override;
 
@@ -47,4 +50,8 @@ public:
 	void SetTheta(float _theta);
 	void SetPhi(float _phi);
 	void SetRadius(float _radius);
+
+private:
+	float m_RotationSpeed = 20.0f;
+	glm::vec2 m_InitialMousePosition = { 0.0f, 0.0f };
 };

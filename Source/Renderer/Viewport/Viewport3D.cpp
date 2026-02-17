@@ -191,16 +191,21 @@ void Viewport3D::StartMouseControl()
 	camera_control_active_ = true;
 
 	initial_mouse_pos_ = Input::GetMousePosition();
-	roam_camera_->StartControl(initial_mouse_pos_);
+
+	if (camera_mode_ == CameraMode::ROAM)
+		roam_camera_->StartControl(initial_mouse_pos_);
+	else
+		orbit_camera_->StartControl(initial_mouse_pos_);
 
 	glfwSetInputMode(window_->GetNativeWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void Viewport3D::DoMouseControl(float dt)
 {
-	if (camera_mode_ == CameraMode::ROAM) {
+	if (camera_mode_ == CameraMode::ROAM)
 		roam_camera_->OnControlled(dt);
-	}
+	else
+		orbit_camera_->OnControlled(dt);
 
 	glfwSetCursorPos(window_->GetNativeWindow(), initial_mouse_pos_.x, initial_mouse_pos_.y);
 }

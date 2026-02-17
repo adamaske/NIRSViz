@@ -10,10 +10,6 @@
 #include "Services/FileDialogService.h"
 
 void AnatomySystem::OnAttach() {
-
-	// Setup Coordinate System Generator
-	coordinate_generator_ = CreateScope<CoordinateSystemGenerator>(ViewportType::AnatomyViewport, anatomy_service_);
-
 	// Setup Anatomy Viewport
 	Viewport3D::Config config;
 	config.type = ViewportType::AnatomyViewport;
@@ -21,6 +17,10 @@ void AnatomySystem::OnAttach() {
 	anatomy_viewport_ = CreateScope<Viewport3D>(config);
 	anatomy_viewport_->SetCameraMode(CameraMode::ORBIT);
 	anatomy_viewport_->GetActiveCamera()->SetOrthographic(true);
+
+	// Setup Coordinate System Generator
+	coordinate_generator_ = CreateScope<CoordinateSystemGenerator>(
+		ViewportType::AnatomyViewport, anatomy_service_);
 
 	SetupRendering();
 	

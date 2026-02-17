@@ -15,17 +15,7 @@
 #include "MRI/MRIImage.h"
 
 
-void MRISystem::OnAttach()
-{
-	// Anatomy Serivce
-
-	// Setup MRI Viewport
-	Viewport3D::Config config;
-	config.type = ViewportType::MRIViewport;
-	config.windowTitle = "MRI Viewport";
-	mri_viewport_ = CreateScope<Viewport3D>(config);
-
-
+void MRISystem::OnAttach() {
 	// Load shaders
 	phong_shader_ = CreateRef<Shader>(
 		AssetRegistry::Get("Phong.vert"),
@@ -52,19 +42,13 @@ void MRISystem::OnAttach()
  
 }
 
-void MRISystem::OnUpdate(DeltaTime dt)
-{
-	mri_viewport_->OnUpdate(dt);
-
+void MRISystem::OnUpdate(DeltaTime dt) {
 	slice_viewer_->OnUpdate(dt);
 
 	volumetric_image_->OnUpdate(dt);
 }
 
-void MRISystem::OnGUIRender()
-{
-	mri_viewport_->RenderViewportWindow();
-
+void MRISystem::OnGUIRender() {
 	ImGui::Begin("MRI Settings");
 
 	// Metadata	
@@ -78,10 +62,6 @@ void MRISystem::OnGUIRender()
 
 	// Indepedent Slice Viewer
 	slice_viewer_->Render(false);
-
-	// Camera Settings
-	ImGui::SeparatorText("Camera Settings");
-	mri_viewport_->RenderCameraSettings(false);
 
 	ImGui::End();
 }

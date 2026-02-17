@@ -57,7 +57,7 @@ public:
 private:
 	Config config_;
 
-	Ref<Window> window_ = nullptr;
+	Window* window_ = nullptr;
 	Ref<Framebuffer> framebuffer_ = nullptr;
 
 	CameraMode camera_mode_;

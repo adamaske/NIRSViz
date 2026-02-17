@@ -14,6 +14,7 @@ namespace NVMRI {
 			AssetRegistry::Get("SlicePlane.vert"),
 			AssetRegistry::Get("SlicePlane.frag")
 		);
+
 		// 1. Initialize Slices
 		slices_.resize(3);
 		// MRI Dimensions for scaling
@@ -22,7 +23,6 @@ namespace NVMRI {
 		float dz = (float)mri_image_->dimensions[2];
 		float maxDim = std::max({ dx, dy, dz });
 		
-
 		// 1. Axial (XY Plane - moves along Z)
 		slices_[0].plane = SlicePlane::Axial;
 		slices_[0].transform.SetRotation(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -63,6 +63,62 @@ namespace NVMRI {
 		}
 	}
 
+	glm::mat4 MRISliceViewer::ComputeSliceTransform(
+		SlicePlane plane, float normalized_position) const
+	{
+		auto& dims = mri_image_->dimensions;
+		auto voxel_to_world = mri_image_->GetVoxelToWorld();
+
+		float slice_idx;
+		glm::vec3 corner00, corner10, corner01, corner11;
+
+		switch (plane) {
+		case SlicePlane::Axial:
+			slice_idx = normalized_position * (dims[2] - 1);
+			corner00 = { 0,         0,         slice_idx };
+			corner10 = { dims[0] - 1, 0,         slice_idx };
+			corner01 = { 0,         dims[1] - 1, slice_idx };
+			corner11 = { dims[0] - 1, dims[1] - 1, slice_idx };
+			break;
+		case SlicePlane::Sagittal:
+			slice_idx = normalized_position * (dims[0] - 1);
+			corner00 = { slice_idx, 0,         0 };
+			corner10 = { slice_idx, dims[1] - 1, 0 };
+			corner01 = { slice_idx, 0,         dims[2] - 1 };
+			corner11 = { slice_idx, dims[1] - 1, dims[2] - 1 };
+			break;
+		case SlicePlane::Coronal:
+			slice_idx = normalized_position * (dims[1] - 1);
+			corner00 = { 0,         slice_idx, 0 };
+			corner10 = { dims[0] - 1, slice_idx, 0 };
+			corner01 = { 0,         slice_idx, dims[2] - 1 };
+			corner11 = { dims[0] - 1, slice_idx, dims[2] - 1 };
+			break;
+		}
+
+		// Transform corners to world space
+		glm::vec3 w00 = glm::vec3(voxel_to_world * glm::vec4(corner00, 1));
+		glm::vec3 w10 = glm::vec3(voxel_to_world * glm::vec4(corner10, 1));
+		glm::vec3 w01 = glm::vec3(voxel_to_world * glm::vec4(corner01, 1));
+		glm::vec3 w11 = glm::vec3(voxel_to_world * glm::vec4(corner11, 1));
+
+		// The quad's local axes
+		glm::vec3 right = w10 - w00;
+		glm::vec3 up = w01 - w00;
+		glm::vec3 normal = glm::normalize(glm::cross(right, up));
+
+		// Edge-aligned: use corner00 as the origin, offset by half
+		// so the unit quad (-0.5 to +0.5) maps to (0 to 1) from this corner.
+		glm::vec3 center = w00 + right * 0.5f + up * 0.5f;
+
+		glm::mat4 model(1.0f);
+		model[0] = glm::vec4(right, 0.0f);
+		model[1] = glm::vec4(up, 0.0f);
+		model[2] = glm::vec4(normal, 0.0f);
+		model[3] = glm::vec4(center, 1.0f);
+
+		return model;
+	}
 	void MRISliceViewer::UpdateSliceTexture(int i) {
 		auto& slice = slices_[i];
 		uint32_t dimIdx = (int)slice.plane;
@@ -120,15 +176,16 @@ namespace NVMRI {
 		if (!mri_image_) return;
 
 		for (int i = 0; i < 3; i++) {
+
 			auto& slice = slices_[i];
 			float offset = slice.position - 0.5f; // Map 0->1 to -0.5->0.5
 
-			glm::vec3 pos(0.0f);
-			if (slice.plane == SlicePlane::Axial)    pos.z = offset;
-			if (slice.plane == SlicePlane::Sagittal) pos.x = offset;
-			if (slice.plane == SlicePlane::Coronal)  pos.y = offset;
-
-			slice.transform.SetPosition(pos);
+			//glm::vec3 pos(0.0f);
+			//if (slice.plane == SlicePlane::Axial)    pos.z = offset;
+			//if (slice.plane == SlicePlane::Sagittal) pos.x = offset;
+			//if (slice.plane == SlicePlane::Coronal)  pos.y = offset;
+			//
+			//slice.transform.SetPosition(pos);
 			DrawSlice(slice);
 		}
 	}
@@ -136,7 +193,9 @@ namespace NVMRI {
 	void MRISliceViewer::Render(bool standalone) {
 		if (ImGui::CollapsingHeader("MRI 2D Slice Controls", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("Image Scalar", &image_scalar_, 0.1f, 100.0f);
+
 			const char* names[] = { "Axial (XY)", "Sagittal (YZ)", "Coronal (XZ)" };
+
 			for (int i = 0; i < 3; i++) {
 				if (ImGui::TreeNode(names[i])) {
 					if (ImGui::SliderFloat("Position", &slices_[i].position, 0.0f, 1.0f)) {
@@ -155,11 +214,11 @@ namespace NVMRI {
 		RenderCommand cmd;
 		cmd.VAOPtr = plane_vao_.get();
 		cmd.ShaderPtr = slice_shader_.get();
-		cmd.Transform = slice.transform.GetMatrix();
+		cmd.Transform = ComputeSliceTransform(slice.plane, slice.position);;
 		cmd.target_viewport = ViewportType::AnatomyViewport;
 
 		cmd.TextureBindings.push_back({ slice.texture->GetRendererID(), 0, nullptr });
-
+		
 		Renderer::Submit(cmd);
 	}
 }

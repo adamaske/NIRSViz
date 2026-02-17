@@ -15,9 +15,24 @@ namespace NVMRI {
 		ImagePointer itkImage = nullptr;
 
 		// Cached metadata for quick access
-		std::array<unsigned int, 3> dimensions = {0, 0, 0};
-		std::array<double, 3> spacing = {1.0, 1.0, 1.0};
-		std::array<double, 3> origin = {0.0, 0.0, 0.0};
+		std::array<unsigned int, 3> dimensions = { 0, 0, 0 };
+		std::array<double, 3> spacing = { 1.0, 1.0, 1.0 };
+		std::array<double, 3> origin = { 0.0, 0.0, 0.0 };
+
+		// NEW : The full voxel - to - physical affine (4 x4 , row - major )
+		glm::dmat4 voxel_to_physical = glm::dmat4(1.0);
+
+		// NEW : Physical - to - world ( accounts for RAS - >Y - up conversion )
+		glm::mat4 physical_to_world = glm::mat4(1.0);
+
+		// NEW : Combined voxel - to - world
+		glm::mat4 GetVoxelToWorld() const {
+			return physical_to_world * glm::mat4(voxel_to_physical);
+		}
+
+		// NEW : Intensity range for proper windowing
+		float intensity_min = 0.0f;
+		float intensity_max = 1.0f;
 
 		bool IsValid() const { return itkImage != nullptr; }
 

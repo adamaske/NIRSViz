@@ -2,13 +2,12 @@
 
 #include "Systems/System.h"
 
-#include "Renderer/Viewport/Viewport3D.h"
-
 #include "NIRS/Anatomy/Cortex.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/Renderable/Shader.h"
 
 #include "MRI/MRISliceViewer.h"
+
 class AnatomyService;
 namespace NVMRI {
 	class MRIImage;
@@ -37,7 +36,6 @@ private:
 	// MRI data
 	Ref<NVMRI::MRIImage> mri_image_;
 	Ref<NVMRI::MRIVolumetricImage> volumetric_image_;
-	Scope<Viewport3D> mri_viewport_;
 
 	// GUI panels
 	void RenderMRIMetadataPanel();

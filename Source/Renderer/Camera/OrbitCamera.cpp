@@ -8,6 +8,7 @@
 
 #include <imgui.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <algorithm>
 
 OrbitCamera::OrbitCamera() : Camera()
 {
@@ -18,6 +19,26 @@ OrbitCamera::~OrbitCamera()
 }
 void OrbitCamera::OnUpdate(float dt)
 {
+}
+
+void OrbitCamera::StartControl(glm::vec2 initialPos)
+{
+	m_InitialMousePosition = initialPos;
+}
+
+void OrbitCamera::OnControlled(float dt)
+{
+	const glm::vec2 mouse{ Input::GetMouseX(), Input::GetMouseY() };
+	glm::vec2 delta = (mouse - m_InitialMousePosition) * 0.003f;
+
+	m_Theta += delta.x * m_RotationSpeed;
+	m_Phi += delta.y * m_RotationSpeed;
+
+	m_Phi = std::clamp(m_Phi, -89.9f, 89.9f);
+	if (m_Theta > 360.0f) m_Theta -= 360.0f;
+	else if (m_Theta < -360.0f) m_Theta += 360.0f;
+
+	SetOrbitPosition(m_Theta, m_Phi, m_Radius);
 }
 
 void OrbitCamera::OnEvent(Event& e)

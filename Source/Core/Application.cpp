@@ -13,6 +13,8 @@
 #include "Services/AnatomyService.h"
 #include "Services/SessionService.h"
 
+#include "Core/ConfigStore.h"
+
 Application* Application::sInstance = nullptr;
 Application::Application(const ApplicationSpecification& spec) : specification_(spec) {
 	sInstance = this;
@@ -30,6 +32,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto assets_path = exe_dir.parent_path().parent_path().parent_path() / "Assets";
 	AssetRegistry::Init(assets_path);
 	
+	ConfigStore::LoadFromDisk(AssetRegistry::Get("config.ini"));
+
 	FileDialogService::Init();
 	
 	WindowSpecification window_spec;
@@ -39,7 +43,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	window_spec.resizeable = true;
 	window_spec.vsync = true;
 
-	window_ = CreateRef<Window>(window_spec);
+	window_ = CreateScope<Window>(window_spec);
 	window_->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 	window_->Maximize();
 
@@ -47,17 +51,18 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	ViewportManager::Init();
 
 	// --- Serives
-	snirf_service_ = CreateRef<SNIRFService>();
+
+	snirf_service_ = CreateScope<SNIRFService>();
 	snirf_service_->Load(
 		AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
 
-	anatomy_service_ = CreateRef<AnatomyService>();
+	anatomy_service_ = CreateScope<AnatomyService>();
 	anatomy_service_->LoadHead(
 		AssetRegistry::Get("head_model.obj"));
 	anatomy_service_->LoadCortex(
 		AssetRegistry::Get("sub-116_anat_low.obj"));
 
-	session_service_ = CreateRef<SessionService>(
+	session_service_ = CreateScope<SessionService>(
 						*snirf_service_, *anatomy_service_);
 
 	// --- Systems
@@ -95,8 +100,9 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	// 
 }
 
-Application::~Application()
-{
+Application::~Application() {
+
+	ConfigStore::SaveToDisk(AssetRegistry::Get("config.ini"));
 	Renderer::Shutdown();
 }
 

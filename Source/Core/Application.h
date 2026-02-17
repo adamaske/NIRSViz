@@ -57,7 +57,7 @@ void OnEvent(Event& e);
 	bool OnWindowClose(WindowCloseEvent& e);
 	bool OnWindowResize(WindowResizeEvent& e);
 
-	Ref<Window> GetWindow() { return window_; }
+	Window* GetWindow() { return window_.get(); }
 	const ApplicationSpecification& GetSpecification() const { return specification_	; }
 
 	SystemManager& GetSystemManager() { return system_manager_; }
@@ -74,14 +74,14 @@ private:
 	bool minimized_ = false;
 	float last_time_ = 0.0f;
 
-	Ref<Window> window_;
+	Scope<Window> window_;
 	SystemManager system_manager_;
 
 	ImGuiSystem* gui_system_ = nullptr;
 
-	Ref<SNIRFService> snirf_service_;
-	Ref<AnatomyService> anatomy_service_;
-	Ref<SessionService> session_service_;
+	Scope<SNIRFService> snirf_service_;
+	Scope<AnatomyService> anatomy_service_;
+	Scope<SessionService> session_service_;
 
 	friend class ControlPanel; // For now let control panel access application settings directly
 };

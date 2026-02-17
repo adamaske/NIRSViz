@@ -20,6 +20,7 @@ enum class SlicePlane {
 
 struct Slice {
 	Transform transform;
+	glm::mat4 world_transform;
 	SlicePlane plane = SlicePlane::Axial;
 	float position = 0.5f; // 0.0 to 1.0
 	Ref<Texture> texture;
@@ -41,6 +42,8 @@ namespace NVMRI {
 		void DrawSlice(Slice& slice);
 		void UpdateSliceTexture(int sliceIndex);
 
+		glm::mat4 ComputeSliceTransform(
+			SlicePlane plane, float normalized_position) const;
 	private:
 		std::vector<uint8_t> ExtractSliceRGBA8(SlicePlane plane, uint32_t sliceIdx);
 

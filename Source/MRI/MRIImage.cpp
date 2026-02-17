@@ -49,8 +49,44 @@ namespace NVMRI
 			// Cache metadata
 			auto region = image.itkImage->GetLargestPossibleRegion();
 			auto size = region.GetSize();
+
+			// Build voxel-to-physical from ITK metadata
+			auto direction = image.itkImage->GetDirection();
 			auto spacing = image.itkImage->GetSpacing();
 			auto origin = image.itkImage->GetOrigin();
+
+			// Construct the 4x4 affine: P = D * diag(S) * V + O
+			glm::dmat4 affine(1.0);
+			for (int r = 0; r < 3; r++) {
+				for (int c = 0; c < 3; c++) {
+					affine[c][r] = direction(r, c) * spacing[c];
+				}
+				affine[3][r] = origin[r];
+			}
+			image.voxel_to_physical = affine;
+
+			// ITK uses LPS convention. Convert LPS -> Y-up world:
+			//   LPS X (Left)      -> World -X (Right is +X)
+			//   LPS Y (Posterior)  -> World -Z (Anterior is +Z)
+			//   LPS Z (Superior)   -> World +Y (Superior is +Y)
+			glm::mat4 lps_to_world(0.0f);
+			lps_to_world[0][0] = -1.0f;  // LPS X -> -World X
+			lps_to_world[1][2] = 1.0f;  // LPS Z -> +World Y
+			lps_to_world[2][1] = -1.0f;  // LPS Y -> -World Z
+			lps_to_world[3][3] = 1.0f;
+			image.physical_to_world = lps_to_world;
+
+			// Compute intensity range
+			float* buffer = image.itkImage->GetBufferPointer();
+			size_t count = image.GetVoxelCount();
+
+			float minVal = buffer[0], maxVal = buffer[0];
+			for (size_t i = 1; i < count; i++) {
+				minVal = std::min(minVal, buffer[i]);
+				maxVal = std::max(maxVal, buffer[i]);
+			}
+			image.intensity_min = minVal;
+			image.intensity_max = maxVal;
 
 			image.dimensions = {
 				static_cast<unsigned int>(size[0]),
