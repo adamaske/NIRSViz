@@ -137,13 +137,13 @@ void Renderer::ExecuteQueue() {
 			DrawIndexedInstanced(command.VAOPtr, command.InstanceCount, 0);
 			break;
 		case DrawMode::DRAW_LINES:
-			DrawLines(command.VAOPtr, 0);
+			DrawLines(command.VAOPtr, command.VertexCount);
 			break;
 		case DrawMode::DRAW_ARRAYS:
-			DrawArrays(command.VAOPtr, 0);
+			DrawArrays(command.VAOPtr, command.VertexCount);
 			break;
 		case DrawMode::DRAW_POINTS:
-			DrawPoints(command.VAOPtr, 0);
+			DrawPoints(command.VAOPtr, command.VertexCount);
 			break;
 		}
 		
@@ -179,17 +179,20 @@ void Renderer::DrawIndexedInstanced(const VertexArray* vertexArray, uint32_t ins
 
 void Renderer::DrawLines(const VertexArray* vertexArray, uint32_t vertexCount) {
 	vertexArray->Bind();
-	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
+	uint32_t count = vertexCount > 0 ? vertexCount : vertexArray->GetVertexCount();
+	glDrawArrays(GL_LINES, 0, count);
 }
 
 void Renderer::DrawArrays(const VertexArray* vertexArray, uint32_t vertexCount) {
 	vertexArray->Bind();
-	glDrawArrays(GL_LINES, 0, vertexArray->GetVertexCount());
+	uint32_t count = vertexCount > 0 ? vertexCount : vertexArray->GetVertexCount();
+	glDrawArrays(GL_TRIANGLES, 0, count);
 }
 
 void Renderer::DrawPoints(const VertexArray* vertexArray, uint32_t vertexCount) {
 	vertexArray->Bind();
-	glDrawArrays(GL_POINTS, 0, vertexArray->GetVertexCount());
+	uint32_t count = vertexCount > 0 ? vertexCount : vertexArray->GetVertexCount();
+	glDrawArrays(GL_POINTS, 0, count);
 }
 
 void Renderer::OnWindowResize(uint32_t width, uint32_t height)

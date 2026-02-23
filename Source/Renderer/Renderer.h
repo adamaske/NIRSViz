@@ -93,6 +93,7 @@ struct RenderCommand {
 	DrawMode Mode = DRAW_ELEMENTS;
 
 	uint32_t InstanceCount = 0;  // For instanced rendering
+	uint32_t VertexCount = 0;    // For DRAW_LINES, DRAW_ARRAYS, DRAW_POINTS (0 = use VAO count)
 
 	std::vector<TextureBinding> TextureBindings = {};
 	std::vector<UniformData> UniformCommands = {};

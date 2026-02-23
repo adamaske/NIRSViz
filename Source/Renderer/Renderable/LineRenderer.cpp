@@ -78,11 +78,7 @@ void LineRenderer::Clear() {
     m_Vertices.clear();
 }
 void LineRenderer::Draw() {
-
-    UniformData lineWidth;
-    lineWidth.Type = UniformDataType::FLOAT1;
-    lineWidth.Name = "u_LineWidth";
-    lineWidth.Data.f1 = m_LineWidth;
+    if (m_Vertices.empty()) return;
 
     UniformData color;
     color.Type = UniformDataType::FLOAT4;
@@ -93,7 +89,8 @@ void LineRenderer::Draw() {
     cmd.ShaderPtr = m_Shader.get();
     cmd.VAOPtr = m_VAO.get();
     cmd.Transform = glm::mat4(1.0f);
-    cmd.Mode = DRAW_ARRAYS;
+    cmd.Mode = DRAW_LINES;
+    cmd.VertexCount = static_cast<uint32_t>(m_Vertices.size());
     cmd.target_viewport = viewport_type_;
     cmd.UniformCommands = { color };
     cmd.APICalls = {

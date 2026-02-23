@@ -76,17 +76,46 @@ namespace NVMRI
 			lps_to_world[3][3] = 1.0f;
 			image.physical_to_world = lps_to_world;
 
-			// Compute intensity range
+			// Compute intensity range and percentiles
 			float* buffer = image.itkImage->GetBufferPointer();
 			size_t count = image.GetVoxelCount();
 
-			float minVal = buffer[0], maxVal = buffer[0];
-			for (size_t i = 1; i < count; i++) {
-				minVal = std::min(minVal, buffer[i]);
-				maxVal = std::max(maxVal, buffer[i]);
+			if (count == 0) {
+				NVIZ_WARN("MRIImage: Image has zero voxels");
+				image.intensity_min = 0.0f;
+				image.intensity_max = 1.0f;
+				image.intensity_p02 = 0.0f;
+				image.intensity_p98 = 1.0f;
 			}
-			image.intensity_min = minVal;
-			image.intensity_max = maxVal;
+			else {
+				// Compute min/max
+				float minVal = buffer[0], maxVal = buffer[0];
+				for (size_t i = 1; i < count; i++) {
+					minVal = std::min(minVal, buffer[i]);
+					maxVal = std::max(maxVal, buffer[i]);
+				}
+				image.intensity_min = minVal;
+				image.intensity_max = maxVal;
+
+				// Compute percentiles (2nd and 98th) for better windowing
+				// Use sampling for large volumes to avoid sorting all voxels
+				std::vector<float> samples;
+				size_t sampleCount = std::min(count, size_t(100000)); // Sample up to 100k voxels
+				size_t step = std::max(size_t(1), count / sampleCount);
+				samples.reserve(sampleCount);
+				for (size_t i = 0; i < count; i += step) {
+					samples.push_back(buffer[i]);
+				}
+				std::sort(samples.begin(), samples.end());
+
+				size_t p02_idx = static_cast<size_t>(samples.size() * 0.02f);
+				size_t p98_idx = std::min(static_cast<size_t>(samples.size() * 0.98f), samples.size() - 1);
+				image.intensity_p02 = samples[p02_idx];
+				image.intensity_p98 = samples[p98_idx];
+
+				NVIZ_INFO("MRIImage: Intensity range [{:.1f}, {:.1f}], P02={:.1f}, P98={:.1f}",
+					minVal, maxVal, image.intensity_p02, image.intensity_p98);
+			}
 
 			image.dimensions = {
 				static_cast<unsigned int>(size[0]),

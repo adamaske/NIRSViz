@@ -30,9 +30,13 @@ namespace NVMRI {
 			return physical_to_world * glm::mat4(voxel_to_physical);
 		}
 
-		// NEW : Intensity range for proper windowing
+		// Intensity range (absolute min/max)
 		float intensity_min = 0.0f;
 		float intensity_max = 1.0f;
+
+		// Percentile-based intensity range for better windowing (2nd and 98th percentile)
+		float intensity_p02 = 0.0f;
+		float intensity_p98 = 1.0f;
 
 		bool IsValid() const { return itkImage != nullptr; }
 

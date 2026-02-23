@@ -66,28 +66,28 @@ add_library(Assimp::Assimp SHARED IMPORTED)
 set_target_properties(Assimp::Assimp PROPERTIES
     # IMPLIB (Import Library) points to the .lib file that the linker needs.
     IMPORTED_IMPLIB_DEBUG
-    "${VENDOR_DIR}/assimp/build/lib/Debug/assimp-vc143-mtd.lib"
+    "${VENDOR_DIR}/assimp/build/lib/Debug/assimp-vc145-mtd.lib"
 
     # LOCATION points to the actual .dll file that the executable needs at runtime.
     IMPORTED_LOCATION_DEBUG
-    "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll"
+    "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc145-mtd.dll"
 )
 # --- RELEASE Configuration ---
 # NOTE: Ensure these paths and file names match your Release configuration!
 set_target_properties(Assimp::Assimp PROPERTIES
         # IMPLIB for Release configuration
         IMPORTED_IMPLIB_RELEASE
-        "${VENDOR_DIR}/assimp/build/lib/Release/assimp-vc143-mt.lib"
+        "${VENDOR_DIR}/assimp/build/lib/Release/assimp-vc145-mt.lib"
 
         # LOCATION for Release configuration
         IMPORTED_LOCATION_RELEASE
-        "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll"
+        "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc145-mt.dll"
 )
 
 # Get the DLL path based on the build configuration
 # We use generator expressions to select the correct path (.dll) at build time
-set(ASSIMP_DLL_PATH_DEBUG "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc143-mtd.dll")
-set(ASSIMP_DLL_PATH_RELEASE "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc143-mt.dll")
+set(ASSIMP_DLL_PATH_DEBUG "${VENDOR_DIR}/assimp/build/bin/Debug/assimp-vc145-mtd.dll")
+set(ASSIMP_DLL_PATH_RELEASE "${VENDOR_DIR}/assimp/build/bin/Release/assimp-vc145-mt.dll")
 
 # Madman91/BVH - Bounding Volume Hierarchy library for fast spatial queries
 add_subdirectory(${VENDOR_DIR}/bvh)
