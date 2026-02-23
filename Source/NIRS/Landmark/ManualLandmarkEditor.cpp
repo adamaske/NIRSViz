@@ -83,7 +83,7 @@ void ManualLandmarkEditor::RenderLandmarkControls()
 
         // Position drag control
         std::string label = NIRS::ManualLandmarkData::ToString(type);
-        if (ImGui::DragFloat3(label.c_str(), &landmark.Position.x, 0.1f, -100.0f, 100.0f, "%.2f")) {
+        if (ImGui::DragFloat3(label.c_str(), &landmark.Position.x, 1.0f, -1000.0f, 1000.0f, "%.1f")) {
             if (type == NIRS::ManualLandmarkType::LPA) {
                 // Mirror RPA
                 auto mirrored = landmark.Position;

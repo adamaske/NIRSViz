@@ -159,29 +159,35 @@ namespace NVMRI {
 		auto& spacing = mri_image_->spacing;
 
 		uint32_t sliceIdx = GetSliceIndex(plane);
+
+		// In box-edge mode the quad is fixed at the volume boundary (index 0) so all
+		// three planes meet at a single box corner.  The texture content is unchanged —
+		// it still shows the cursor's slice — only the 3D quad position is locked.
+		uint32_t posIdx = box_edge_mode_ ? 0u : sliceIdx;
+
 		glm::vec3 corner00, corner10, corner01, corner11;
 
 		switch (plane) {
 			case SlicePlane::Axial:
-				// XY plane at Z = sliceIdx
-				corner00 = glm::vec3(0,           0,           sliceIdx);
-				corner10 = glm::vec3(dims[0] - 1, 0,           sliceIdx);
-				corner01 = glm::vec3(0,           dims[1] - 1, sliceIdx);
-				corner11 = glm::vec3(dims[0] - 1, dims[1] - 1, sliceIdx);
+				// XY plane at Z = posIdx
+				corner00 = glm::vec3(0,           0,           posIdx);
+				corner10 = glm::vec3(dims[0] - 1, 0,           posIdx);
+				corner01 = glm::vec3(0,           dims[1] - 1, posIdx);
+				corner11 = glm::vec3(dims[0] - 1, dims[1] - 1, posIdx);
 				break;
 			case SlicePlane::Sagittal:
-				// YZ plane at X = sliceIdx
-				corner00 = glm::vec3(sliceIdx, 0,           0);
-				corner10 = glm::vec3(sliceIdx, dims[1] - 1, 0);
-				corner01 = glm::vec3(sliceIdx, 0,           dims[2] - 1);
-				corner11 = glm::vec3(sliceIdx, dims[1] - 1, dims[2] - 1);
+				// YZ plane at X = posIdx
+				corner00 = glm::vec3(posIdx, 0,           0);
+				corner10 = glm::vec3(posIdx, dims[1] - 1, 0);
+				corner01 = glm::vec3(posIdx, 0,           dims[2] - 1);
+				corner11 = glm::vec3(posIdx, dims[1] - 1, dims[2] - 1);
 				break;
 			case SlicePlane::Coronal:
-				// XZ plane at Y = sliceIdx
-				corner00 = glm::vec3(0,           sliceIdx, 0);
-				corner10 = glm::vec3(dims[0] - 1, sliceIdx, 0);
-				corner01 = glm::vec3(0,           sliceIdx, dims[2] - 1);
-				corner11 = glm::vec3(dims[0] - 1, sliceIdx, dims[2] - 1);
+				// XZ plane at Y = posIdx
+				corner00 = glm::vec3(0,           posIdx, 0);
+				corner10 = glm::vec3(dims[0] - 1, posIdx, 0);
+				corner01 = glm::vec3(0,           posIdx, dims[2] - 1);
+				corner11 = glm::vec3(dims[0] - 1, posIdx, dims[2] - 1);
 				break;
 		}
 
@@ -194,16 +200,57 @@ namespace NVMRI {
 			w10 = glm::vec3(voxel_to_world * glm::vec4(corner10, 1.0f));
 			w01 = glm::vec3(voxel_to_world * glm::vec4(corner01, 1.0f));
 		} else {
-			// Axes-aligned mode: just apply spacing, no rotation
-			// Center the volume at origin
-			glm::vec3 center_offset = glm::vec3(
-				dims[0] * spacing[0] / 2.0f,
-				dims[1] * spacing[1] / 2.0f,
-				dims[2] * spacing[2] / 2.0f
-			);
-			w00 = glm::vec3(corner00.x * spacing[0], corner00.y * spacing[1], corner00.z * spacing[2]) - center_offset;
-			w10 = glm::vec3(corner10.x * spacing[0], corner10.y * spacing[1], corner10.z * spacing[2]) - center_offset;
-			w01 = glm::vec3(corner01.x * spacing[0], corner01.y * spacing[1], corner01.z * spacing[2]) - center_offset;
+			// Axis-aligned mode with anatomically-correct Y-up placement.
+			//
+			// The naive approach of mapping voxel(X,Y,Z) → world(X,Y,Z) and then applying
+			// a Rx(-90°) rotation offset to fix orientation ONLY rotates the quad's
+			// orientation vectors; it cannot move the quad's center, so slices end up
+			// sliding along the wrong world axis when the cursor changes.
+			//
+			// The correct mapping bakes the anatomical convention directly into the
+			// corner positions:
+			//   voxel X  →  world  X   (left-right)
+			//   voxel Z  →  world  Y   (superior-inferior; voxel Z is brain "up")
+			//   voxel Y  →  world -Z   (anterior-posterior; negated so anterior = +Z)
+			//
+			// With this mapping each plane's center naturally slides along the right axis:
+			//   Axial    center.y = sliceIdx*sz - halfZ   ✓ moves up/down
+			//   Coronal  center.z = halfY - sliceIdx*sy   ✓ moves front/back
+			//   Sagittal center.x = sliceIdx*sx - halfX   ✓ moves left/right
+			//
+			float halfX = dims[0] * (float)spacing[0] * 0.5f;
+			float halfY = dims[1] * (float)spacing[1] * 0.5f;
+			float halfZ = dims[2] * (float)spacing[2] * 0.5f;
+
+			// Converts a voxel coordinate to its anatomical world position
+			auto V = [&](float vx, float vy, float vz) -> glm::vec3 {
+				return glm::vec3(
+					vx * (float)spacing[0] - halfX,   // world X  ← voxel X
+					vz * (float)spacing[2] - halfZ,   // world Y  ← voxel Z
+					halfY - vy * (float)spacing[1]    // world Z  ← -voxel Y
+				);
+			};
+
+			switch (plane) {
+				case SlicePlane::Axial:
+					// Constant voxel Z = posIdx; voxel X and Y fill the quad
+					w00 = V(0,           0,           posIdx);
+					w10 = V(dims[0] - 1, 0,           posIdx);
+					w01 = V(0,           dims[1] - 1, posIdx);
+					break;
+				case SlicePlane::Sagittal:
+					// Constant voxel X = posIdx; voxel Y and Z fill the quad
+					w00 = V(posIdx, 0,           0);
+					w10 = V(posIdx, dims[1] - 1, 0);
+					w01 = V(posIdx, 0,           dims[2] - 1);
+					break;
+				case SlicePlane::Coronal:
+					// Constant voxel Y = posIdx; voxel X and Z fill the quad
+					w00 = V(0,           posIdx, 0);
+					w10 = V(dims[0] - 1, posIdx, 0);
+					w01 = V(0,           posIdx, dims[2] - 1);
+					break;
+			}
 		}
 
 		// Compute local axes from transformed corners
@@ -220,6 +267,15 @@ namespace NVMRI {
 		model[1] = glm::vec4(up, 0.0f);
 		model[2] = glm::vec4(normal, 0.0f);
 		model[3] = glm::vec4(center, 1.0f);
+
+		// Coronal quad faces away from the camera due to winding order; reverse
+		// the winding by negating the right (col 0) and normal (col 2) vectors.
+		// This flips the face without inverting the up direction, so the image
+		// stays right-side up. The center (column 3) is unchanged.
+		if (plane == SlicePlane::Coronal) {
+			model[0] = -model[0];
+			model[2] = -model[2];
+		}
 
 		// Apply manual rotation offset around center
 		if (rotation_offset_deg_ != glm::vec3(0.0f)) {
@@ -517,6 +573,18 @@ namespace NVMRI {
 				ImGui::SetTooltip("When enabled, uses the MRI's orientation matrix (may be oblique).\nWhen disabled, slices align to voxel grid axes.");
 			}
 
+			ImGui::Checkbox("Box Edge Mode", &box_edge_mode_);
+			ImGui::SameLine();
+			ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip(
+					"Locks each slice plane at the volume boundary (index 0) so all three\n"
+					"planes meet at one corner of the bounding box.\n"
+					"Useful with orthographic camera + transparent brain to align anatomy.\n"
+					"The displayed slice content still follows the cursor."
+				);
+			}
+
 			ImGui::Text("Manual Rotation Offset:");
 			bool rot_changed = false;
 			ImGui::PushItemWidth(80);
@@ -551,6 +619,218 @@ namespace NVMRI {
 				ImGui::Text("Spacing: %.3f x %.3f x %.3f mm",
 					mri_image_->spacing[0], mri_image_->spacing[1], mri_image_->spacing[2]);
 			}
+		}
+	}
+
+	void MRISliceViewer::Render2DViewer(bool standalone) {
+		if (!mri_image_ || !mri_image_->IsValid()) {
+			ImGui::TextDisabled("No MRI image loaded");
+			return;
+		}
+
+		auto& dims = mri_image_->dimensions;
+
+		// ---- Global toolbar ----
+		if (ImGui::Button("Reset All")) {
+			SetCursorVoxel(glm::vec3(dims[0] * 0.5f, dims[1] * 0.5f, dims[2] * 0.5f));
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Reset cursor to volume center");
+		ImGui::SameLine();
+		ImGui::TextDisabled("Drag: crosshair   Scroll: step slice");
+
+		ImGui::Separator();
+
+		// ---- Layout metrics ----
+		const float col_sp   = ImGui::GetStyle().ItemSpacing.x;
+		const float frame_hs = ImGui::GetFrameHeightWithSpacing();
+		const float line_hs  = ImGui::GetTextLineHeightWithSpacing();
+
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+		float panel_w = std::max(10.0f, (avail.x - col_sp * 2.0f) / 3.0f);
+
+		// Texture pixel dimensions per plane
+		// [plane][0]=tex_w, [plane][1]=tex_h
+		uint32_t tex_dims[3][2] = {
+			{ dims[0], dims[1] }, // Axial:    XY
+			{ dims[1], dims[2] }, // Sagittal: YZ
+			{ dims[0], dims[2] }, // Coronal:  XZ
+		};
+
+		// All panels share the same image height so rows stay strictly aligned.
+		// Compute the tallest ideal height across all planes (fitting in panel_w),
+		// then clamp to what fits in the window.
+		float overhead = line_hs           // header row
+		               + frame_hs          // step-buttons row
+		               + frame_hs;         // slice-slider row
+		float img_max_h = std::max(50.0f, avail.y - overhead);
+
+		float img_h = 0.0f;
+		for (int i = 0; i < 3; i++) {
+			float ah = (float)tex_dims[i][1] / (float)tex_dims[i][0];
+			img_h = std::max(img_h, panel_w * ah);
+		}
+		img_h = std::min(img_h, img_max_h);
+
+		// Each panel may be narrower than panel_w to preserve aspect ratio
+		float img_w[3];
+		for (int i = 0; i < 3; i++) {
+			float aw = (float)tex_dims[i][0] / (float)tex_dims[i][1];
+			img_w[i] = std::min(panel_w, img_h * aw);
+			if (img_w[i] < 1.0f) img_w[i] = 1.0f;
+		}
+
+		const SlicePlane  planes[3]       = { SlicePlane::Axial, SlicePlane::Sagittal, SlicePlane::Coronal };
+		const char* const plane_labels[3] = { "AXIAL", "SAGITTAL", "CORONAL" };
+		// Human label for the axis that varies when stepping through this plane
+		const char* const vary_labels[3]  = { "Z", "X", "Y" };
+
+		ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+		for (int i = 0; i < 3; i++) {
+			if (i > 0) ImGui::SameLine(0.0f, col_sp);
+			ImGui::PushID(i);
+			ImGui::BeginGroup();
+
+			auto& slice      = slices_[i];
+			uint32_t sl_idx  = GetSliceIndex(planes[i]);
+			uint32_t vary_d  = GetVaryingDimension(planes[i]);
+			uint32_t sl_max  = dims[vary_d] - 1;
+
+			// ---- Row 1: header label (same height for all: one text line) ----
+			ImGui::TextColored(ImVec4(0.55f, 0.85f, 1.0f, 1.0f), "%s", plane_labels[i]);
+			ImGui::SameLine();
+			ImGui::TextDisabled("%s: %u/%u", vary_labels[i], sl_idx, sl_max);
+
+			// ---- Row 2: image (all panels same img_h) ----
+			ImVec2 img_size(img_w[i], img_h);
+
+			if (slice.texture) {
+				// Flip Y: OpenGL stores rows bottom-up; uv_min=(0,1) uv_max=(1,0)
+				// displays it with increasing voxel indices going upward (radiological)
+				ImGui::Image(
+					(ImTextureID)(intptr_t)slice.texture->GetRendererID(),
+					img_size,
+					ImVec2(0.0f, 1.0f),
+					ImVec2(1.0f, 0.0f)
+				);
+
+				ImVec2 r_min = ImGui::GetItemRectMin();
+				ImVec2 r_max = ImGui::GetItemRectMax();
+
+				// Subtle border
+				draw_list->AddRect(r_min, r_max, IM_COL32(70, 70, 70, 255));
+
+				bool hovered = ImGui::IsItemHovered();
+
+				// Left-drag: reposition in-plane cursor
+				if (hovered && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+					ImVec2 mp = ImGui::GetMousePos();
+					float ux = glm::clamp((mp.x - r_min.x) / (r_max.x - r_min.x), 0.0f, 1.0f);
+					float uy = glm::clamp(1.0f - (mp.y - r_min.y) / (r_max.y - r_min.y), 0.0f, 1.0f);
+					glm::vec3 nc = cursor_voxel_;
+					switch (planes[i]) {
+						case SlicePlane::Axial:    nc.x = ux*(dims[0]-1); nc.y = uy*(dims[1]-1); break;
+						case SlicePlane::Sagittal: nc.y = ux*(dims[1]-1); nc.z = uy*(dims[2]-1); break;
+						case SlicePlane::Coronal:  nc.x = ux*(dims[0]-1); nc.z = uy*(dims[2]-1); break;
+					}
+					SetCursorVoxel(nc);
+				}
+
+				// Scroll wheel: step through the orthogonal axis
+				if (hovered && ImGui::GetIO().MouseWheel != 0.0f) {
+					float wheel = ImGui::GetIO().MouseWheel;
+					glm::vec3 nc = cursor_voxel_;
+					switch (planes[i]) {
+						case SlicePlane::Axial:    nc.z = glm::clamp(nc.z - wheel, 0.0f, (float)(dims[2]-1)); break;
+						case SlicePlane::Sagittal: nc.x = glm::clamp(nc.x - wheel, 0.0f, (float)(dims[0]-1)); break;
+						case SlicePlane::Coronal:  nc.y = glm::clamp(nc.y - wheel, 0.0f, (float)(dims[1]-1)); break;
+					}
+					SetCursorVoxel(nc);
+				}
+
+				// 2D crosshairs drawn via ImDrawList (no separate OpenGL submission)
+				if (show_crosshairs_) {
+					glm::vec2 ch = GetCrosshairUV(planes[i]);
+					float sx = r_min.x + ch.x * (r_max.x - r_min.x);
+					float sy = r_min.y + (1.0f - ch.y) * (r_max.y - r_min.y);
+					ImU32 col = IM_COL32(
+						(int)(crosshair_color_.r * 255),
+						(int)(crosshair_color_.g * 255),
+						(int)(crosshair_color_.b * 255),
+						210
+					);
+					draw_list->PushClipRect(r_min, r_max, true);
+					draw_list->AddLine({ r_min.x, sy }, { r_max.x, sy }, col, 1.0f);
+					draw_list->AddLine({ sx, r_min.y }, { sx, r_max.y }, col, 1.0f);
+					draw_list->PopClipRect();
+				}
+
+				// Hover tooltip: current voxel position
+				if (hovered) {
+					ImGui::BeginTooltip();
+					ImGui::Text("Voxel  x=%.0f  y=%.0f  z=%.0f",
+						cursor_voxel_.x, cursor_voxel_.y, cursor_voxel_.z);
+					ImGui::EndTooltip();
+				}
+			} else {
+				// Placeholder keeps layout stable while textures are not yet ready
+				ImGui::Dummy(img_size);
+			}
+
+			// ---- Row 3: step buttons + center (all SmallButton = same height) ----
+			if (ImGui::SmallButton(" < ")) {
+				glm::vec3 nc = cursor_voxel_;
+				switch (planes[i]) {
+					case SlicePlane::Axial:    nc.z = glm::clamp(nc.z - 1.0f, 0.0f, (float)(dims[2]-1)); break;
+					case SlicePlane::Sagittal: nc.x = glm::clamp(nc.x - 1.0f, 0.0f, (float)(dims[0]-1)); break;
+					case SlicePlane::Coronal:  nc.y = glm::clamp(nc.y - 1.0f, 0.0f, (float)(dims[1]-1)); break;
+				}
+				SetCursorVoxel(nc);
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Previous slice");
+			ImGui::SameLine(0.0f, 1.0f);
+			if (ImGui::SmallButton(" > ")) {
+				glm::vec3 nc = cursor_voxel_;
+				switch (planes[i]) {
+					case SlicePlane::Axial:    nc.z = glm::clamp(nc.z + 1.0f, 0.0f, (float)(dims[2]-1)); break;
+					case SlicePlane::Sagittal: nc.x = glm::clamp(nc.x + 1.0f, 0.0f, (float)(dims[0]-1)); break;
+					case SlicePlane::Coronal:  nc.y = glm::clamp(nc.y + 1.0f, 0.0f, (float)(dims[1]-1)); break;
+				}
+				SetCursorVoxel(nc);
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Next slice");
+			ImGui::SameLine(0.0f, 6.0f);
+			if (ImGui::SmallButton("Center")) {
+				glm::vec3 nc = cursor_voxel_;
+				switch (planes[i]) {
+					case SlicePlane::Axial:    nc.x = dims[0]*0.5f; nc.y = dims[1]*0.5f; break;
+					case SlicePlane::Sagittal: nc.y = dims[1]*0.5f; nc.z = dims[2]*0.5f; break;
+					case SlicePlane::Coronal:  nc.x = dims[0]*0.5f; nc.z = dims[2]*0.5f; break;
+				}
+				SetCursorVoxel(nc);
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Center cursor on this plane");
+
+			// ---- Row 4: slice slider (width matches image) ----
+			float sv = (float)sl_idx;
+			ImGui::SetNextItemWidth(img_w[i]);
+			char lbl[16];
+			snprintf(lbl, sizeof(lbl), "##sl%d", i);
+			if (ImGui::SliderFloat(lbl, &sv, 0.0f, (float)sl_max, "%.0f")) {
+				glm::vec3 nc = cursor_voxel_;
+				switch (planes[i]) {
+					case SlicePlane::Axial:    nc.z = sv; break;
+					case SlicePlane::Sagittal: nc.x = sv; break;
+					case SlicePlane::Coronal:  nc.y = sv; break;
+				}
+				SetCursorVoxel(nc);
+			}
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%s slice %u / %u", vary_labels[i], sl_idx, sl_max);
+
+			ImGui::EndGroup();
+			ImGui::PopID();
 		}
 	}
 

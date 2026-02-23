@@ -20,7 +20,7 @@ void OrthogonalCamera::OnImGuiRender(bool standalone)
     if (standalone) ImGui::Begin("Orthongoal Camera Settings");
 
     // TODO : 
-	ImGui::SliderFloat("Zoom Level", &m_ZoomLevel, 0.1f, 10.0f);
+	ImGui::SliderFloat("Zoom Level", &m_ZoomLevel, 1.0f, 1000.0f);
 
 	if (standalone) ImGui::End();
 }

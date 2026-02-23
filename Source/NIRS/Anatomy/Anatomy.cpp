@@ -6,7 +6,7 @@
 
 Anatomy::Anatomy(const std::filesystem::path& obj_filepath) : mesh_({})
 {
-	MeshFileDescription fd{ .filepath = obj_filepath };
+	MeshFileDescription fd{ .filepath = obj_filepath, .load_scale = 10.0f };
 	mesh_ = MeshFactory::CreateMesh(fd);
 
 

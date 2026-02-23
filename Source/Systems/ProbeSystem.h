@@ -40,11 +40,11 @@ struct ChannelIntersectionResult {
 
 // Settings to visualize and configure the probe
 struct Probe3DTransformSettings {
-	glm::vec3 position = glm::vec3(0.0f, -1.45f, -1.5f);
+	glm::vec3 position = glm::vec3(0.0f, -14.5f, -15.0f);
 	glm::vec3 rotation{ 0.0f, 180.0f, 0.0f };
 
-	float spread_factor = 0.11f;
-	float optode_mesh_scale = 0.8f;
+	float spread_factor = 1.1f;
+	float optode_mesh_scale = 8.0f;
 	float projection_ray_distance_factor = 0.5f;
 
 	glm::vec3 projection_target_position = glm::vec3(0.0f, 0.0f, 0.0f);

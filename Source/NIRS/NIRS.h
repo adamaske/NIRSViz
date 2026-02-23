@@ -71,7 +71,7 @@ namespace NIRS {
         float StrengthMin = -2.0005f;
         float StrengthMax = 2.0005f;
         float FalloffPower = 0.5f;
-        float Radius = 1.6f;
+        float Radius = 16.0f;
         float decay_constant = 2.0f;
 
         glm::vec4 object_color = { 0.4f, 0.4f, 0.4f, 1.0f };

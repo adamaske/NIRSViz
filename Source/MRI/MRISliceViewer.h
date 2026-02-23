@@ -35,6 +35,7 @@ namespace NVMRI {
 		void OnAttach(NVMRI::MRIImage* mri_image);
 		void OnUpdate(DeltaTime dt);
 		void Render(bool standalone);
+		void Render2DViewer(bool standalone);
 
 		// Set cursor position in voxel coordinates (0 to dims-1)
 		void SetCursorVoxel(const glm::vec3& voxel_pos);
@@ -76,7 +77,8 @@ namespace NVMRI {
 
 		// Manual alignment controls
 		bool use_world_transform_ = false;  // If false, slices align to voxel axes (default: aligned)
-		glm::vec3 rotation_offset_deg_ = glm::vec3(-90.0f, 0.0f, 0.0f);  // Default -90 pitch for proper orientation
+		bool box_edge_mode_ = false;        // When true, planes are fixed at the volume boundary edges
+		glm::vec3 rotation_offset_deg_ = glm::vec3(0.0f, 0.0f, 0.0f);
 		float scale_factor_ = 1.0f;  // Overall scale factor
 
 	public:

@@ -13,6 +13,7 @@
 
 struct MeshFileDescription {
     std::filesystem::path filepath;
+    float load_scale = 1.0f;
 };
 
 struct Mesh {

@@ -51,7 +51,7 @@ void MRISystem::OnUpdate(DeltaTime dt) {
 void MRISystem::OnGUIRender() {
 	ImGui::Begin("MRI Settings");
 
-	// Metadata	
+	// Metadata
 	ImGui::SeparatorText("MRI Metadata");
 	RenderMRIMetadataPanel();
 
@@ -60,9 +60,15 @@ void MRISystem::OnGUIRender() {
 	volumetric_image_->RenderGUI(false);
 	// TODO : Move these to a dedicated Volumetric Rendering Settings panel
 
-	// Indepedent Slice Viewer
+	// Indepedent Slice Viewer (3D viewport controls)
 	slice_viewer_->Render(false);
 
+	ImGui::End();
+
+	// 2D Slice Viewer – synchronized with the 3D slice viewer
+	ImGui::SetNextWindowSize(ImVec2(800, 340), ImGuiCond_FirstUseEver);
+	ImGui::Begin("MRI 2D Viewer");
+	slice_viewer_->Render2DViewer(false);
 	ImGui::End();
 }
 

@@ -27,10 +27,10 @@ namespace NIRS {
         // Default positions (approximate for average adult head)
         static glm::vec3 GetDefaultPosition(ManualLandmarkType type) {
             switch (type) {
-            case ManualLandmarkType::Nasion: return glm::vec3(0.0f, -5.2f, -10.4f);
-            case ManualLandmarkType::Inion:  return glm::vec3(-0.4f, -4.1f, 10.9f);
-            case ManualLandmarkType::LPA:    return glm::vec3(-9.1f, -5.8f, 0.0f);
-            case ManualLandmarkType::RPA:    return glm::vec3(9.1f, -5.8f, 0.0f);
+            case ManualLandmarkType::Nasion: return glm::vec3(0.0f, -52.0f, -104.0f);
+            case ManualLandmarkType::Inion:  return glm::vec3(-4.0f, -41.0f, 109.0f);
+            case ManualLandmarkType::LPA:    return glm::vec3(-91.0f, -58.0f, 0.0f);
+            case ManualLandmarkType::RPA:    return glm::vec3(91.0f, -58.0f, 0.0f);
             }
             return glm::vec3(0.0f);
         }

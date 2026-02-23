@@ -14,7 +14,7 @@ void VoxelSystem::OnAttach()
     config.windowTitle = "Voxel Viewport - Brain Sensitivity";
     config.defaultSize = { 1280, 900 };
     config.initialCameraMode = CameraMode::ROAM;  // Free roam camera
-    config.initialPosition = { -20.0f, 10.0f, 25.0f };
+    config.initialPosition = { -200.0f, 100.0f, 250.0f };
     config.initialPitch = -15.0f;
     config.initialYaw = 40.0f;
 
@@ -25,8 +25,8 @@ void VoxelSystem::OnAttach()
     // Initialize with default grid configuration
     VoxelGridConfig default_config;
     default_config.dimensions = glm::ivec3(50, 50, 50);
-    default_config.origin = glm::vec3(-10.0f, -10.0f, -10.0f);  // Center the grid
-    default_config.voxel_size = 1.0f;
+    default_config.origin = glm::vec3(-100.0f, -100.0f, -100.0f);  // Center the grid
+    default_config.voxel_size = 10.0f;
     default_config.min_intensity = 0.0f;
     default_config.max_intensity = 1.0f;
 
@@ -67,7 +67,7 @@ void VoxelSystem::OnGUIRender()
         grid_config_.dimensions.z);
     ImGui::Text("Total Voxels: %d", voxel_instances_.size());
 
-    if (ImGui::SliderFloat("Voxel Size", &grid_config_.voxel_size, 0.1f, 3.0f)) {
+    if (ImGui::SliderFloat("Voxel Size", &grid_config_.voxel_size, 1.0f, 30.0f)) {
         data_dirty_ = true;
     }
 

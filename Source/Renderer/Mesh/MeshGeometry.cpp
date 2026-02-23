@@ -13,7 +13,7 @@ namespace Utils {
                            std::vector<unsigned int> &indices);
 }
 
-MeshGeometry MeshGeometry::CreateFromOBJ(std::filesystem::path obj_filepath) {
+MeshGeometry MeshGeometry::CreateFromOBJ(std::filesystem::path obj_filepath, float load_scale) {
     MeshGeometry geometry;
 
     Assimp::Importer importer;
@@ -35,6 +35,11 @@ MeshGeometry MeshGeometry::CreateFromOBJ(std::filesystem::path obj_filepath) {
 
     // Recursively process the root node and its children
     Utils::processAssimpNode(scene->mRootNode, scene, geometry.vertices, geometry.indices);
+
+    if (load_scale != 1.0f) {
+        for (auto& v : geometry.vertices)
+            v.position *= load_scale;
+    }
 
     NVIZ_INFO("MeshGeometry loaded from {}", obj_filepath.string().c_str());
     NVIZ_INFO("Loaded vertices: {}", geometry.vertices.size());

@@ -43,7 +43,7 @@ private:
     Ref<LineRenderer> m_GuideLineRenderer;
 
     // Settings
-    float m_LandmarkSize = 1.2f;
+    float m_LandmarkSize = 12.0f;
     bool m_ShowGuideLines = true;
 
     Ref<Shader> m_PhongShader;

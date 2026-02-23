@@ -91,7 +91,7 @@ protected:
 	glm::vec3 m_Position = { 0.0f, 0.0f, 0.0f };
 	glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 
-	float m_FOV = 90.0f, m_AspectRatio = 16.f / 9.f, m_NearClip = 0.01f, m_FarClip = 1000.0f;
+	float m_FOV = 90.0f, m_AspectRatio = 16.f / 9.f, m_NearClip = 0.1f, m_FarClip = 10000.0f;
 
 	float m_Distance = 10.0f;
 

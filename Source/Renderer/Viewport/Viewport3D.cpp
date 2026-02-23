@@ -236,7 +236,7 @@ void Viewport3D::OnMouseScrolled(float yOffset)
 {
 	if (camera_mode_ == CameraMode::ORBIT) {
 		auto newRadius = orbit_camera_->m_Radius - (yOffset * 0.5f);
-		if (newRadius < 1.0f) newRadius = 1.0f;
+		if (newRadius < 10.0f) newRadius = 10.0f;
 		orbit_camera_->SetRadius(newRadius);
 	}
 }

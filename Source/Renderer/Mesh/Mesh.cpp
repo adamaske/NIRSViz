@@ -20,7 +20,7 @@ Mesh MeshFactory::CreateMesh(const MeshFileDescription &fd) {
     Mesh mesh;
 
     mesh.fd = fd;
-    mesh.geometry = MeshGeometry::CreateFromOBJ(fd.filepath);
+    mesh.geometry = MeshGeometry::CreateFromOBJ(fd.filepath, fd.load_scale);
     mesh.buffers = MeshBuffers::CreateFromGeometry(mesh.geometry);
     mesh.topology = MeshTopology::BuildFromGeometry(mesh.geometry);
     mesh.spatial_index = MeshSpatialIndex::BuildFromGeometry(mesh.geometry);

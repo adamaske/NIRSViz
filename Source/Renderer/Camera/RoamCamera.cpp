@@ -30,7 +30,7 @@ void RoamCamera::OnImGuiRender(bool standalone)
 {
     if (standalone) ImGui::Begin("Roam Camera Settings");
 
-    ImGui::SliderFloat("Movement Speed", &m_MovementSpeed, 0.0f, 500.0f);
+    ImGui::SliderFloat("Movement Speed", &m_MovementSpeed, 0.0f, 5000.0f);
     ImGui::SliderFloat("Rotation Speed", &m_RotationSpeed, 0.0f, 500.0f);
 
     const glm::vec3& pos = GetPosition();

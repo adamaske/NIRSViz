@@ -36,7 +36,7 @@ private:
 
 	glm::vec3 m_FocalPoint = { 0.0f, 0.0f, 0.0f };
 
-	float m_MovementSpeed = 20.0f; // Units per second
+	float m_MovementSpeed = 200.0f; // Units per second
 	float m_RotationSpeed = 20.0f;   // Radians per pixel
 	glm::vec2 m_InitalMousePosition = { 0.0f, 0.0f };
 	float m_Distance = 10.0f;
