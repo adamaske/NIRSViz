@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "Systems/AnatomySystem.h"
 
+#include <glad/glad.h>
+
 #include "Core/AssetRegistry.h"
 
 #include "Services/AnatomyService.h"
@@ -46,14 +48,20 @@ void AnatomySystem::OnGUIRender()
 
 	ImGui::Begin("Anatomy System Settings");
 
-	auto& cortex = anatomy_service_.GetCortexMutable();
-	auto& head = anatomy_service_.GetHeadMutable();
+	auto* cortex = anatomy_service_.HasCortex() ? &anatomy_service_.GetCortexMutable() : nullptr;
+	auto* head   = anatomy_service_.HasHead()   ? &anatomy_service_.GetHeadMutable()   : nullptr;
 
 	ImGui::SeparatorText("Cortex Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Cortex>(&cortex, "Cortex", "Cortex Anatomy Settings", false);
+	if (cortex)
+		GUI::RenderAnatomySettings<NIRS::Cortex>(cortex, "Cortex", "Cortex Anatomy Settings", false);
+	else
+		ImGui::TextDisabled("No cortex loaded. Use Anatomy > Load Cortex.");
 
 	ImGui::SeparatorText("Head Anatomy");
-	GUI::RenderAnatomySettings<NIRS::Head>(&head, "Head", "Head Anatomy Settings", false);
+	if (head)
+		GUI::RenderAnatomySettings<NIRS::Head>(head, "Head", "Head Anatomy Settings", false);
+	else
+		ImGui::TextDisabled("No head loaded. Use Anatomy > Load Head.");
 
 
 	ImGui::SeparatorText("Coordinate System Generation");
@@ -88,7 +96,7 @@ void AnatomySystem::RenderMenuBar()
 				FileDialogService::FILTER_MESH.spec,
 				path);
 
-			//if (opened) LoadCortex(path);
+			if (opened) anatomy_service_.LoadCortex(path);
 		}
 
 		if (ImGui::MenuItem("Load Head")) {
@@ -98,7 +106,7 @@ void AnatomySystem::RenderMenuBar()
 				FileDialogService::FILTER_MESH.spec,
 				path);
 
-			//if (opened) LoadHead(path);
+			if (opened) anatomy_service_.LoadHead(path);
 		}
 
 		ImGui::EndMenu();
@@ -132,18 +140,10 @@ void AnatomySystem::RenderAnatomy()
 	light_pos.Name = "u_LightPos";
 	light_pos.Data.f3 = anatomy_viewport_->GetActiveCamera()->GetPosition();
 
-	auto* cortex = &anatomy_service_.GetCortexMutable();
-	auto* head = &anatomy_service_.GetHeadMutable();
+	auto* cortex = anatomy_service_.HasCortex() ? &anatomy_service_.GetCortexMutable() : nullptr;
+	auto* head   = anatomy_service_.HasHead()   ? &anatomy_service_.GetHeadMutable()   : nullptr;
 
 	if (cortex && cortex->IsVisible()) {
-
-		RenderCommand cmd;
-		cmd.ShaderPtr = phong_shader_.get();
-		cmd.VAOPtr = cortex->GetMesh().buffers.vao.get();
-		cmd.target_viewport = ViewportType::AnatomyViewport;
-		cmd.Transform = cortex->GetTransform().GetMatrix();
-		cmd.Mode = DRAW_ELEMENTS;
-
 
 		UniformData opacity;
 		opacity.Type = UniformDataType::FLOAT1;
@@ -155,10 +155,30 @@ void AnatomySystem::RenderAnatomy()
 		object_color.Name = "u_ObjectColor";
 		object_color.Data.f4 = { 0.1f, 0.1f, 0.2f, 1.0f };
 
+		RenderCommand cmd;
+		cmd.ShaderPtr = phong_shader_.get();
+		cmd.VAOPtr = cortex->GetMesh().buffers.vao.get();
+		cmd.target_viewport = ViewportType::AnatomyViewport;
+		cmd.Transform = cortex->GetTransform().GetMatrix();
+		cmd.Mode = DRAW_ELEMENTS;
 		cmd.UniformCommands = { light_pos, object_color, opacity };
 
-		Renderer::Submit(cmd);
+		if (cortex->GetOpacity() >= 1.0f) {
+			// Fully opaque: single pass with depth writes so triangles occlude correctly.
+			cmd.Layer = RenderLayer::Opaque;
+			Renderer::Submit(cmd);
+		} else {
+			// Transparent: two-pass face-culling trick.
+			// Pass 1 — back faces first (further from camera).
+			// Pass 2 — front faces second (closer, blend on top).
+			// stable_sort in ExecuteQueue preserves this submission order.
+			cmd.Layer = RenderLayer::Transparent;
+			cmd.APICalls = { { []() { glCullFace(GL_FRONT); } } };
+			Renderer::Submit(cmd);
 
+			cmd.APICalls = { { []() { glCullFace(GL_BACK); } } };
+			Renderer::Submit(cmd);
+		}
 	}
 
 	if (head && head->IsVisible()) {
@@ -169,6 +189,7 @@ void AnatomySystem::RenderAnatomy()
 		cmd.target_viewport = ViewportType::AnatomyViewport;
 		cmd.Transform = head->GetTransform().GetMatrix();
 		cmd.Mode = DRAW_ELEMENTS;
+		cmd.Layer = RenderLayer::Transparent;
 
 		UniformData opacity;
 		opacity.Type = UniformDataType::FLOAT1;
@@ -197,6 +218,11 @@ void AnatomySystem::StartRenderingAnatomy() {
 void AnatomySystem::GenerateCoordinateSystem(){
 	NVIZ_PROFILE_FUNCTION();
 
+	if (!anatomy_service_.HasHead()) {
+		NVIZ_WARN("AnatomySystem: No head mesh loaded — skipping coordinate system generation.");
+		return;
+	}
+
 	CoordinateSystemGenerator::CoordinateSystemData coord_data;
 	std::vector<CoordinateSystemGenerator::CoordinateSystemError> errors;
 	bool success = coordinate_generator_->GenerateCoordinateSystem(coord_data, errors);
@@ -209,9 +235,10 @@ void AnatomySystem::GenerateCoordinateSystem(){
 }
 
 void AnatomySystem::SetDrawMode(DrawMode mode) {
-	
-	auto cortex =	&anatomy_service_.GetCortexMutable();
-	auto head =		&anatomy_service_.GetHeadMutable();
+
+	auto cortex = anatomy_service_.HasCortex() ? &anatomy_service_.GetCortexMutable() : nullptr;
+	auto head   = anatomy_service_.HasHead()   ? &anatomy_service_.GetHeadMutable()   : nullptr;
+	if (!cortex || !head) return;
 
 	switch (mode) {
 

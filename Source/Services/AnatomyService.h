@@ -15,6 +15,9 @@ public:
 	void LoadHead(const std::filesystem::path& obj_filepath);
 	void LoadCortex(const std::filesystem::path& obj_filepath);
 
+	bool HasHead()   const override { return head_   != nullptr; }
+	bool HasCortex() const override { return cortex_ != nullptr; }
+
 	const NIRS::Head& GetHead() override { return *head_.get(); };
 	NIRS::Head& GetHeadMutable() override { return *head_.get(); };
 

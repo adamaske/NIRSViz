@@ -103,5 +103,5 @@ protected:
 	glm::vec3 right = WORLD_RIGHT;
 
 	bool  m_Orthographic = false;
-	float m_OrthoZoom    = 10.0f;
+	float m_OrthoZoom    = 100.0f;
 };

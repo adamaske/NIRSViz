@@ -9,7 +9,7 @@
 
 
 #include "NIRS/Snirf.h"
-#include "NIRS/SNIRFFactory.h"
+#include "NIRS/SNIRFLoader.h"
 
 namespace Utils {
     std::string SNIRFFileDialogFilepath() {

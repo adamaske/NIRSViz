@@ -8,6 +8,7 @@
 #include "Core/AssetRegistry.h"
 
 #include "Services/FileDialogService.h"
+#include "Services/ProjectService.h"
 
 #include "Services/SNIRFService.h"
 #include "Services/AnatomyService.h"
@@ -53,14 +54,12 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	// --- Serives
 
 	snirf_service_ = CreateScope<SNIRFService>();
-	snirf_service_->Load(
-		AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
-
 	anatomy_service_ = CreateScope<AnatomyService>();
-	anatomy_service_->LoadHead(
-		AssetRegistry::Get("head_model.obj"));
-	anatomy_service_->LoadCortex(
-		AssetRegistry::Get("sub-116_anat_low.obj"));
+
+	// DEV: Uncomment to load test data on startup:
+	snirf_service_->Load(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
+	anatomy_service_->LoadHead(AssetRegistry::Get("scalp.obj"));
+	anatomy_service_->LoadCortex(AssetRegistry::Get("sub-116_anat_low_normals.obj"));
 
 	session_service_ = CreateScope<SessionService>(
 						*snirf_service_, *anatomy_service_);
@@ -113,6 +112,13 @@ void Application::Run()
 		double time = (double)glfwGetTime();
 		DeltaTime delta_time = time - last_time_;
 		last_time_ = time;
+
+		// Update window title when project state changes
+		auto& proj = ProjectService::Get();
+		if (proj.IsTitleDirty()) {
+			glfwSetWindowTitle(window_->GetNativeWindow(), proj.GetWindowTitle().c_str());
+			proj.ClearTitleDirty();
+		}
 
 		if (!minimized_)
 		{

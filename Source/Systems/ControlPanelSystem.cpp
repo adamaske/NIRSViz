@@ -44,17 +44,6 @@ void ControlPanelSystem::OnGUIRender()
 		GUI::RenderWavelengthSelectorSingular(ps->GetProjectionWavelengthMutable());
 	}
 
-    if (ImGui::Button("Button 1")) {
-		// Draw Anatomy On / Off
-    }
-
-    if (ImGui::Button("Button 2")) {
-		// Draw Probes  On / Off
-    }
-
-	if (ImGui::Button("Button 3")) {
-		// Draw Coordinates On / Off
-	}
 
 
     ImGui::End();

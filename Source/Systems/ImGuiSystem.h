@@ -22,6 +22,7 @@ public:
 	void BlockEvents(bool block) { m_BlockEvents = block; }
 
 	void SetDarkThemeColors();
+	void RenderLogPanel();
 
 	uint32_t GetActiveWidgetID() const;
 private:

@@ -51,14 +51,13 @@ void ProbeSystem::OnDetach() {
 
 void ProbeSystem::OnUpdate(DeltaTime dt) {
 
-	if (!m_InitalProjectionToCortex) { // TODO : Handle differently
+	if (!m_InitalProjectionToCortex && m_SNIRF && anatomy_provider_.HasCortex()) {
 		ProjectChannelsToCortex();
 		m_InitalProjectionToCortex = true;
-
 	}
 
 	auto mesh_scale = glm::vec3(probe_3D_transform_settings_.optode_mesh_scale);
-	if (m_DrawProbes3D && m_SNIRF->IsFileLoaded()) {
+	if (m_DrawProbes3D && m_SNIRF && m_SNIRF->IsFileLoaded()) {
 		for (auto& [id, pv] : source_visuals_) {
 			RenderCommand cmd = pv.RenderCmd3D;
 			cmd.Transform = glm::scale(cmd.Transform, mesh_scale);
@@ -210,9 +209,10 @@ void ProbeSystem::Render3DProbeTransformControls(bool standalone)
 void ProbeSystem::HandleSNIRFLoaded()
 {
 	m_SNIRF = snirf_provider_.GetLoadedSNIRF();
+	if (!m_SNIRF) return;  // No SNIRF loaded yet
 
 	auto& snirf = *m_SNIRF.get();
-	
+
 	channel_map_ = snirf.GetChannels();
 
 
@@ -377,6 +377,8 @@ void ProbeSystem::UpdateChannelVisuals()
 void ProbeSystem::ProjectChannelsToCortex()
 {
 	NVIZ_PROFILE_FUNCTION();
+
+	if (!anatomy_provider_.HasCortex()) return;
 
 	channel_intersection_results_.clear();
 

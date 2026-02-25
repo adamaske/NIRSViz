@@ -1,0 +1,7 @@
+project:
+  name: test
+subject:
+  snirf: C:\dev\NIRSViz\Assets\NIRS\sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf
+  head: C:\dev\NIRSViz\Assets\MRI\scalp.obj
+  cortex: C:\dev\NIRSViz\Assets\MRI\sub-116_anat_low.obj
+  mri: C:\dev\NIRSViz\Assets\MRI\sub-116_ses-BL_T1w.nii.gz

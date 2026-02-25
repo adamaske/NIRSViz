@@ -133,6 +133,18 @@ add_subdirectory(${VENDOR_DIR}/nativefiledialog-extended)
 # SQLiteCpp
 #add_subdirectory(${VENDOR_DIR}/SQLiteCpp)
 
+# yaml-cpp - YAML parser/emitter for project file serialization
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_INSTALL    OFF CACHE BOOL "" FORCE)
+add_subdirectory(${VENDOR_DIR}/yaml-cpp)
+
+# snirf-cpp - SNIRF file parsing static library (submodule)
+set(SNIRF_BUILD_TESTS          OFF CACHE BOOL "" FORCE)
+set(SNIRF_BUILD_EXAMPLES       OFF CACHE BOOL "" FORCE)
+set(SNIRF_BUILD_DEV_EXECUTABLE OFF CACHE BOOL "" FORCE)
+add_subdirectory(${VENDOR_DIR}/snirf-cpp)
+
 # ImGui
 set(IMGUI_SOURCES
     ${VENDOR_DIR}/imgui/imgui.cpp
@@ -213,13 +225,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VENDOR_DIR}/implot
     
     ${VENDOR_DIR}/stb #stb_image.h
-    ${VENDOR_DIR}/HighFive/include # HDF5 C++ header-only wrapper
     ${VENDOR_DIR}/Eigen/include
+    ${VENDOR_DIR}/snirf-cpp/include  # snirf-cpp public headers
     ${VENDOR_DIR}/fmt/include     
     ${VENDOR_DIR}/assimp/include
     ${VENDOR_DIR}/bvh/include
     ${VENDOR_DIR}/nanoflann/include
     ${VENDOR_DIR}/nativefiledialog-extended/src/include
+    ${VENDOR_DIR}/yaml-cpp/include
 
     #${VENDOR_DIR}/entt/src
     #${VENDOR_DIR}/CDT/CDT/include
@@ -245,6 +258,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     
     nfd
     bvh
+    yaml-cpp
+    snirf
 
     $<$<BOOL:${MINGW}>:ws2_32>
     #CDT_Static

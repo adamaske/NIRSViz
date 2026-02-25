@@ -34,12 +34,17 @@ void Renderer::ExecuteQueue() {
 		return;
 	}
 
-	std::sort(sRendererData.CommandQueue.begin(), sRendererData.CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
-		return static_cast<ViewID>(a.target_viewport) < static_cast<ViewID>(b.target_viewport);
+	// stable_sort preserves submission order for equal-priority commands (e.g.
+	// the two-pass back-then-front face culling passes for transparent meshes).
+	std::stable_sort(sRendererData.CommandQueue.begin(), sRendererData.CommandQueue.end(), [](const RenderCommand& a, const RenderCommand& b) {
+		if (a.target_viewport != b.target_viewport)
+			return static_cast<ViewID>(a.target_viewport) < static_cast<ViewID>(b.target_viewport);
+		// Within a viewport: opaque before transparent so depth buffer is correct
+		return static_cast<uint32_t>(a.Layer) < static_cast<uint32_t>(b.Layer);
 	});
 
-	// First 
 	ViewportType current_viewport = ViewportType::NONE;
+	RenderLayer  current_layer    = RenderLayer::Opaque;
 
 	for (const auto& command : sRendererData.CommandQueue) {
 		if (command.target_viewport != current_viewport)
@@ -52,10 +57,16 @@ void Renderer::ExecuteQueue() {
 			//	continue;
 			//}
 
+			// Entering a new viewport: restore opaque state before clearing
+			if (current_layer == RenderLayer::Transparent) {
+				glDepthMask(GL_TRUE);
+				current_layer = RenderLayer::Opaque;
+			}
+
 			current_viewport = command.target_viewport;
 
 			const RenderView& currentView = sRendererData.ActiveViews.at(current_viewport);
-			
+
 			sCurrentBoundCamera = currentView.Camera;
 
 			if (sCurrentBoundFBO) {
@@ -68,6 +79,12 @@ void Renderer::ExecuteQueue() {
 			Renderer::SetClearColor({ 0.0f, 0.00f, 0.00f, 1.00f });
 			Renderer::Clear();
 
+		}
+
+		// Toggle depth writing when layer changes within a viewport
+		if (command.Layer != current_layer) {
+			current_layer = command.Layer;
+			glDepthMask(current_layer == RenderLayer::Opaque ? GL_TRUE : GL_FALSE);
 		}
 
 		//Handle API Calls
@@ -152,6 +169,9 @@ void Renderer::ExecuteQueue() {
 			glBindTexture(GL_TEXTURE_1D, 0);
 		}
 	}
+
+	// Ensure depth writes are re-enabled after any transparent pass
+	glDepthMask(GL_TRUE);
 
 	sCurrentBoundFBO->Unbind();
 }

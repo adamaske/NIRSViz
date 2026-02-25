@@ -48,10 +48,11 @@ void ProjectionSystem::RenderMenuBar() {
 
 void ProjectionSystem::StartProjection()
 {
-	// Get Probe from probe provider
-	// auto probe = probe_provider_.GetProbe();
+	if (!anatomy_provider_.HasCortex()) {
+		NVIZ_WARN("ProjectionSystem: Cannot start projection — no cortex mesh loaded.");
+		return;
+	}
 
-	// TODO : Wrapp StartProjeciton in a bool so that service can be denied
 	projection_time_tag_provider_.StartProjection(settings_.wavelength);
 	anatomy_provider_.GetCortexMutable().SetVisible(false);
 	is_projecting_ = true;
@@ -67,7 +68,8 @@ void ProjectionSystem::StopProjection()
 {
 	is_projecting_ = false;
 
-	anatomy_provider_.GetCortexMutable().SetVisible(true);
+	if (anatomy_provider_.HasCortex())
+		anatomy_provider_.GetCortexMutable().SetVisible(true);
 	// Shutdown logic
 	//EventBus::Instance().Publish<OnStopProjection>({});
 }
@@ -88,6 +90,8 @@ void ProjectionSystem::OnProjectionTimeChanged(size_t index, double actualTime)
 void ProjectionSystem::UpdateInfluenceMap()
 {
 	NVIZ_PROFILE_FUNCTION();
+
+	if (!anatomy_provider_.HasCortex()) return;
 
 	const auto& probe_system = Application::Get().GetSystem<ProbeSystem>();
 	const auto& intersections = probe_system->GetChannelIntersectionResults();
@@ -160,6 +164,8 @@ void ProjectionSystem::UpdateActivatedVertices()
 
 void ProjectionSystem::SetupCortexRendering()
 {
+	if (!anatomy_provider_.HasCortex()) return;
+
 	auto& cortex = anatomy_provider_.GetCortexMutable();
 
 	const auto& vertices = cortex.GetMesh().geometry.vertices;

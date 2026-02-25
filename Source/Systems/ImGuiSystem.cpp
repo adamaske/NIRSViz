@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 
 #include "Core/AssetRegistry.h"
+#include "Core/ImGuiLogSink.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -13,6 +14,7 @@
 #include <implot.h>
 
 #include "Core/Application.h"
+#include "Services/NotificationService.h"
 
 ImGuiSystem::ImGuiSystem()
 {
@@ -85,7 +87,8 @@ void ImGuiSystem::Begin()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-	ImGui::ShowDemoWindow();
+
+	RenderLogPanel();
 
 	auto& systemManager = Application::Get().GetSystemManager();
 
@@ -100,6 +103,8 @@ void ImGuiSystem::Begin()
 
 void ImGuiSystem::End()
 {
+	NotificationService::Get().RenderToasts();
+
 	ImGuiIO& io = ImGui::GetIO();
 	Application& app = Application::Get();
 	io.DisplaySize = ImVec2((float)app.GetWindow()->GetWidth(), (float)app.GetWindow()->GetHeight());
@@ -153,4 +158,45 @@ void ImGuiSystem::SetDarkThemeColors()
 uint32_t ImGuiSystem::GetActiveWidgetID() const
 {
 	return 0;
+}
+
+void ImGuiSystem::RenderLogPanel()
+{
+	if (!ImGui::Begin("Log")) {
+		ImGui::End();
+		return;
+	}
+
+	auto& sink = *ImGuiLogSink::Instance();
+
+	if (ImGui::SmallButton("Clear"))
+		sink.Clear();
+	ImGui::SameLine();
+	ImGui::Text("%zu entries", sink.GetEntries().size());
+	ImGui::Separator();
+
+	ImGui::BeginChild("LogScrollArea", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+	for (const auto& entry : sink.GetEntries()) {
+		ImVec4 color;
+		switch (entry.level) {
+			case LogLevel::Error:
+			case LogLevel::Critical: color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); break;
+			case LogLevel::Warn:     color = ImVec4(1.0f, 0.85f, 0.3f, 1.0f); break;
+			case LogLevel::Debug:
+			case LogLevel::Trace:    color = ImVec4(0.6f, 0.6f, 0.6f, 1.0f); break;
+			default:                 color = ImVec4(0.85f, 0.85f, 0.85f, 1.0f); break;
+		}
+		ImGui::PushStyleColor(ImGuiCol_Text, color);
+		ImGui::TextUnformatted(entry.message.c_str());
+		ImGui::PopStyleColor();
+	}
+
+	if (sink.scroll_to_bottom_) {
+		ImGui::SetScrollHereY(1.0f);
+		sink.scroll_to_bottom_ = false;
+	}
+
+	ImGui::EndChild();
+	ImGui::End();
 }

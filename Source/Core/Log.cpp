@@ -1,14 +1,21 @@
 #include "pch.h"
 #include "Core/Log.h"
+#include "Core/ImGuiLogSink.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
 Ref<spdlog::logger> Log::s_CoreLogger;
+
 void Log::Init()
 {
+	auto& gui_sink = ImGuiLogSink::Instance();
+	gui_sink->set_pattern("[%T] [%l] %v");
+
 	std::vector<spdlog::sink_ptr> logSinks;
 	logSinks.emplace_back(std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
 	logSinks.emplace_back(std::make_shared<spdlog::sinks::basic_file_sink_mt>("NVIZ.log", true));
+	logSinks.emplace_back(gui_sink);
 
 	logSinks[0]->set_pattern("%^[%T] %n: %v%$");
 	logSinks[1]->set_pattern("[%T] [%l] %n: %v");

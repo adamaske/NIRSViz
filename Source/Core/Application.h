@@ -58,7 +58,7 @@ void OnEvent(Event& e);
 	bool OnWindowResize(WindowResizeEvent& e);
 
 	Window* GetWindow() { return window_.get(); }
-	const ApplicationSpecification& GetSpecification() const { return specification_	; }
+	const ApplicationSpecification& GetSpecification() const { return specification_; }
 
 	SystemManager& GetSystemManager() { return system_manager_; }
 
@@ -66,6 +66,8 @@ void OnEvent(Event& e);
 	Ref<T> GetSystem() {
 		return system_manager_.GetSystem<T>();
 	}
+
+	SessionService* GetSessionService() { return session_service_.get(); }
 private:
 	static Application* sInstance;
 

@@ -4,6 +4,9 @@
 
 class IAnatomyProvider {
 public:
+	virtual bool HasHead()   const { return true; }
+	virtual bool HasCortex() const { return true; }
+
 	virtual const NIRS::Head& GetHead() = 0;
 	virtual const NIRS::Cortex& GetCortex() = 0;
 

@@ -39,6 +39,8 @@ void ChannelSelectorSystem::OnAttach() {
 	channel_visuals_.clear();
 	selected_channels_.clear();
 
+	if (!snirf) return;  // No SNIRF loaded yet — will populate when data arrives
+
 	const auto& probe = snirf->GetProbe();
 
 	channels_ = probe.channels;

@@ -77,7 +77,7 @@ namespace NVMRI {
 
 		// Manual alignment controls
 		bool use_world_transform_ = false;  // If false, slices align to voxel axes (default: aligned)
-		bool box_edge_mode_ = false;        // When true, planes are fixed at the volume boundary edges
+		bool box_edge_mode_ = true;        // When true, planes are fixed at the volume boundary edges
 		glm::vec3 rotation_offset_deg_ = glm::vec3(0.0f, 0.0f, 0.0f);
 		float scale_factor_ = 1.0f;  // Overall scale factor
 

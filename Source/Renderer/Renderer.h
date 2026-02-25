@@ -48,6 +48,14 @@ enum DrawMode {
 	DRAW_ELEMENTS_INSTANCED = 4
 };
 
+// Controls render order within a viewport. Opaque objects draw first with depth
+// writes enabled. Transparent objects draw after with depth writes disabled so
+// they blend correctly over geometry behind them without occluding it.
+enum class RenderLayer : uint32_t {
+	Opaque      = 0,
+	Transparent = 1
+};
+
 enum class UniformDataType {
 	FLOAT1, FLOAT3, FLOAT2, FLOAT4, MAT4, INT1, BOOL1, SAMPLER1D, SAMPLER2D
 };
@@ -91,6 +99,7 @@ struct RenderCommand {
 
 	ViewportType target_viewport = ViewportType::AnatomyViewport;
 	DrawMode Mode = DRAW_ELEMENTS;
+	RenderLayer Layer = RenderLayer::Opaque;
 
 	uint32_t InstanceCount = 0;  // For instanced rendering
 	uint32_t VertexCount = 0;    // For DRAW_LINES, DRAW_ARRAYS, DRAW_POINTS (0 = use VAO count)
