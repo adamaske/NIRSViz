@@ -30,14 +30,11 @@ namespace Utils {
 }
 
 
-SNIRFFileLoaderPanel::SNIRFFileLoaderPanel()
-{
+SNIRFFileLoaderPanel::SNIRFFileLoaderPanel() {
 	// Set parameters
 	IsValid = false;
 	SelectedType = SNIRFType::UNKOWN;
-
     UserSelectedFilepath.resize(256);
-
 }
 
 
@@ -49,7 +46,6 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
         ImGui::SetNextWindowSize(ImVec2(500, 250), ImGuiCond_Once);
         ImGui::Begin("SNIRF File Loader", &open, windowFlags);
     }
-
 
     // Label on the left
     ImGui::Text("Filepath:");
@@ -63,8 +59,6 @@ void SNIRFFileLoaderPanel::OnImGuiRender(bool standalone, bool& open) {
 
         UserSelectedFilepath = Utils::SNIRFFileDialogFilepath();
     };
-
-
 
     // --- Row 2 : Filetype Selector and Validate Button ---
     const char* previewValue = "Unknown";

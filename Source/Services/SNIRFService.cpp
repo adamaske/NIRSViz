@@ -17,6 +17,7 @@ bool SNIRFService::Load(const std::filesystem::path& path) {
 
 	return true;
 }
+
 void SNIRFService::Unload() {
 	snirf_.reset();
 };

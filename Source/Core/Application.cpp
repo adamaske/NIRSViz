@@ -33,8 +33,8 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	auto assets_path = exe_dir.parent_path().parent_path().parent_path() / "Assets";
 	AssetRegistry::Init(assets_path);
 	
-	ConfigStore::LoadFromDisk(AssetRegistry::Get("config.ini"));
 
+	ConfigStore::LoadFromDisk(AssetRegistry::Get("config.ini"));
 	FileDialogService::Init();
 	
 	WindowSpecification window_spec;
@@ -52,7 +52,6 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	ViewportManager::Init();
 
 	// --- Serives
-
 	snirf_service_ = CreateScope<SNIRFService>();
 	anatomy_service_ = CreateScope<AnatomyService>();
 

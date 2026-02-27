@@ -85,10 +85,7 @@ void AnatomySystem::OnEvent(Event& event)
 
 void AnatomySystem::RenderMenuBar()
 {
-	if (ImGui::BeginMenu("Anatomy"))
-	{
-
-
+	if (ImGui::BeginMenu("Anatomy")) {
 		if (ImGui::MenuItem("Load Cortex")) {
 			std::string path;
 			bool opened = FileDialogService::OpenFile(
@@ -113,13 +110,7 @@ void AnatomySystem::RenderMenuBar()
 	}
 }
 
-void AnatomySystem::SetupRendering()
-{
-	// We want to create the correct shaders
-
-	// Setup cold uniforms values
-
-	// Setup Coordinate System Generator - Rendering Component
+void AnatomySystem::SetupRendering() {
 	phong_shader_ = CreateRef<Shader>(
 		AssetRegistry::Get("Phong.vert"),
 		AssetRegistry::Get("Phong.frag")
@@ -129,8 +120,6 @@ void AnatomySystem::SetupRendering()
 		AssetRegistry::Get("FlatColor.vert"),
 		AssetRegistry::Get("FlatColor.frag")
 	);
-
-
 }
 
 void AnatomySystem::RenderAnatomy()
@@ -209,10 +198,11 @@ void AnatomySystem::RenderAnatomy()
 
 
 void AnatomySystem::StopRenderingAnatomy() {
-
+	// TODO : Implement this function to stop rendering anatomy, e.g. by setting visibility flags or clearing render queues.
 };
-void AnatomySystem::StartRenderingAnatomy() {
 
+void AnatomySystem::StartRenderingAnatomy() {
+	// TODO : Implement this function to start rendering anatomy, e.g. by setting visibility flags or initializing render queues.
 };
 
 void AnatomySystem::GenerateCoordinateSystem(){

@@ -8,17 +8,14 @@
 // ══════════════════════════════════════════════════════════════
 // Singleton
 // ══════════════════════════════════════════════════════════════
-
 ConfigStore& ConfigStore::Instance() {
 	static ConfigStore instance;
 	return instance;
 }
 
-
 // ══════════════════════════════════════════════════════════════
 // Core API
 // ══════════════════════════════════════════════════════════════
-
 void ConfigStore::Set(const std::string& key, Value value) {
 	Instance().entries_[key] = std::move(value);
 }
@@ -115,7 +112,6 @@ bool ConfigStore::SaveToDisk(const std::filesystem::path& filepath) {
 // ══════════════════════════════════════════════════════════════
 // Disk I/O — Load
 // ══════════════════════════════════════════════════════════════
-
 bool ConfigStore::LoadFromDisk(const std::filesystem::path& filepath) {
 	NVIZ_PROFILE_FUNCTION();
 
@@ -177,7 +173,6 @@ bool ConfigStore::LoadFromDisk(const std::filesystem::path& filepath) {
 // ══════════════════════════════════════════════════════════════
 // Serialization
 // ══════════════════════════════════════════════════════════════
-
 std::string ConfigStore::GetTypeTag(const Value& value) {
 	return std::visit([](const auto& v) -> std::string {
 		using T = std::decay_t<decltype(v)>;
