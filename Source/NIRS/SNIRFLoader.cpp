@@ -28,13 +28,38 @@ bool LoadSNIRF(const std::filesystem::path& filepath,
     for (auto& tag : raw.metadata.tags)
         out.metadata.tags.push_back({ tag.key, tag.value });
 
+    // ---- Probe scale detection ----
+    // 1 OpenGL unit = 1 mm. SNIRF files may store positions in m, cm, or mm.
+    // Heuristic: mean absolute value of all 3D coordinates across every optode.
+    //   < 1.5  => metres  => x1000
+    //   < 15   => cm      => x10
+    //   else   => already mm
+    float probe_scale = 1.0f;
+    {
+        double sum = 0.0;
+        int    n   = 0;
+        for (auto& [id, opt] : raw.probe.sources) {
+            sum += std::abs(opt.position_3d[0]) + std::abs(opt.position_3d[1]) + std::abs(opt.position_3d[2]);
+            n   += 3;
+        }
+        for (auto& [id, opt] : raw.probe.detectors) {
+            sum += std::abs(opt.position_3d[0]) + std::abs(opt.position_3d[1]) + std::abs(opt.position_3d[2]);
+            n   += 3;
+        }
+        if (n > 0) {
+            double mean_abs = sum / n;
+            if      (mean_abs < 1.5)  probe_scale = 1000.0f;  // m -> mm
+            else if (mean_abs < 15.0) probe_scale = 10.0f;    // cm -> mm
+        }
+    }
+
     // ---- Probe: sources ----
     for (auto& [id, opt] : raw.probe.sources) {
         Probe::Optode o;
         o.type        = Probe::SOURCE;
         o.id          = id;
-        o.position_2D = glm::vec2(opt.position_2d[0], opt.position_2d[1]);
-        o.position_3D = glm::vec3(opt.position_3d[0], opt.position_3d[1], opt.position_3d[2]);
+        o.position_2D = glm::vec2(opt.position_2d[0], opt.position_2d[1]) * probe_scale;
+        o.position_3D = glm::vec3(opt.position_3d[0], opt.position_3d[1], opt.position_3d[2]) * probe_scale;
         out.probe.sources[id] = o;
     }
 
@@ -43,8 +68,8 @@ bool LoadSNIRF(const std::filesystem::path& filepath,
         Probe::Optode o;
         o.type        = Probe::DETECTOR;
         o.id          = id;
-        o.position_2D = glm::vec2(opt.position_2d[0], opt.position_2d[1]);
-        o.position_3D = glm::vec3(opt.position_3d[0], opt.position_3d[1], opt.position_3d[2]);
+        o.position_2D = glm::vec2(opt.position_2d[0], opt.position_2d[1]) * probe_scale;
+        o.position_3D = glm::vec3(opt.position_3d[0], opt.position_3d[1], opt.position_3d[2]) * probe_scale;
         out.probe.detectors[id] = o;
     }
 
