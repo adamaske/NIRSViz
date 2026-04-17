@@ -289,9 +289,9 @@ void ProjectionSystem::RenderProjectionSettings(bool standalone)
 	ImGui::NextColumn();
 
 	ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.45f);
-	ImGui::DragFloat("##StrengthMin", &settings_.StrengthMin, 0.01f, -10.0f, 0.0f);
+	ImGui::DragFloat("##StrengthMin", &settings_.StrengthMin, 0.000001f, -10.0f, 0.0f, "%.8f");
 	ImGui::SameLine();
-	ImGui::DragFloat("##StrengthMax", &settings_.StrengthMax, 0.01f, 0.0f, 10.0f);
+	ImGui::DragFloat("##StrengthMax", &settings_.StrengthMax, 0.000001f, 0.0f, 10.0f, "%.8f");
 	ImGui::PopItemWidth();
 	ImGui::NextColumn();
 

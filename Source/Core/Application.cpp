@@ -56,7 +56,7 @@ Application::Application(const ApplicationSpecification& spec) : specification_(
 	anatomy_service_ = CreateScope<AnatomyService>();
 
 	// DEV: Uncomment to load test data on startup:
-	snirf_service_->Load(AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf")); //AssetRegistry::Get("C:\\dev\\NIRS_Cardiac_Analysis\\data\\second_patient\\2026-01-21_001_cardiogenic.snirf"));
+	snirf_service_->Load("C:\\dev\\walking-fnirs\\elise_processed_stand_with_stim.snirf");// AssetRegistry::Get("sub01_trial03_TRIM_BP_ZNORM_TDDR.snirf"));
 	anatomy_service_->LoadHead(AssetRegistry::Get("scalp.obj"));
 	anatomy_service_->LoadCortex(AssetRegistry::Get("sub-116_anat_low_normals.obj"));
 
